@@ -1,0 +1,81 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: hangyi-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://hangyi-auth
+          predicates:
+            - Path=/api/auth/**, /api/users/**, /api/roles/**, /api/permissions/**
+          filters:
+            - StripPrefix=0
+
+        - id: employee-service
+          uri: lb://hangyi-employee
+          predicates:
+            - Path=/api/employees/**, /api/groups/**, /api/qualifications/**, /api/aircraft-types/**
+          filters:
+            - StripPrefix=0
+
+        - id: schedule-service
+          uri: lb://hangyi-schedule
+          predicates:
+            - Path=/api/schedules/**, /api/schedule-changes/**, /api/shifts/**, /api/schedule-rules/**
+          filters:
+            - StripPrefix=0
+
+        - id: flight-service
+          uri: lb://hangyi-flight
+          predicates:
+            - Path=/api/flights/**
+          filters:
+            - StripPrefix=0
+
+        - id: leave-service
+          uri: lb://hangyi-leave
+          predicates:
+            - Path=/api/leaves/**
+          filters:
+            - StripPrefix=0
+
+        - id: dashboard-service
+          uri: lb://hangyi-dashboard
+          predicates:
+            - Path=/api/dashboard/**
+          filters:
+            - StripPrefix=0
+
+        - id: ai-service
+          uri: lb://hangyi-ai
+          predicates:
+            - Path=/api/ai/**
+          filters:
+            - StripPrefix=0
+
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+              replenishRate: 100
+              burstCapacity: 200
+              requestedTokens: 1
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 5000
+
+jwt:
+  secret: hangyi-airport-scheduling-system-secret-key-2026
+
+logging:
+  level:
+    com.qyf.hangyi.gateway: debug

@@ -1,0 +1,1 @@
+import{r as e}from"./request-Yx3sh4J5.js";function i(){return e.get("/shifts/list")}function r(t){return e.post("/shifts",t)}function f(t){return e.put("/shifts",t)}function n(t){return e.delete(`/shifts/${t}`)}export{r as c,n as d,i as g,f as u};

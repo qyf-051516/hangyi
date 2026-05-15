@@ -1,0 +1,247 @@
+# ============================================
+# 航翼排班 · Docker Compose (微服务版)
+# ============================================
+
+services:
+
+  # ===== 数据库 =====
+  mysql:
+    image: mysql:8.0
+    container_name: hangyi-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: hangyi123
+      MYSQL_DATABASE: hangyi_scheduling
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/charset.cnf:/etc/mysql/conf.d/charset.cnf:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-phangyi123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: hangyi-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== Nacos 注册中心 & 配置中心 =====
+  nacos:
+    image: nacos/nacos-server:v2.4.3
+    container_name: hangyi-nacos
+    restart: unless-stopped
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ===== Ollama (Spring AI) =====
+  ollama:
+    image: ollama/ollama:0.5.4
+    container_name: hangyi-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    entrypoint: >
+      sh -c "ollama serve & sleep 5 && ollama pull qwen2.5:7b && wait"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== API 网关 =====
+  gateway:
+    build:
+      context: ./hangyi-gateway
+      dockerfile: Dockerfile
+    container_name: hangyi-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      nacos:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  # ===== 认证服务 =====
+  auth-service:
+    build:
+      context: ./hangyi-auth
+      dockerfile: Dockerfile
+    container_name: hangyi-auth
+    restart: unless-stopped
+    ports:
+      - "8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: hangyi123
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  # ===== 人员服务 =====
+  employee-service:
+    build:
+      context: ./hangyi-employee
+      dockerfile: Dockerfile
+    container_name: hangyi-employee
+    restart: unless-stopped
+    ports:
+      - "8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: hangyi123
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  # ===== 排班服务（核心 + Timefold 求解器） =====
+  schedule-service:
+    build:
+      context: ./hangyi-schedule
+      dockerfile: Dockerfile
+    container_name: hangyi-schedule
+    restart: unless-stopped
+    ports:
+      - "8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: hangyi123
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+      employee-service:
+        condition: service_started
+
+  # ===== 航班服务 =====
+  flight-service:
+    build:
+      context: ./hangyi-flight
+      dockerfile: Dockerfile
+    container_name: hangyi-flight
+    restart: unless-stopped
+    ports:
+      - "8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: hangyi123
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  # ===== 请假服务 =====
+  leave-service:
+    build:
+      context: ./hangyi-leave
+      dockerfile: Dockerfile
+    container_name: hangyi-leave
+    restart: unless-stopped
+    ports:
+      - "8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: hangyi123
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  # ===== 仪表盘服务 =====
+  dashboard-service:
+    build:
+      context: ./hangyi-dashboard
+      dockerfile: Dockerfile
+    container_name: hangyi-dashboard
+    restart: unless-stopped
+    ports:
+      - "8086"
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  # ===== AI 服务 =====
+  ai-service:
+    build:
+      context: ./hangyi-ai
+      dockerfile: Dockerfile
+    container_name: hangyi-ai
+    restart: unless-stopped
+    ports:
+      - "8087"
+    environment:
+      SPRING_AI_OLLAMA_BASE-URL: http://ollama:11434
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+    depends_on:
+      ollama:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+
+  # ===== 前端 (Nginx) =====
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: hangyi-frontend
+    restart: unless-stopped
+    ports:
+      - "8089:80"
+    depends_on:
+      - gateway
+
+volumes:
+  mysql-data:
+  redis-data:
+  ollama-data:

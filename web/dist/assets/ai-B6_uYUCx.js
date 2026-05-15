@@ -1,0 +1,1 @@
+import{r as e}from"./request-Yx3sh4J5.js";function s(t){return e.post("/ai/scheduling-suggestions",t)}function i(t){return e.post("/ai/query",{query:t})}function o(t){return e.post("/ai/conflict-detection",t)}export{i as a,o as d,s as g};

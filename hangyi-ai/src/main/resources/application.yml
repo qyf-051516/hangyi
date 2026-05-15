@@ -1,0 +1,38 @@
+server:
+  port: 8087
+spring:
+  application:
+    name: hangyi-ai
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        model: qwen2.5:7b
+        options:
+          temperature: 0.3
+logging:
+  level:
+    com.qyf.hangyi.ai: debug
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+    openfeign:
+      client:
+        config:
+          hangyi-employee:
+            url: http://localhost:8082
+          hangyi-schedule:
+            url: http://localhost:8083
+          hangyi-flight:
+            url: http://localhost:8084
