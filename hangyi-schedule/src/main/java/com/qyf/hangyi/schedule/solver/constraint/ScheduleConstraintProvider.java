@@ -70,7 +70,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                         Joiners.equal(a -> a.getWorkDate().plusDays(1),
                                 b -> b.getWorkDate()))
                 .filter((night, next) -> next.getShift() != null
-                        && "MORNING".equals(next.getShift().getShiftCode()))
+                        && "MORNING".equals(next.getShift().getShiftType()))
                 .penalize(HardSoftScore.ofHard(1))
                 .asConstraint("No night to morning shift");
     }

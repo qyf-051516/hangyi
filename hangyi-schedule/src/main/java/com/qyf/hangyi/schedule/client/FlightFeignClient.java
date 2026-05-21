@@ -14,5 +14,5 @@ public interface FlightFeignClient {
     R<Map<String, Object>> page(
             @RequestParam("page") int page,
             @RequestParam("size") int size,
-            @RequestParam("date") String date);
+            @RequestParam(value = "date", required = false) String date);
 }

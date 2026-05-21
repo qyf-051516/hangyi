@@ -11,49 +11,49 @@ spring:
     gateway:
       routes:
         - id: auth-service
-          uri: lb://hangyi-auth
+          uri: http://auth-service:8081
           predicates:
             - Path=/api/auth/**, /api/users/**, /api/roles/**, /api/permissions/**
           filters:
             - StripPrefix=0
 
         - id: employee-service
-          uri: lb://hangyi-employee
+          uri: http://employee-service:8082
           predicates:
             - Path=/api/employees/**, /api/groups/**, /api/qualifications/**, /api/aircraft-types/**
           filters:
             - StripPrefix=0
 
         - id: schedule-service
-          uri: lb://hangyi-schedule
+          uri: http://schedule-service:8083
           predicates:
             - Path=/api/schedules/**, /api/schedule-changes/**, /api/shifts/**, /api/schedule-rules/**
           filters:
             - StripPrefix=0
 
         - id: flight-service
-          uri: lb://hangyi-flight
+          uri: http://flight-service:8084
           predicates:
             - Path=/api/flights/**
           filters:
             - StripPrefix=0
 
         - id: leave-service
-          uri: lb://hangyi-leave
+          uri: http://leave-service:8085
           predicates:
             - Path=/api/leaves/**
           filters:
             - StripPrefix=0
 
         - id: dashboard-service
-          uri: lb://hangyi-dashboard
+          uri: http://dashboard-service:8086
           predicates:
             - Path=/api/dashboard/**
           filters:
             - StripPrefix=0
 
         - id: ai-service
-          uri: lb://hangyi-ai
+          uri: http://ai-service:8087
           predicates:
             - Path=/api/ai/**
           filters:
@@ -74,8 +74,34 @@ spring:
       timeout: 5000
 
 jwt:
-  secret: hangyi-airport-scheduling-system-secret-key-2026
+  secret: ${JWT_SECRET:hangyi-airport-scheduling-system-secret-key-2026}
 
 logging:
   level:
     com.qyf.hangyi.gateway: debug
+    org.springframework.cloud.gateway: trace
+    org.springframework.security: trace
+    reactor.netty: debug
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: lb://hangyi-auth
+        - id: employee-service
+          uri: lb://hangyi-employee
+        - id: schedule-service
+          uri: lb://hangyi-schedule
+        - id: flight-service
+          uri: lb://hangyi-flight
+        - id: leave-service
+          uri: lb://hangyi-leave
+        - id: dashboard-service
+          uri: lb://hangyi-dashboard
+        - id: ai-service
+          uri: lb://hangyi-ai

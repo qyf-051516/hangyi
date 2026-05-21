@@ -56,7 +56,6 @@ public class SuggestionService {
 
             Map<String, Object> result = new HashMap<>();
             result.put("suggestions", suggestions);
-            result.put("raw", aiResponse);
             result.put("model", "ollama/qwen2.5");
             result.put("dataSummary", Map.of(
                     "employeeCount", extractCount(employeeData, "员工"),
@@ -133,7 +132,6 @@ public class SuggestionService {
 
             Map<String, Object> result = new HashMap<>();
             result.put("conflicts", conflicts);
-            result.put("raw", aiResponse);
             result.put("totalCount", conflicts.size());
             return result;
         } catch (Exception e) {

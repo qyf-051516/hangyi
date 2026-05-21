@@ -128,7 +128,11 @@ public class ScheduleExportService {
         if (response.getData() == null) return Map.of();
 
         Map<Long, String> nameMap = new HashMap<>();
-        for (Map<String, Object> emp : (List<Map<String, Object>>) response.getData()) {
+        Object dataObj = response.getData();
+        if (!(dataObj instanceof List)) return nameMap;
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> dataList = (List<Map<String, Object>>) dataObj;
+        for (Map<String, Object> emp : dataList) {
             Object id = emp.get("id");
             Object empNo = emp.get("empNo");
             Object name = emp.get("name");

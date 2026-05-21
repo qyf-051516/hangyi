@@ -118,11 +118,7 @@ public class ScheduleController {
     @GetMapping("/stats/today")
     public R<Map<String, Object>> getTodayStats() {
         LocalDate today = LocalDate.now();
-        long onDuty = scheduleService.getBaseMapper().selectCount(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Schedule>()
-                        .eq(Schedule::getStatus, 1)
-                        .le(Schedule::getStartDate, today)
-                        .ge(Schedule::getEndDate, today));
-        return R.ok(Map.of("todayOnDuty", (int) onDuty));
+        int onDuty = scheduleService.countOnDutyToday(today);
+        return R.ok(Map.of("todayOnDuty", onDuty));
     }
 }

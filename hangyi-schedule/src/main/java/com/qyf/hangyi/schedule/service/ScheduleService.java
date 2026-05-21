@@ -90,15 +90,16 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
             schedule.setCreatedBy(userId);
             this.save(schedule);
 
-            // 保存排班明细
+            // 保存排班明细（包含休息记录，保证排班视图完整）
             List<ScheduleDetail> details = solution.getShiftAssignments().stream()
-                    .filter(a -> a.getShift() != null && !"REST".equals(a.getShift().getShiftType()))
+                    .filter(a -> a.getShift() != null)
                     .map(a -> {
                         ScheduleDetail d = new ScheduleDetail();
                         d.setScheduleId(schedule.getId());
                         d.setEmployeeId(a.getEmployee().getId());
                         d.setWorkDate(a.getWorkDate());
                         d.setShiftId(a.getShift().getId());
+                        d.setShiftGroup(a.getShift().getShiftType());
                         d.setScheduleType("AUTO");
                         return d;
                     })
@@ -302,4 +303,27 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
         }
         return result;
     }
+
+    /**
+     * 统计今日在岗人数（已发布排班中今天有排班记录的员工数，含去重）
+     */
+    public int countOnDutyToday(LocalDate today) {
+        List<Schedule> activeSchedules = this.lambdaQuery()
+                .eq(Schedule::getStatus, 1)
+                .le(Schedule::getStartDate, today)
+                .ge(Schedule::getEndDate, today)
+                .list();
+        if (activeSchedules.isEmpty()) return 0;
+        List<Long> scheduleIds = activeSchedules.stream()
+                .map(Schedule::getId)
+                .collect(Collectors.toList());
+        return detailMapper.selectList(
+                new LambdaQueryWrapper<ScheduleDetail>()
+                        .select(ScheduleDetail::getEmployeeId)
+                        .eq(ScheduleDetail::getWorkDate, today)
+                        .in(ScheduleDetail::getScheduleId, scheduleIds)
+                        .groupBy(ScheduleDetail::getEmployeeId)
+        ).size();
+    }
+
 }

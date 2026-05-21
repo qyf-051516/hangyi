@@ -295,6 +295,15 @@ INSERT INTO sys_role (role_code, role_name, description) VALUES
 ('STAFF', '普通员工', '一线机务/地勤人员，查看个人排班和申请调班');
 
 -- -----------------------------------------------------------
+-- 初始化数据：默认管理员用户 (密码: 123456)
+-- -----------------------------------------------------------
+INSERT INTO sys_user (username, password, real_name, phone) VALUES
+('admin', '$2a$10$n9kgTE8.LRKToOD4LBPZP.3cNI5mSnmrTb4M3gVUHIG5IA7k36a5m', '系统管理员', '13800000000');
+
+INSERT INTO sys_user_role (user_id, role_id) VALUES
+(1, 1);
+
+-- -----------------------------------------------------------
 -- 初始化数据：班次模板
 -- -----------------------------------------------------------
 INSERT INTO shift_template (shift_code, shift_name, start_time, end_time, shift_type, color) VALUES

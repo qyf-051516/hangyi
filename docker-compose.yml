@@ -55,6 +55,7 @@ services:
 
   # ===== Ollama (Spring AI) =====
   ollama:
+    profiles: ["ai"]
     image: ollama/ollama:0.5.4
     container_name: hangyi-ollama
     restart: unless-stopped
@@ -73,15 +74,16 @@ services:
   # ===== API 网关 =====
   gateway:
     build:
-      context: ./hangyi-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-gateway/Dockerfile
     container_name: hangyi-gateway
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
       SPRING_DATA_REDIS_HOST: redis
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
     depends_on:
       nacos:
         condition: service_started
@@ -91,8 +93,8 @@ services:
   # ===== 认证服务 =====
   auth-service:
     build:
-      context: ./hangyi-auth
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-auth/Dockerfile
     container_name: hangyi-auth
     restart: unless-stopped
     ports:
@@ -101,7 +103,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: hangyi123
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       mysql:
         condition: service_healthy
@@ -111,8 +114,8 @@ services:
   # ===== 人员服务 =====
   employee-service:
     build:
-      context: ./hangyi-employee
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-employee/Dockerfile
     container_name: hangyi-employee
     restart: unless-stopped
     ports:
@@ -121,7 +124,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: hangyi123
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       mysql:
         condition: service_healthy
@@ -131,8 +135,8 @@ services:
   # ===== 排班服务（核心 + Timefold 求解器） =====
   schedule-service:
     build:
-      context: ./hangyi-schedule
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-schedule/Dockerfile
     container_name: hangyi-schedule
     restart: unless-stopped
     ports:
@@ -142,7 +146,7 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: hangyi123
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       mysql:
         condition: service_healthy
@@ -156,8 +160,8 @@ services:
   # ===== 航班服务 =====
   flight-service:
     build:
-      context: ./hangyi-flight
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-flight/Dockerfile
     container_name: hangyi-flight
     restart: unless-stopped
     ports:
@@ -166,7 +170,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: hangyi123
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       mysql:
         condition: service_healthy
@@ -176,8 +181,8 @@ services:
   # ===== 请假服务 =====
   leave-service:
     build:
-      context: ./hangyi-leave
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-leave/Dockerfile
     container_name: hangyi-leave
     restart: unless-stopped
     ports:
@@ -186,7 +191,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: hangyi123
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration,org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       mysql:
         condition: service_healthy
@@ -196,15 +202,15 @@ services:
   # ===== 仪表盘服务 =====
   dashboard-service:
     build:
-      context: ./hangyi-dashboard
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-dashboard/Dockerfile
     container_name: hangyi-dashboard
     restart: unless-stopped
     ports:
       - "8086"
     environment:
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       redis:
         condition: service_healthy
@@ -213,16 +219,17 @@ services:
 
   # ===== AI 服务 =====
   ai-service:
+    profiles: ["ai"]
     build:
-      context: ./hangyi-ai
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: hangyi-ai/Dockerfile
     container_name: hangyi-ai
     restart: unless-stopped
     ports:
       - "8087"
     environment:
       SPRING_AI_OLLAMA_BASE-URL: http://ollama:11434
-      SPRING_CLOUD_NACOS_DISCOVERY_SERVER-ADDR: nacos:8848
+      SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: nacos:8848
     depends_on:
       ollama:
         condition: service_healthy

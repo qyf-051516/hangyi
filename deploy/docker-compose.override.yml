@@ -1,0 +1,41 @@
+# ============================================
+# 航翼排班 · 低内存服务器适配覆盖配置
+# ============================================
+services:
+
+  mysql:
+    command: mysqld --innodb-buffer-pool-size=256M --max-connections=50
+
+  nacos:
+    environment:
+      JVM_XMS: 128m
+      JVM_XMX: 256m
+      JVM_XMN: 64m
+
+  gateway:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx128m -Xms64m"
+
+  auth-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx128m -Xms64m"
+
+  employee-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx128m -Xms64m"
+
+  schedule-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx192m -Xms96m"
+
+  flight-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx128m -Xms64m"
+
+  leave-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx128m -Xms64m"
+
+  dashboard-service:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx128m -Xms64m"

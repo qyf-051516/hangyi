@@ -4,10 +4,12 @@ server:
 spring:
   application:
     name: hangyi-auth
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
   datasource:
     url: jdbc:mysql://localhost:3306/hangyi_scheduling?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
-    password: 123456
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
   cloud:
     nacos:
@@ -22,11 +24,11 @@ mybatis-plus:
       id-type: auto
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.nologging.NoLoggingImpl}
 
 jwt:
-  secret: hangyi-airport-scheduling-system-secret-key-2026
-  expiration: 86400000
+  secret: ${JWT_SECRET:hangyi-airport-scheduling-system-secret-key-2026}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 logging:
   level:

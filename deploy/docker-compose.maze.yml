@@ -1,0 +1,13 @@
+# ============================================
+# Maze-Astar · 迷宫寻路服务配置
+# 使用: docker compose -f docker-compose.maze.yml up -d maze-astar
+# ============================================
+services:
+  maze-astar:
+    image: maze-astar:latest
+    container_name: maze-astar
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"

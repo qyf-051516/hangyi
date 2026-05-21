@@ -1,0 +1,51 @@
+#!/usr/bin/expect -f
+set timeout 300
+set ip "39.96.6.126"
+set user "root"
+set password "QYF202104533..qyf"
+
+# ========== 1. SSH - 创建目录 ==========
+spawn ssh -o StrictHostKeyChecking=no $user@$ip
+expect {
+    "password:" { send "$password\r"; exp_continue }
+    "yes/no"    { send "yes\r"; exp_continue }
+}
+expect "#"
+send "mkdir -p /root/maze\r"
+expect "#"
+send "exit\r"
+expect eof
+
+# ========== 2. SCP 上传镜像和配置 ==========
+spawn scp -o StrictHostKeyChecking=no /tmp/maze-astar.tar.gz /Users/qyf/hangyi-deploy/docker-compose.maze.yml $user@$ip:/root/maze/
+expect {
+    "password:" { send "$password\r"; exp_continue }
+    "yes/no"    { send "yes\r"; exp_continue }
+    eof
+}
+expect eof
+
+# ========== 3. SSH - 加载镜像 + 启动 ==========
+spawn ssh -o StrictHostKeyChecking=no $user@$ip
+expect {
+    "password:" { send "$password\r"; exp_continue }
+    "yes/no"    { send "yes\r"; exp_continue }
+}
+expect "#"
+
+send "cd /root/maze\r"
+expect "#"
+
+send "docker load < maze-astar.tar.gz\r"
+expect "#"
+
+send "docker compose -f docker-compose.maze.yml up -d maze-astar\r"
+expect "#"
+
+send "echo '--- checking ---'\r"
+expect "#"
+send "docker ps --filter name=maze-astar --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'\r"
+expect "#"
+
+send "exit\r"
+expect eof
