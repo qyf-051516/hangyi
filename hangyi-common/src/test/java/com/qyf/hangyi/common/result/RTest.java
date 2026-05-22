@@ -2,7 +2,11 @@ package com.qyf.hangyi.common.result;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 class RTest {
 
@@ -50,5 +54,6 @@ class RTest {
     void testTimestampAutoSet() {
         R<String> r = R.ok("data");
         assertThat(r.getTimestamp()).isNotNull();
+        assertThat(r.getTimestamp()).isCloseTo(LocalDateTime.now(), within(1, ChronoUnit.SECONDS));
     }
 }

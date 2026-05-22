@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JwtUtilTest {
 
     private JwtUtil jwtUtil;
-    private static final String SECRET = "test-jwt-secret-key-for-unit-testing-must-be-32chars";
+    private static final String SECRET = "test-jwt-secret-key-for-unit-testing";
 
     @BeforeEach
     void setUp() {
