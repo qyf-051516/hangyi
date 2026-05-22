@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:test;MODE=MYSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      schema-locations: classpath:sql/schema.sql
+      mode: always
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+mybatis-plus:
+  type-aliases-package: com.qyf.hangyi.auth.entity
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: test-jwt-secret-key-for-unit-testing
+  expiration: 86400000
