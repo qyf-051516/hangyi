@@ -54,7 +54,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void testLogin_MissingUsername_Return400() throws Exception {
+    void testLogin_MissingUsername_ReturnBusiness400() throws Exception {
         LoginRequest request = new LoginRequest();
         request.setPassword("123456");
 
