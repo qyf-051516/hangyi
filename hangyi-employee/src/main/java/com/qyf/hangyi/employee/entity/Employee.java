@@ -1,6 +1,8 @@
 package com.qyf.hangyi.employee.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -14,8 +16,11 @@ public class Employee {
     private Long id;
 
     private Long userId;
+    @NotNull(message = "班组ID不能为空")
     private Long groupId;
+    @NotBlank(message = "员工编号不能为空")
     private String empNo;
+    @NotBlank(message = "员工姓名不能为空")
     private String name;
     private String idCard;
     private String phone;

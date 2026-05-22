@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.employee.entity.Employee;
 import com.qyf.hangyi.employee.service.EmployeeService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,7 +58,7 @@ public class EmployeeController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody Employee employee) {
+    public R<Void> create(@Valid @RequestBody Employee employee) {
         employeeService.save(employee);
         return R.ok();
     }

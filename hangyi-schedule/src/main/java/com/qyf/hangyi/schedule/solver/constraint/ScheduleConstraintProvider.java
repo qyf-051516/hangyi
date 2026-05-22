@@ -47,7 +47,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
     /**
      * 硬约束1：不能连续两个夜班
      */
-    private Constraint noConsecutiveNightShifts(ConstraintFactory factory) {
+    Constraint noConsecutiveNightShifts(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(ShiftAssignment::isNightShift)
                 .join(ShiftAssignment.class,
@@ -62,7 +62,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
     /**
      * 硬约束2：夜班（00:00-08:00）后不能接早班（08:00-16:00）
      */
-    private Constraint noNightToMorning(ConstraintFactory factory) {
+    Constraint noNightToMorning(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(ShiftAssignment::isNightShift)
                 .join(ShiftAssignment.class,
@@ -79,7 +79,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
      * 硬约束3：每人每周至少休息2天
      * 按自然周统计（通过周序号分组）
      */
-    private Constraint minRestDaysPerWeek(ConstraintFactory factory) {
+    Constraint minRestDaysPerWeek(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(ShiftAssignment::isRest)
                 .groupBy(ShiftAssignment::getEmployee,
@@ -95,7 +95,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
      * 硬约束4：每人每周休息不超过2天（必须工作至少5天）
      * 与硬约束3配合形成精确的"工作5天+休息2天"节奏
      */
-    private Constraint maxRestDaysPerWeek(ConstraintFactory factory) {
+    Constraint maxRestDaysPerWeek(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(ShiftAssignment::isRest)
                 .groupBy(ShiftAssignment::getEmployee,
@@ -111,7 +111,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
      * 硬约束5：每人每周总工时不超过上限
      * 按周汇总每个员工的工作时长，超过上限则惩罚
      */
-    private Constraint maxWeeklyHours(ConstraintFactory factory) {
+    Constraint maxWeeklyHours(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(a -> !a.isRest())
                 .groupBy(ShiftAssignment::getEmployee,
@@ -132,7 +132,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
     /**
      * 软约束5：周末排班均衡 —— 每个员工周末班次数量差异尽量小
      */
-    private Constraint balanceWeekendShifts(ConstraintFactory factory) {
+    Constraint balanceWeekendShifts(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(a -> !a.isRest())
                 .filter(ShiftAssignment::isWeekend)
@@ -147,7 +147,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
      * 软约束6：班组内总工时尽量均衡
      * 对总工时较高的员工施加平方惩罚，以减少差异
      */
-    private Constraint balanceTotalHours(ConstraintFactory factory) {
+    Constraint balanceTotalHours(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(a -> !a.isRest())
                 .groupBy(ShiftAssignment::getEmployee,
@@ -161,7 +161,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
      * 软约束7：尽量安排连续相同班次（减少切换成本）
      * 相邻两天安排不同班次类型则轻微惩罚
      */
-    private Constraint preferSameShiftType(ConstraintFactory factory) {
+    Constraint preferSameShiftType(ConstraintFactory factory) {
         return factory.forEach(ShiftAssignment.class)
                 .filter(a -> !a.isRest())
                 .join(ShiftAssignment.class,

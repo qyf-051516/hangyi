@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qyf.hangyi.common.exception.BusinessException;
 import com.qyf.hangyi.schedule.client.EmployeeFeignClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.qyf.hangyi.schedule.client.FlightFeignClient;
 import com.qyf.hangyi.schedule.client.QualificationFeignClient;
 import com.qyf.hangyi.schedule.dto.ScheduleDetailVO;
@@ -17,9 +19,6 @@ import com.qyf.hangyi.schedule.mapper.ShiftTemplateMapper;
 import com.qyf.hangyi.schedule.solver.domain.ScheduleSolution;
 import com.qyf.hangyi.schedule.solver.domain.ShiftAssignment;
 import com.qyf.hangyi.schedule.solver.service.ScheduleSolverService;
-import org.apache.ibatis.session.ExecutorType;
-import org.apache.ibatis.session.SqlSession;
-import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +30,8 @@ import java.util.stream.Collectors;
 @Service
 public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
 
+    private static final Logger log = LoggerFactory.getLogger(ScheduleService.class);
+
     @Autowired
     private ScheduleSolverService solverService;
 
@@ -39,9 +40,6 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
 
     @Autowired
     private ShiftTemplateMapper shiftTemplateMapper;
-
-    @Autowired
-    private SqlSessionFactory sqlSessionFactory;
 
     @Autowired
     private EmployeeFeignClient employeeFeignClient;
@@ -107,22 +105,13 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
             if (details.isEmpty()) {
                 throw new BusinessException("排班结果为空，请检查员工和班次配置");
             }
-            this.saveBatch(details);
+            for (ScheduleDetail d : details) {
+                detailMapper.insert(d);
+            }
 
             return schedule;
         } catch (RuntimeException e) {
             throw new BusinessException("排班计算失败: " + e.getMessage());
-        }
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void saveBatch(List<ScheduleDetail> details) {
-        try (SqlSession session = sqlSessionFactory.openSession(ExecutorType.BATCH)) {
-            ScheduleDetailMapper batchMapper = session.getMapper(ScheduleDetailMapper.class);
-            for (ScheduleDetail d : details) {
-                batchMapper.insert(d);
-            }
-            session.commit();
         }
     }
 
@@ -138,13 +127,17 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                 .eq(ScheduleDetail::getWorkDate, date);
 
         if (groupId != null) {
-            var empResponse = employeeFeignClient.getEmployeesByGroup(groupId);
-            if (empResponse.getData() != null && !empResponse.getData().isEmpty()) {
-                List<Long> empIds = empResponse.getData().stream()
-                        .map(m -> ((Number) m.get("id")).longValue())
-                        .collect(Collectors.toList());
-                wrapper.in(ScheduleDetail::getEmployeeId, empIds);
-                wrapper.orderByAsc(ScheduleDetail::getEmployeeId);
+            try {
+                var empResponse = employeeFeignClient.getEmployeesByGroup(groupId);
+                if (empResponse.getData() != null && !empResponse.getData().isEmpty()) {
+                    List<Long> empIds = empResponse.getData().stream()
+                            .map(m -> ((Number) m.get("id")).longValue())
+                            .collect(Collectors.toList());
+                    wrapper.in(ScheduleDetail::getEmployeeId, empIds);
+                    wrapper.orderByAsc(ScheduleDetail::getEmployeeId);
+                }
+            } catch (Exception e) {
+                log.warn("获取班组员工失败, groupId: {}", groupId, e);
             }
         }
 
@@ -187,7 +180,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                     if (id != null) empMap.put(((Number) id).longValue(), e);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
 
         // 3. 缓存班次数据
         Map<Long, Map<String, Object>> shiftMap = new HashMap<>();
@@ -203,7 +198,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                 m.put("shiftType", s.getShiftType());
                 shiftMap.put(s.getId(), m);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
 
         // 4. 缓存所有员工的资质
         Map<Long, List<Map<String, Object>>> qualMap = new HashMap<>();
@@ -213,7 +210,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                 if (qualResp.getCode() == 200 && qualResp.getData() != null) {
                     qualMap.put(empId, qualResp.getData());
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
         }
 
         // 5. 组装结果
@@ -249,7 +248,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                     if (id != null) empMap.put(((Number) id).longValue(), e);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
 
         // 3. 缓存班次数据 (id -> shift map)
         Map<Long, Map<String, Object>> shiftMap = new HashMap<>();
@@ -265,7 +266,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                 m.put("shiftType", s.getShiftType());
                 shiftMap.put(s.getId(), m);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
 
         // 4. 获取当天航班数据
         List<Map<String, Object>> flights = new ArrayList<>();
@@ -277,7 +280,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                     flights = (List<Map<String, Object>>) records;
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
 
         // 5. 获取所有员工的资质（批量缓存）
         Map<Long, List<Map<String, Object>>> qualMap = new HashMap<>();
@@ -287,7 +292,9 @@ public class ScheduleService extends ServiceImpl<ScheduleMapper, Schedule> {
                 if (qualResp.getCode() == 200 && qualResp.getData() != null) {
                     qualMap.put(empId, qualResp.getData());
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.warn("Feign调用失败", e);
+            }
         }
 
         // 6. 组装结果

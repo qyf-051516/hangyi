@@ -3,6 +3,7 @@ package com.qyf.hangyi.employee.controller;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.employee.entity.EmployeePreference;
 import com.qyf.hangyi.employee.service.EmployeePreferenceService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class EmployeePreferenceController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody EmployeePreference pref) {
+    public R<Void> create(@Valid @RequestBody EmployeePreference pref) {
         preferenceService.save(pref);
         return R.ok();
     }

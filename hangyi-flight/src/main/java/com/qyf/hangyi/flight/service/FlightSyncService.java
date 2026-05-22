@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -71,6 +72,7 @@ public class FlightSyncService {
     /**
      * 手动同步：拉取指定日期的航班数据
      */
+    @Transactional(rollbackFor = Exception.class)
     public int syncFlights(LocalDate date) {
         log.info("开始同步航班数据，日期: {}", date);
         List<FlightPlan> flights = fetchFlightsFromAPI(date);

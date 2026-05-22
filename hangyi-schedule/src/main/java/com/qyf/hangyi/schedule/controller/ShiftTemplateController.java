@@ -3,6 +3,7 @@ package com.qyf.hangyi.schedule.controller;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.schedule.entity.ShiftTemplate;
 import com.qyf.hangyi.schedule.mapper.ShiftTemplateMapper;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +22,7 @@ public class ShiftTemplateController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody ShiftTemplate shift) {
+    public R<Void> create(@Valid @RequestBody ShiftTemplate shift) {
         shiftTemplateMapper.insert(shift);
         return R.ok();
     }

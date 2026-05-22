@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.employee.entity.TeamGroup;
 import com.qyf.hangyi.employee.mapper.TeamGroupMapper;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +28,7 @@ public class TeamGroupController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody TeamGroup group) {
+    public R<Void> create(@Valid @RequestBody TeamGroup group) {
         teamGroupMapper.insert(group);
         return R.ok();
     }

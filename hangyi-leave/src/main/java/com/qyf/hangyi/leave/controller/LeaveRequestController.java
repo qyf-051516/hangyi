@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.leave.entity.LeaveRequest;
 import com.qyf.hangyi.leave.mapper.LeaveRequestMapper;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class LeaveRequestController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody LeaveRequest leave) {
+    public R<Void> create(@Valid @RequestBody LeaveRequest leave) {
         leaveRequestMapper.insert(leave);
         return R.ok();
     }

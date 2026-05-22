@@ -6,6 +6,7 @@ import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.flight.entity.FlightPlan;
 import com.qyf.hangyi.flight.mapper.FlightPlanMapper;
 import com.qyf.hangyi.flight.service.FlightSyncService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -51,7 +52,7 @@ public class FlightPlanController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public R<Void> create(@RequestBody FlightPlan flight) {
+    public R<Void> create(@Valid @RequestBody FlightPlan flight) {
         flightPlanMapper.insert(flight);
         return R.ok();
     }

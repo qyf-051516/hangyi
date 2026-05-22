@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.schedule.entity.ScheduleChange;
 import com.qyf.hangyi.schedule.mapper.ScheduleChangeMapper;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +31,7 @@ public class ScheduleChangeController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody ScheduleChange change) {
+    public R<Void> create(@Valid @RequestBody ScheduleChange change) {
         scheduleChangeMapper.insert(change);
         return R.ok();
     }

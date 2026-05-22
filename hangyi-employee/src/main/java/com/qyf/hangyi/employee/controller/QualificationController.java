@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.employee.entity.EmployeeQualification;
 import com.qyf.hangyi.employee.service.QualificationService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,7 +44,7 @@ public class QualificationController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody EmployeeQualification qual) {
+    public R<Void> create(@Valid @RequestBody EmployeeQualification qual) {
         if (qual.getExpireDate() != null && qual.getExpireDate().isBefore(java.time.LocalDate.now())) {
             qual.setStatus(0);
         }

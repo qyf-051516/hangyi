@@ -3,6 +3,7 @@ package com.qyf.hangyi.employee.controller;
 import com.qyf.hangyi.common.result.R;
 import com.qyf.hangyi.employee.entity.AircraftType;
 import com.qyf.hangyi.employee.service.AircraftTypeService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,7 +27,7 @@ public class AircraftTypeController {
     }
 
     @PostMapping
-    public R<Void> create(@RequestBody AircraftType type) {
+    public R<Void> create(@Valid @RequestBody AircraftType type) {
         aircraftTypeService.save(type);
         return R.ok();
     }
