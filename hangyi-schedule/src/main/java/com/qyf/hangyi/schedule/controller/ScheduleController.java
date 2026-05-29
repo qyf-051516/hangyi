@@ -2,11 +2,15 @@ package com.qyf.hangyi.schedule.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qyf.hangyi.common.result.R;
+import com.qyf.hangyi.schedule.dto.MultiDayScheduleRequest;
+import com.qyf.hangyi.schedule.dto.RoleScheduleRequest;
 import com.qyf.hangyi.schedule.dto.ScheduleAutoRequest;
 import com.qyf.hangyi.schedule.dto.ScheduleDetailVO;
+import com.qyf.hangyi.schedule.dto.SmartScheduleRequest;
 import com.qyf.hangyi.schedule.entity.Schedule;
 import com.qyf.hangyi.schedule.entity.ScheduleDetail;
 import com.qyf.hangyi.schedule.service.ScheduleService;
+import com.qyf.hangyi.schedule.service.impl.SmartScheduleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +28,9 @@ public class ScheduleController {
 
     @Autowired
     private ScheduleService scheduleService;
+
+    @Autowired
+    private SmartScheduleService smartScheduleService;
 
     @GetMapping("/list")
     public R<List<Schedule>> list() {
@@ -120,5 +127,42 @@ public class ScheduleController {
         LocalDate today = LocalDate.now();
         int onDuty = scheduleService.countOnDutyToday(today);
         return R.ok(Map.of("todayOnDuty", onDuty));
+    }
+
+    @PostMapping("/smart")
+    public R<Map<String, Object>> smartSchedule(@Valid @RequestBody SmartScheduleRequest req) {
+        return R.ok(smartScheduleService.smartSchedule(req));
+    }
+
+    @PostMapping("/smart-multi-day")
+    public R<Map<String, Object>> smartScheduleMultiDay(@Valid @RequestBody MultiDayScheduleRequest req) {
+        return R.ok(smartScheduleService.smartScheduleMultiDay(req));
+    }
+
+    @PostMapping("/smart-roles")
+    public R<Map<String, Object>> smartScheduleWithRoles(@Valid @RequestBody RoleScheduleRequest req) {
+        return R.ok(smartScheduleService.smartScheduleWithRoles(req));
+    }
+
+    @PostMapping("/optimize")
+    public R<Map<String, Object>> optimizeStaffSchedule(@RequestBody Map<String, Object> payload) {
+        return R.ok(smartScheduleService.optimizeStaffSchedule(payload));
+    }
+
+    @PostMapping("/import-tsv")
+    public R<Map<String, Object>> importScheduleFromTSV(@RequestBody Map<String, String> body) {
+        return R.ok(smartScheduleService.importFromTSV(body.get("tsvContent"), body.get("scheduleDate")));
+    }
+
+    @PostMapping("/{id}/complete")
+    public R<Void> completeSchedule(@PathVariable Long id) {
+        smartScheduleService.completeSchedule(id);
+        return R.ok();
+    }
+
+    @GetMapping("/history")
+    public R<List<Map<String, Object>>> getScheduleHistory(
+            @RequestParam String scheduleDate) {
+        return R.ok(smartScheduleService.getScheduleHistory(scheduleDate));
     }
 }

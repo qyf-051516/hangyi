@@ -19,6 +19,10 @@ public class ScheduleDetail {
     private String shiftGroup;
     private String scheduleType;
     private String remark;
+    private Long flightId;
+    private String taskType;
+    private LocalDateTime taskStart;
+    private LocalDateTime taskEnd;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
