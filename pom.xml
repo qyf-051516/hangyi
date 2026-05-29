@@ -30,6 +30,7 @@
         <module>hangyi-ai</module>
         <module>hangyi-audit</module>
         <module>hangyi-swap</module>
+        <module>hangyi-statistics</module>
     </modules>
 
     <properties>
