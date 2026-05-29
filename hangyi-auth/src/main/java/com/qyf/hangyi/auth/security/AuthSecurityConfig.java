@@ -21,7 +21,7 @@ public class AuthSecurityConfig {
                     .securityContextRepository(new HeaderSecurityContextRepository())
                     .requireExplicitSave(true))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/sync/**").permitAll()
                         .anyRequest().authenticated()
                 );
         return http.build();

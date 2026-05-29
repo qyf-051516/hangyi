@@ -10,7 +10,7 @@ spring:
         - id: auth-service
           uri: http://localhost:8081
           predicates:
-            - Path=/api/auth/**, /api/users/**
+            - Path=/api/auth/**, /api/users/**, /api/sync/**, /api/reports/**
         - id: employee-service
           uri: http://localhost:8082
           predicates:

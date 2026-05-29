@@ -37,6 +37,35 @@ public class SysUserService {
             throw new BusinessException("用户名或密码错误");
         }
 
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new BusinessException("账号已被禁用");
+        }
+
+        return buildLoginResponse(user);
+    }
+
+    public LoginResponse wechatLogin(String openid) {
+        SysUser user = sysUserMapper.findByWechatOpenid(openid);
+        if (user == null) {
+            throw new BusinessException("微信账号未绑定，请先使用账号密码登录后绑定");
+        }
+
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new BusinessException("账号已被禁用");
+        }
+
+        return buildLoginResponse(user);
+    }
+
+    public SysUser getUserFromToken(String token) {
+        if (!jwtUtil.isTokenValid(token)) {
+            throw new BusinessException(401, "token无效或已过期");
+        }
+        Long userId = jwtUtil.getUserId(token);
+        return sysUserMapper.selectById(userId);
+    }
+
+    private LoginResponse buildLoginResponse(SysUser user) {
         List<String> roles = sysUserMapper.findRoleCodesByUserId(user.getId());
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roles);
 

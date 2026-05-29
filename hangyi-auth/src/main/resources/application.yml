@@ -30,6 +30,9 @@ jwt:
   secret: ${JWT_SECRET:hangyi-airport-scheduling-system-secret-key-2026}
   expiration: ${JWT_EXPIRATION:86400000}
 
+internal:
+  api-key: ${INTERNAL_API_KEY:guochuang-internal-api-key-2026}
+
 logging:
   level:
     com.qyf.hangyi.auth: debug

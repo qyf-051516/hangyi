@@ -14,4 +14,7 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
             "JOIN sys_role r ON r.id = ur.role_id " +
             "WHERE ur.user_id = #{userId}")
     List<String> findRoleCodesByUserId(Long userId);
+
+    @Select("SELECT * FROM sys_user WHERE wechat_openid = #{openid}")
+    SysUser findByWechatOpenid(String openid);
 }

@@ -11,6 +11,7 @@ CREATE TABLE sys_user (
     phone           VARCHAR(20)  COMMENT '手机号',
     email           VARCHAR(100) COMMENT '邮箱',
     avatar          VARCHAR(255) COMMENT '头像URL',
+    wechat_openid   VARCHAR(64)  COMMENT '微信OPENID（国创赛统一认证）',
     status          TINYINT      NOT NULL DEFAULT 1 COMMENT '状态 1=启用 0=禁用',
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

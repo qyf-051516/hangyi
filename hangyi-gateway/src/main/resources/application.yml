@@ -13,7 +13,7 @@ spring:
         - id: auth-service
           uri: http://auth-service:8081
           predicates:
-            - Path=/api/auth/**, /api/users/**, /api/roles/**, /api/permissions/**
+            - Path=/api/auth/**, /api/users/**, /api/roles/**, /api/permissions/**, /api/sync/**, /api/reports/**
           filters:
             - StripPrefix=0
 

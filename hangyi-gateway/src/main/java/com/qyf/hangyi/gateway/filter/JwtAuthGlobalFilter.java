@@ -21,6 +21,9 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     private static final List<String> WHITE_LIST = List.of(
             "/api/auth/login",
             "/api/auth/register",
+            "/api/auth/wechat-login",
+            "/api/auth/verify",
+            "/api/sync/",
             "/v3/api-docs",
             "/swagger-ui"
     );
