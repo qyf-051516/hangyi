@@ -39,6 +39,14 @@ CREATE TABLE schedule_detail (
     shift_group VARCHAR(20),
     schedule_type VARCHAR(20) DEFAULT 'AUTO',
     remark VARCHAR(255),
+    flight_id BIGINT,
+    task_type VARCHAR(20),
+    task_start DATETIME,
+    task_end DATETIME,
+    source VARCHAR(20) DEFAULT 'MANUAL',
+    record_status VARCHAR(20) DEFAULT 'active',
+    prep_time INT DEFAULT 30,
+    wrap_time INT DEFAULT 15,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -12,6 +12,7 @@ CREATE TABLE sys_user (
     phone VARCHAR(20),
     email VARCHAR(100),
     avatar VARCHAR(255),
+    wechat_openid VARCHAR(64),
     status INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

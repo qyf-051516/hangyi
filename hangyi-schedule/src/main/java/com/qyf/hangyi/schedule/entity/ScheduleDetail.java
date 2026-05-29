@@ -23,6 +23,10 @@ public class ScheduleDetail {
     private String taskType;
     private LocalDateTime taskStart;
     private LocalDateTime taskEnd;
+    private String source;
+    private String recordStatus;
+    private Integer prepTime;
+    private Integer wrapTime;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

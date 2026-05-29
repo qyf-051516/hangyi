@@ -13,6 +13,12 @@ CREATE TABLE flight_plan (
     gate VARCHAR(20),
     status VARCHAR(20) DEFAULT 'SCHEDULED',
     remark VARCHAR(255),
+    airline VARCHAR(50),
+    aircraft_type_name VARCHAR(100),
+    arrival_time TIME,
+    departure_time TIME,
+    stay_hours DECIMAL(5,2),
+    warning_flag BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
