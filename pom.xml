@@ -24,6 +24,7 @@
         <module>hangyi-auth</module>
         <module>hangyi-employee</module>
         <module>hangyi-schedule</module>
+        <module>hangyi-service-schedule</module>
         <module>hangyi-flight</module>
         <module>hangyi-leave</module>
         <module>hangyi-dashboard</module>
