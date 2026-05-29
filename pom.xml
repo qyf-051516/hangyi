@@ -28,6 +28,7 @@
         <module>hangyi-leave</module>
         <module>hangyi-dashboard</module>
         <module>hangyi-ai</module>
+        <module>hangyi-audit</module>
     </modules>
 
     <properties>
