@@ -31,6 +31,7 @@
         <module>hangyi-audit</module>
         <module>hangyi-swap</module>
         <module>hangyi-statistics</module>
+        <module>hangyi-compliance</module>
     </modules>
 
     <properties>
