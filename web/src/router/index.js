@@ -78,22 +78,34 @@ const routes = [
         meta: { title: '请假管理', icon: 'Edit' }
       },
       {
-        path: 'ai/suggestions',
-        name: 'AiSuggestions',
-        component: () => import('../views/ai/Suggestion.vue'),
-        meta: { title: '排班建议', icon: 'MagicStick', parent: 'ai' }
+        path: 'swap',
+        name: 'SwapIndex',
+        component: () => import('../views/swap/SwapIndex.vue'),
+        meta: { title: '调班管理', icon: 'Switch' }
       },
       {
-        path: 'ai/query',
-        name: 'AiQuery',
-        component: () => import('../views/ai/AiQuery.vue'),
-        meta: { title: '智能查询', icon: 'ChatLineSquare', parent: 'ai' }
+        path: 'statistics',
+        name: 'StatisticsIndex',
+        component: () => import('../views/statistics/StatisticsIndex.vue'),
+        meta: { title: '排班统计', icon: 'DataAnalysis' }
       },
       {
-        path: 'ai/conflicts',
-        name: 'AiConflicts',
-        component: () => import('../views/ai/ConflictDetection.vue'),
-        meta: { title: '冲突检测', icon: 'Warning', parent: 'ai' }
+        path: 'compliance',
+        name: 'ComplianceIndex',
+        component: () => import('../views/compliance/ComplianceIndex.vue'),
+        meta: { title: '合规检查', icon: 'CircleCheck' }
+      },
+      {
+        path: 'audit',
+        name: 'AuditIndex',
+        component: () => import('../views/audit/AuditIndex.vue'),
+        meta: { title: '审计日志', icon: 'Document' }
+      },
+      {
+        path: 'service-schedule',
+        name: 'ServiceScheduleIndex',
+        component: () => import('../views/service-schedule/ServiceScheduleIndex.vue'),
+        meta: { title: '勤务排班', icon: 'Service' }
       }
     ]
   }

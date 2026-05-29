@@ -61,24 +61,26 @@
           <span>请假管理</span>
         </el-menu-item>
 
-        <el-sub-menu index="/ai" class="hy-submenu">
-          <template #title>
-            <el-icon><Cpu /></el-icon>
-            <span>AI 智能</span>
-          </template>
-          <el-menu-item index="/ai/suggestions">
-            <el-icon><MagicStick /></el-icon>
-            <span>排班建议</span>
-          </el-menu-item>
-          <el-menu-item index="/ai/query">
-            <el-icon><ChatLineSquare /></el-icon>
-            <span>智能查询</span>
-          </el-menu-item>
-          <el-menu-item index="/ai/conflicts">
-            <el-icon><Warning /></el-icon>
-            <span>冲突检测</span>
-          </el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/swap">
+          <el-icon><Switch /></el-icon>
+          <span>调班管理</span>
+        </el-menu-item>
+        <el-menu-item index="/statistics">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>排班统计</span>
+        </el-menu-item>
+        <el-menu-item index="/compliance">
+          <el-icon><CircleCheck /></el-icon>
+          <span>合规检查</span>
+        </el-menu-item>
+        <el-menu-item index="/audit">
+          <el-icon><Document /></el-icon>
+          <span>审计日志</span>
+        </el-menu-item>
+        <el-menu-item index="/service-schedule">
+          <el-icon><Service /></el-icon>
+          <span>勤务排班</span>
+        </el-menu-item>
       </el-menu>
 
       <!-- 底部版本信息 -->
@@ -343,32 +345,5 @@ function handleCommand(cmd) {
   padding: 24px;
   min-height: 0;
   position: relative;
-}
-
-/* ===== AI 子菜单 ===== */
-.hy-submenu :deep(.el-sub-menu__title) {
-  color: #8fa8c8 !important;
-  height: 44px;
-  line-height: 44px;
-  margin: 2px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  padding-left: 14px !important;
-  transition: all 0.2s ease;
-}
-.hy-submenu :deep(.el-sub-menu__title:hover) {
-  background: rgba(64, 158, 255, 0.08) !important;
-  color: #c8daf0 !important;
-}
-.hy-submenu :deep(.el-sub-menu__title .el-icon) {
-  color: inherit;
-  margin-right: 8px;
-  font-size: 16px;
-}
-.hy-submenu :deep(.el-menu) {
-  background: transparent !important;
-}
-.hy-submenu :deep(.el-menu .el-menu-item) {
-  padding-left: 44px !important;
 }
 </style>
