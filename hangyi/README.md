@@ -74,10 +74,10 @@
 │   │   │   └── assistant.js                # Agent/RAG 助手 HTTPS 安全代理
 │   │   └── __test__/                        # 单元测试 (脱离微信, 纯 Node 跑)
 │   │       ├── test-helper.js              # wx-server-sdk 等 mock 框架
-│   │       ├── test-security.test.js       # P0 安全 + 鉴权回归 (39 个)
+│   │       ├── test-security.test.js       # P0 安全 + 鉴权回归 (40 个)
 │   │       ├── test-quicklogin.test.js     # 一键登录流程 (12 个)
 │   │       ├── test-assistant-knowledge.test.js # 助手业务知识评测 (3 个)
-│   │       └── test-e2e.test.js            # 端到端业务流 (165 个)
+│   │       └── test-e2e.test.js            # 端到端业务流 (180 个)
 │   ├── bootstrapAdmin/                     # 控制台专用的首个管理员自举函数
 │   │   ├── index.js                        # 校验控制台来源、员工绑定与唯一首管
 │   │   ├── config.json                     # 20s 超时
@@ -86,6 +86,9 @@
 │       ├── index.js                        # 增量查询 + 批量推送 + 游标推进
 │       ├── config.json                     # 60s 超时 + timer 触发器
 │       └── package.json                    # 依赖：wx-server-sdk
+└── configSettings/                        # 一次性配置/诊断脚本云函数（demo 联调写 settings 同步配置）
+    ├── index.js                            # 支持 apply / read / count 等 action
+    └── package.json                        # 依赖：wx-server-sdk
 ├── miniprogram/
 │   ├── app.js                              # 入口 / 云开发初始化 / 网络监听 / 全局异常
 │   ├── app.json                            # 23 个页面路由 + 4 个 TabBar
@@ -126,7 +129,7 @@
 │   │   └── adminSettings/                  # 管理排班参数
 │   └── images/                             # 图标 & 示例图片
 ├── schedule.tsv                            # TSV 航班排班导入示例（35 行演示数据）
-├── uploadCloudFunction.sh                  # 三个云函数批量部署脚本
+├── uploadCloudFunction.sh                  # 四个云函数批量部署脚本
 ├── project.config.json                     # 小程序 appid / 编译设置
 ├── project.private.config.json             # 私有配置（不提交版本控制）
 └── .gitignore
@@ -149,6 +152,7 @@
 5. 在微信开发者工具里右键 `cloudfunctions/quickstartFunctions` → **上传并部署：云端安装依赖**
 6. 同样右键 `cloudfunctions/bootstrapAdmin` → **上传并部署：云端安装依赖**
 7. 同样右键 `cloudfunctions/syncToHangyi` → **上传并部署：云端安装依赖**
+8. 同样右键 `cloudfunctions/configSettings` → **上传并部署：云端安装依赖**(demo 联调写入 `settings` 同步配置用)
 
 > 若页面提示“未知操作类型”，说明小程序源码已更新但 `quickstartFunctions`
 > 仍是旧的云端版本，需要重新执行第 5 步。
@@ -233,7 +237,7 @@ npm test
 
 ### 已有云环境升级注意
 
-- 重新上传 `quickstartFunctions`、`bootstrapAdmin` 和 `syncToHangyi`；前者再用带 `INITIALIZE_DEMO_DATA` 确认文本的参数执行一次 `bootstrapData`，只补缺失集合和配置，不会覆盖现有业务数据。
+- 重新上传 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi` 和 `configSettings`；前者再用带 `INITIALIZE_DEMO_DATA` 确认文本的参数执行一次 `bootstrapData`，只补缺失集合和配置，不会覆盖现有业务数据。
 - Java 既有数据库先备份，并依次执行 `db/02-fix-audit-findings.sql`、`db/03-assistant-rag.sql`、`db/04-miniapp-sync-contract.sql`，再部署最新 Core/Schedule/Assistant。
 - 检查并补齐 `settings.demoToolsEnabled="false"`；生产环境保持关闭。
 - 代码已删除旧的同步地址和密钥默认值，但 `bootstrapData` 不会覆盖数据库中的旧值。若旧环境仍保存旧密钥，需在 Java 端轮换后更新云 DB。
@@ -242,7 +246,7 @@ npm test
 ### 客户演示前检查单
 
 1. 微信开发者工具右上角保持已登录，点击“编译”，确认调试器没有编译错误或 `access_token expired`。
-2. 用“云端安装依赖”方式重新部署 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi`，避免源码与云端端点版本不一致。
+2. 用“云端安装依赖”方式重新部署 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi`、`configSettings`，避免源码与云端端点版本不一致。
 3. 新环境先在云端控制台执行带 `INITIALIZE_DEMO_DATA` 确认文本的 `bootstrapData`，再用 `GH001 / 张伟 / 13800000001` 完成首次绑定和管理员自举。
 4. 先验证普通员工“登录 -> 我的排班 -> 调班/请假 -> 图片预览 -> 撤回 -> 通知”，再验证管理员“管理中心 -> 人员 -> 排班预览/发布 -> 审批 -> 统计/历史/审计”。
 5. 专门验证“普通账号退出 -> GH001 管理员登录”，确认管理中心仍可进入且管理端点不返回 403。
@@ -661,7 +665,7 @@ Ollama `bge-m3` embedding、Qdrant 检索、通义千问 grounded generation、
 ```bash
 cd cloudfunctions/quickstartFunctions
 
-# 跑全部 4 个测试文件（当前 225 个测试）
+# 跑全部 4 个测试文件（当前 235 个测试）
 npm test
 
 # 跑单个文件
@@ -678,10 +682,10 @@ node -r ./__test__/test-helper.js --test __test__/test-e2e.test.js
 | `test-security.test.js`  | 40 | P0 安全 + 鉴权回归（含敏感 settings 审计脱敏、admin 自提权、setSetting 白名单、跨端 HTTPS 和即时同步失败可观测性等） |
 | `test-quicklogin.test.js`  | 12 | 微信动态手机号凭证/微信资料登录（拒绝明文手机号、失效 code、停用员工和未登记员工） |
 | `test-assistant-knowledge.test.js` | 3 | 30 道客户演示业务问题逐题校验、未知问题拒答、管理员知识隔离 |
-| `test-e2e.test.js`  | 170 | 云函数端点业务逻辑（含管理员工作台、人员权限、同步部分失败、首次全量游标、Java `R.data` 解包、排班预览发布、图片申请凭证、自动合规校验、审计、首管自举、Agent/RAG 契约与页面源码检查） |
-| **合计**  | **225** | 全量回归通过 |
+| `test-e2e.test.js`  | 180 | 云函数端点业务逻辑（含管理员工作台、人员权限、同步部分失败、首次全量游标、Java `R.data` 解包、排班预览发布、图片申请凭证、自动合规校验、审计、首管自举、Agent/RAG 契约与页面源码检查） |
+| **合计**  | **235** | 全量回归通过 |
 
-生产依赖审计结果：Web 为 0 个漏洞；三个云函数均为 1 moderate、5 high、0 critical。
+生产依赖审计结果：Web 为 0 个漏洞；四个云函数均为 1 moderate、5 high、0 critical。
 云函数剩余项来自当前最新版微信/CloudBase SDK 固定的 axios 与 lodash 传递依赖，
 `npm audit fix --force` 会建议不兼容降级，禁止直接执行。当前已使用 SDK 最新锁定版本，
 并通过公网 HTTPS、输入白名单、内部密钥、超时和 1 MB 响应上限降低暴露面，后续需随

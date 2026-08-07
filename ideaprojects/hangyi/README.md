@@ -8,7 +8,7 @@
 
 | 层级 | 技术 |
 |------|------|
-| **后端框架** | Spring Boot 3.3.5 · Spring Cloud 2023.0.4 · Spring Cloud Alibaba 2023.0.3.2 |
+| **后端框架** | Spring Boot 3.3.7 · Spring Cloud 2023.0.4 · Spring Cloud Alibaba 2023.0.3.2 |
 | **语言** | Java 17 |
 | **API 网关** | Spring Cloud Gateway (Reactive) |
 | **服务发现** | Nacos (支持 local 模式离线运行) |
@@ -177,11 +177,12 @@ hangyi/
 │
 ├── db/                     # 数据库脚本
 │   ├── 01-schema.sql       #   完整建表 SQL
+│   ├── 02-fix-audit-findings.sql # 审计修复增量迁移
 │   ├── 03-assistant-rag.sql #  既有数据库助手增量迁移
 │   └── 04-miniapp-sync-contract.sql # 小程序同步契约增量迁移
 │
 ├── docs/                   # 设计文档
-│   └── superpowers/
+│   └── 智能知识助手部署与使用.md # RAG 助手部署/使用指南
 │
 └── tests/                  # 集成测试
 ```
@@ -338,13 +339,13 @@ npm run preview
 | ID | 约束 | 类型 | 说明 |
 |----|------|------|------|
 | R1 | 机型资质匹配 | Hard | 员工机型资质必须覆盖航班机型 |
-| R2 | 放行人员持证 | Hard | 放行人员必须持有有效执照 |
+| C-a | 放行人员持证 | Hard | 放行人员必须持有有效执照 |
 | R3 | 跨班次最小间隔 | Hard | 晚班→次日早班至少间隔 8 小时 |
 | R4 | 月工时上限 | Hard | 月工时不超过 176 小时 |
 | R5 | 每日一班 | Hard | 每个员工每天最多一个排班 |
-| C-b | 夜班频率限制 | Soft | 7 天内夜班不超过 3 次 |
-| L1 | 休假冲突 | Hard | 已休假员工不参与排班 |
-| W1 | 工作量均衡 | Soft | 员工间工时尽量均衡 |
+| C-b | 夜班频率限制 | Hard | 7 天内夜班不超过 3 次 |
+| I15 | 休假冲突 | Hard | 已休假员工不参与排班 |
+| S1 | 工作量均衡 | Soft | 员工间工时尽量均衡 |
 
 ### 求解配置
 
