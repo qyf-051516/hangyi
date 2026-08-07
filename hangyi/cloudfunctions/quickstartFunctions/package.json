@@ -1,0 +1,17 @@
+{
+  "name": "quickstartFunctions",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node -r ./__test__/test-helper.js --test __test__/*.test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cloudbase/node-sdk": "3.18.3",
+    "node-xlsx": "^0.24.0",
+    "qrcode": "^1.5.4",
+    "wx-server-sdk": "4.0.2"
+  }
+}

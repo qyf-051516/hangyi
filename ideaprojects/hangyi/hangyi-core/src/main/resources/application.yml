@@ -1,0 +1,69 @@
+server:
+  port: ${CORE_PORT:9001}
+
+spring:
+  application:
+    name: hangyi-core
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: jdbc:mysql://localhost:3306/hangyi_scheduling?serverTimezone=Asia/Shanghai
+    username: root
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:123456}
+      database: 0
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: ${MYBATIS_LOG_IMPL:org.apache.ibatis.logging.nologging.NoLoggingImpl}
+
+jwt:
+  secret: ${JWT_SECRET:?JWT_SECRET required}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+internal:
+  api-key: ${INTERNAL_API_KEY}
+
+wechat:
+  login-enabled: ${WECHAT_LOGIN_ENABLED:false}
+  app-id: ${WECHAT_APP_ID:}
+  app-secret: ${WECHAT_APP_SECRET:}
+  session-url: ${WECHAT_SESSION_URL:https://api.weixin.qq.com/sns/jscode2session}
+
+flight:
+  sync:
+    simulation-enabled: ${FLIGHT_SYNC_SIMULATION_ENABLED:false}
+    auto-enabled: ${FLIGHT_SYNC_AUTO_ENABLED:false}
+
+guochuang:
+  sync:
+    enabled: ${GUOCHUANG_SYNC_ENABLED:false}
+    url: ${GUOCHUANG_SYNC_URL:}
+    api-key: ${GUOCHUANG_API_KEY:}
+
+logging:
+  level:
+    com.qyf.hangyi.core: debug
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    nacos:
+      discovery:
+        enabled: false

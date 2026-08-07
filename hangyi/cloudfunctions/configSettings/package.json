@@ -1,0 +1,9 @@
+{
+  "name": "configSettings",
+  "version": "1.0.0",
+  "description": "One-time config writer for hangyi sync settings (demo only)",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "4.0.2"
+  }
+}

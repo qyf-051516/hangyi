@@ -1,0 +1,194 @@
+<view class="page {{themeClass}}">
+  <block wx:if="{{profile}}">
+    <view class="profile-module">
+      <view class="profile-hero">
+        <view class="profile-row">
+          <image
+            class="avatar"
+            src="{{profile.avatarFileID || '/images/avatar.png'}}"
+            mode="aspectFill"
+            bindtap="onChooseAvatar"
+            hover-class="tap-active"
+          ></image>
+          <view class="profile-info">
+            <view class="name">{{profile.name}}</view>
+            <view class="profile-role">机务人员 / {{profile.groupId}}</view>
+          </view>
+          <view class="verified-pill">{{isAdmin ? '管理员' : '已认证'}}</view>
+        </view>
+      </view>
+
+      <view class="identity-strip">
+        <view class="identity-item">
+          <image class="identity-icon" src="/images/menu/id-card.svg" mode="aspectFit"></image>
+          <text class="identity-label">工号</text>
+          <text class="identity-value">{{profile.employeeNo}}</text>
+        </view>
+        <view class="identity-item">
+          <image class="identity-icon" src="/images/menu/group.svg" mode="aspectFit"></image>
+          <text class="identity-label">班组</text>
+          <text class="identity-value">{{profile.groupId}}</text>
+        </view>
+        <view class="identity-item">
+          <image class="identity-icon" src="/images/menu/wrench.svg" mode="aspectFit"></image>
+          <text class="identity-label">岗位</text>
+          <text class="identity-value">{{profile.roleText}}</text>
+        </view>
+        <view class="identity-item">
+          <image class="identity-icon" src="/images/menu/badge-check.svg" mode="aspectFit"></image>
+          <text class="identity-label">状态</text>
+          <text class="identity-value">在职</text>
+        </view>
+      </view>
+    </view>
+
+    <view
+      class="qr-banner"
+      wx:if="{{profileQrDataUrl}}"
+      bindtap="onShowQr"
+      hover-class="tap-active"
+    >
+      <view>
+        <view class="qr-title">身份二维码</view>
+        <view class="qr-copy">出示二维码快速验证身份资质</view>
+      </view>
+      <view class="qr-symbol">
+        <image class="qr-symbol-image" src="/images/menu/qr-code.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+  </block>
+
+  <view class="card login-prompt" wx:else>
+    <view class="prompt-code">
+      <image class="prompt-logo" src="/images/menu/wing.svg" mode="aspectFit"></image>
+    </view>
+    <view class="prompt-title">登录航翼排班</view>
+    <view class="prompt-sub">登录后查看个人班次、审批进度与资质状态</view>
+    <button class="bind-btn" bindtap="onGoLogin" hover-class="button-hover">立即登录</button>
+  </view>
+
+  <view class="offline-banner" wx:if="{{isOffline}}">
+    <image class="offline-icon" src="/images/menu/alert.svg" mode="aspectFit"></image>
+    <text class="offline-text">网络已断开，当前显示缓存信息</text>
+  </view>
+
+  <view class="card menu-card">
+    <view class="menu-item" bindtap="onGoBootstrapAdmin" hover-class="tap-active" wx:if="{{!isAdmin && profile}}">
+      <view class="menu-icon tone-amber">
+        <image class="menu-icon-image" src="/images/menu/shield-key.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">管理员开通</text>
+        <text class="menu-subtitle">查看首个管理员开通状态</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoMySchedules" hover-class="tap-active">
+      <view class="menu-icon tone-blue">
+        <image class="menu-icon-image" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">我的排班</text>
+        <text class="menu-subtitle">查看我的未来排班</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoSwapRequest" hover-class="tap-active">
+      <view class="menu-icon tone-green">
+        <image class="menu-icon-image" src="/images/menu/swap.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">调班申请</text>
+        <text class="menu-subtitle">提交与查看调班记录</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoLeave" hover-class="tap-active">
+      <view class="menu-icon tone-coral">
+        <image class="menu-icon-image" src="/images/menu/leave.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">请假申请</text>
+        <text class="menu-subtitle">提交与查看请假记录</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoNotification" hover-class="tap-active">
+      <view class="menu-icon tone-coral">
+        <image class="menu-icon-image" src="/images/menu/bell.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">通知中心</text>
+        <text class="menu-subtitle">查看系统通知与审批结果</text>
+      </view>
+      <view class="badge-count" wx:if="{{unreadNotificationCount > 0}}">{{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}}</view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoQualificationWarnings" hover-class="tap-active">
+      <view class="menu-icon tone-blue">
+        <image class="menu-icon-image" src="/images/menu/certificate.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">资质管理</text>
+        <text class="menu-subtitle">查看我的资质与到期预警</text>
+      </view>
+      <view class="badge-dot" wx:if="{{expiredQualCount > 0}}"></view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoAssistant" hover-class="tap-active">
+      <view class="menu-icon tone-violet">
+        <image class="menu-icon-image" src="/images/menu/assistant.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">智能助手</text>
+        <text class="menu-subtitle">排班制度与操作知识问答</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="onGoSettings" hover-class="tap-active">
+      <view class="menu-icon tone-slate">
+        <image class="menu-icon-image" src="/images/menu/settings.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">设置</text>
+        <text class="menu-subtitle">账号设置与偏好配置</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item menu-item-danger" bindtap="onLogout" hover-class="tap-active" wx:if="{{profile}}">
+      <view class="menu-icon tone-coral">
+        <image class="menu-icon-image" src="/images/menu/user-minus.svg" mode="aspectFit"></image>
+      </view>
+      <view class="menu-content">
+        <text class="menu-title">退出登录</text>
+        <text class="menu-subtitle">解除当前微信与员工账号的绑定</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="admin-hub" wx:if="{{isAdmin}}" bindtap="onGoAdminCenter" hover-class="tap-active">
+    <view class="admin-hub-icon">
+      <image class="admin-hub-icon-image" src="/images/menu/dashboard.svg" mode="aspectFit"></image>
+    </view>
+    <view class="admin-hub-content">
+      <view class="admin-hub-kicker">管理员工作区</view>
+      <view class="admin-hub-title">进入管理中心</view>
+      <view class="admin-hub-copy">排班、审批、人员、分析、参数与审计统一管理</view>
+    </view>
+    <view class="admin-hub-side">
+      <view class="admin-hub-count">11</view>
+      <view class="admin-hub-unit">项工具</view>
+      <image class="admin-hub-arrow" src="/images/menu/chevron-right-white.svg" mode="aspectFit"></image>
+    </view>
+  </view>
+
+  <view class="qr-modal" wx:if="{{qrModalVisible}}" catchtap="onCloseQrModal">
+    <view class="qr-modal-box" catchtap="onModalContentTap">
+      <view class="qr-modal-title">个人信息二维码</view>
+      <image class="qr-modal-img" src="{{profileQrDataUrl}}" mode="aspectFit"></image>
+      <view class="qr-modal-tip">扫码可查看工号、姓名与维修资质</view>
+      <view class="qr-modal-close">点击空白处关闭</view>
+    </view>
+  </view>
+</view>

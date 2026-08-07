@@ -1,0 +1,207 @@
+<view class="page {{themeClass}}">
+  <view class="card head schedule-overview">
+    <view class="overview-title">排班信息概览</view>
+    <view class="date-toolbar">
+      <picker class="date-picker-wrap" mode="date" value="{{scheduleDate}}" bindchange="onPickDate">
+        <view class="date-picker tap-target">
+          <view class="date-code">
+            <image class="date-code-icon" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+          </view>
+          <text class="date-value">{{scheduleDate}}</text>
+        </view>
+      </picker>
+      <button
+        class="today-btn"
+        wx:if="{{scheduleDate !== todayDate}}"
+        bindtap="onGoToday"
+        hover-class="button-hover"
+      >回到今天</button>
+      <button
+        class="refresh-btn"
+        loading="{{loading}}"
+        disabled="{{loading}}"
+        bindtap="onRefresh"
+        hover-class="button-hover"
+      >刷新</button>
+    </view>
+
+    <view class="summary-card" wx:if="{{loaded}}">
+      <view class="summary-item">
+        <text class="summary-value">{{assignedCount}}</text>
+        <text class="summary-label">已排班</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value warning">{{unassignedCount}}</text>
+        <text class="summary-label">未排班</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{leaveCount}}</text>
+        <text class="summary-label">休假</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value danger">{{conflictCount}}</text>
+        <text class="summary-label">需处理</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card state-card loading-card" wx:if="{{loading && !loaded}}">
+    <view class="skeleton skeleton-title"></view>
+    <view class="skeleton skeleton-line"></view>
+    <view class="skeleton skeleton-line short"></view>
+  </view>
+
+  <view class="card state-card" wx:elif="{{errorMessage && !loaded}}">
+    <view class="state-title">排班暂时无法加载</view>
+    <view class="state-copy">{{errorMessage}}</view>
+    <button class="btn state-action" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <block wx:if="{{loaded}}">
+    <view class="filters">
+      <view class="search-row">
+        <view class="search-wrap">
+          <image class="search-label" src="/images/menu/search.svg" mode="aspectFit"></image>
+          <input
+            class="search-input"
+            value="{{query}}"
+            placeholder="搜索姓名、工号、航班或机型"
+            confirm-type="search"
+            bindinput="onInputQuery"
+            bindconfirm="onSubmitSearch"
+          />
+        </view>
+        <view class="search-submit tap-target" bindtap="onSubmitSearch" hover-class="tap-active">搜索</view>
+      </view>
+      <view class="filter-row">
+        <picker class="filter-picker" mode="selector" range="{{groupOptions}}" bindchange="onPickGroup">
+          <view class="picker tap-target">
+            <text class="picker-value">{{selectedGroup}}</text>
+            <image class="picker-arrow" src="/images/menu/chevron-down.svg" mode="aspectFit"></image>
+          </view>
+        </picker>
+        <picker class="filter-picker" mode="selector" range="{{shiftOptions}}" bindchange="onPickShift">
+          <view class="picker tap-target">
+            <text class="picker-value">{{selectedShift}}</text>
+            <image class="picker-arrow" src="/images/menu/chevron-down.svg" mode="aspectFit"></image>
+          </view>
+        </picker>
+        <picker class="filter-picker" mode="selector" range="{{statusOptions}}" bindchange="onPickStatus">
+          <view class="picker tap-target">
+            <text class="picker-value">{{selectedStatus}}</text>
+            <image class="picker-arrow" src="/images/menu/chevron-down.svg" mode="aspectFit"></image>
+          </view>
+        </picker>
+      </view>
+      <view class="result-row">
+        <text>共 {{filteredRows.length}} 人</text>
+        <view
+          class="clear-filter tap-target"
+          wx:if="{{hasActiveFilters}}"
+          bindtap="onClearFilters"
+          hover-class="tap-active"
+        >清除筛选</view>
+      </view>
+    </view>
+
+    <view class="inline-error" wx:if="{{errorMessage}}">
+      <text class="inline-error-text">{{errorMessage}}</text>
+      <view class="inline-error-action" bindtap="onRefresh" hover-class="tap-active">重试</view>
+    </view>
+
+    <view class="schedule-list" wx:if="{{filteredRows.length}}">
+      <view
+        class="staff-card {{item.statusTone}}"
+        wx:for="{{filteredRows}}"
+        wx:key="staffId"
+        data-id="{{item.staffId}}"
+        bindtap="onToggleDetail"
+        hover-class="tap-active"
+      >
+        <view class="staff-head">
+          <view class="staff-identity">
+            <view class="staff-name-line">
+              <text class="staff-name">{{item.name}}</text>
+              <text class="staff-no">{{item.employeeNo}}</text>
+            </view>
+            <view class="staff-meta">{{item.groupText}} / {{item.shiftText}}</view>
+          </view>
+          <view class="status-pill">{{item.statusText}}</view>
+        </view>
+
+        <view class="assignment-main">
+          <view>
+            <view class="assignment-label">航班</view>
+            <view class="assignment-value">{{item.flightNo || '暂无分配'}}</view>
+          </view>
+          <view class="assignment-time">
+            <view class="assignment-label">进港 / 出港</view>
+            <view class="assignment-value">{{item.arrivalTimeText}} / {{item.departureTimeText}}</view>
+          </view>
+        </view>
+
+        <view class="staff-footer">
+          <text
+            wx:if="{{item.realtimeStatusText}}"
+            class="realtime-pill {{item.realtimeTone}}"
+          >{{item.realtimeStatusText}}</text>
+          <text wx:else class="staff-hint">{{item.aircraftType || '未关联机型'}}</text>
+          <text class="detail-toggle">{{expandedStaffId === item.staffId ? '收起信息' : '查看详情'}}</text>
+        </view>
+
+        <view class="detail-panel" wx:if="{{expandedStaffId === item.staffId}}">
+          <view class="detail-item">
+            <text class="detail-label">维修资质</text>
+            <text class="detail-value">{{item.aircraftQualifications || '-'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">当日工时</text>
+            <text class="detail-value">{{item.workedHoursText}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">休假状态</text>
+            <text class="detail-value">{{item.leaveText}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">航司</text>
+            <text class="detail-value">{{item.airline || '-'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">机型</text>
+            <text class="detail-value">{{item.aircraftType || '-'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">发动机型号</text>
+            <text class="detail-value">{{item.engineModel || '-'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">机号</text>
+            <text class="detail-value">{{item.aircraftRegistration || '-'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">计划到达</text>
+            <text class="detail-value">{{item.scheduledArrivalTime || '-'}}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">预计到达</text>
+            <text class="detail-value">{{item.estimatedArrivalTime || '待人工录入'}}</text>
+          </view>
+          <view class="detail-notice" wx:if="{{item.compliancePassed === false}}">
+            {{item.complianceText}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card state-card" wx:else>
+      <view class="state-title">{{emptyText}}</view>
+      <view class="state-copy" wx:if="{{hasActiveFilters}}">可以清除筛选后查看完整人员列表</view>
+      <button
+        class="btn btn-ghost state-action"
+        wx:if="{{hasActiveFilters}}"
+        bindtap="onClearFilters"
+        hover-class="button-hover"
+      >清除筛选</button>
+    </view>
+  </block>
+</view>

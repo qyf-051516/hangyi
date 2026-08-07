@@ -1,0 +1,472 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="denied-icon">!</view>
+    <view class="denied-title">需要管理员权限</view>
+    <view class="denied-sub">此页面仅供管理员访问</view>
+  </view>
+  <block wx:else>
+  <view class="editor-head-panel">
+    <view class="editor-title-row">
+      <view>
+        <view class="editor-eyebrow">SCHEDULE EDITOR</view>
+        <view class="editor-title">排班编制</view>
+        <view class="editor-sub">修改先保存在本页，合规检查通过后统一发布</view>
+      </view>
+      <picker mode="date" value="{{scheduleDate}}" bindchange="onDateChange">
+        <view class="date-picker">{{scheduleDate}}</view>
+      </picker>
+    </view>
+
+    <view class="stats-row" wx:if="{{rows.length > 0}}">
+      <view class="sr-item"><text class="sr-num">{{statsSummary.total}}</text><text class="sr-lbl">总人数</text></view>
+      <view class="sr-item"><text class="sr-num">{{statsSummary.assigned}}</text><text class="sr-lbl">已排班</text></view>
+      <view class="sr-item"><text class="sr-num sr-num-yellow">{{statsSummary.unassigned}}</text><text class="sr-lbl">未排班</text></view>
+      <view class="sr-item"><text class="sr-num sr-num-red">{{statsSummary.conflict}}</text><text class="sr-lbl">待改派</text></view>
+      <view class="sr-item"><text class="sr-num sr-num-blue">{{editedCount}}</text><text class="sr-lbl">待发布</text></view>
+    </view>
+
+    <view class="search-bar">
+      <text class="search-icon">查</text>
+      <input class="search-input" placeholder="搜索姓名或工号" value="{{searchKeyword}}" bindinput="onSearchInput" confirm-type="search"/>
+      <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="onClearSearch" hover-class="tap-active">清除</view>
+    </view>
+
+    <scroll-view class="filter-scroll" scroll-x enable-flex>
+      <view class="filter-row">
+        <view
+          class="filter-chip {{statusFilter === item.value ? 'active' : ''}}"
+          wx:for="{{statusFilters}}"
+          wx:key="value"
+          data-value="{{item.value}}"
+          bindtap="onFilterStatus"
+          hover-class="tap-active"
+        >{{item.label}}</view>
+      </view>
+    </scroll-view>
+
+    <scroll-view class="tool-scroll" scroll-x enable-flex>
+      <view class="tool-row">
+        <button class="tool-btn primary" bindtap="onSmartSchedule" disabled="{{isOffline}}">智能排班</button>
+        <button class="tool-btn" loading="{{analyzing}}" bindtap="onAiOptimizeSchedule" disabled="{{isOffline}}">疲劳优化</button>
+        <button class="tool-btn" bindtap="onBatchAssign" disabled="{{isOffline}}">批量班次</button>
+        <button class="tool-btn" bindtap="onShowTSVImport" disabled="{{isOffline}}">导入航班</button>
+        <button class="tool-btn" bindtap="onExportMenu">导出</button>
+        <button class="tool-btn" bindtap="onOpenCompletionStats">完成统计</button>
+        <button class="tool-btn" bindtap="onOpenServiceSchedule">勤务放行</button>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 离线提示 -->
+  <view class="offline-banner" wx:if="{{isOffline}}">
+    <text class="offline-icon">!</text>
+    <text class="offline-text">网络已断开，当前显示缓存数据，部分操作不可用</text>
+  </view>
+
+  <view class="loading-list" wx:if="{{loading && !rows.length}}">
+    <view class="loading-card" wx:for="{{[1,2,3,4]}}" wx:key="*this"></view>
+  </view>
+
+  <view class="schedule-list" wx:if="{{displayRows.length > 0}}">
+    <view class="schedule-card {{item.edited ? 'edited' : ''}} {{item.status === 'LEAVE_CONFLICT' || item.needsReassignment ? 'conflict' : ''}}" wx:for="{{displayRows}}" wx:key="staffId">
+      <view class="person-row">
+        <view class="person-avatar">{{item.initial}}</view>
+        <view class="person-main">
+          <view class="person-title-row">
+            <text class="person-name">{{item.name}}</text>
+            <text class="edited-tag" wx:if="{{item.edited}}">已修改</text>
+          </view>
+          <view class="person-meta">{{item.employeeNo}} · {{item.groupText}} · {{item.roleText}}</view>
+        </view>
+        <text class="status-label sts-{{item.status}}">{{item.statusText}}</text>
+      </view>
+
+      <view class="conflict-note" wx:if="{{item.status === 'LEAVE_CONFLICT' || item.needsReassignment}}">
+        该员工存在请假冲突，需要先调整班次或完成改派
+      </view>
+
+      <view class="schedule-detail" wx:if="{{item.flightNo}}">
+        <view class="detail-main">
+          <text class="flight-no">{{item.flightNo}}</text>
+          <text class="flight-meta">{{item.airline || '-'}} · {{item.aircraftType || '-'}} · {{item.engineModel || '发动机待录入'}}</text>
+          <text class="flight-meta">预计到达 {{item.estimatedArrivalTime || item.arrivalTime || '待录入'}}</text>
+        </view>
+        <text class="qualification-text">{{item.aircraftQualifications}}</text>
+      </view>
+
+      <view class="card-actions">
+        <picker
+          mode="selector"
+          range="{{shiftOptions}}"
+          value="{{item.shiftIndex}}"
+          data-staffid="{{item.staffId}}"
+          bindchange="onPickShift"
+          disabled="{{item.status === 'ON_LEAVE'}}"
+        >
+          <view class="shift-control {{'shift-' + item.shiftCode}}">
+            <view>
+              <text class="shift-label">{{shiftOptions[item.shiftIndex]}}</text>
+              <text class="shift-time" wx:if="{{item.shiftCode}}">{{shiftTimeMap[item.shiftCode]}}</text>
+            </view>
+            <text class="shift-arrow">选择</text>
+          </view>
+        </picker>
+        <view class="secondary-actions">
+          <button
+            class="row-action"
+            wx:if="{{item.flightNo && item.status !== 'ON_LEAVE'}}"
+            data-staffid="{{item.staffId}}"
+            bindtap="onReassignStaff"
+            hover-class="button-hover"
+          >改派</button>
+          <button
+            class="row-action"
+            wx:if="{{item.flightNo}}"
+            data-staffid="{{item.staffId}}"
+            bindtap="onOpenFlightEdit"
+            hover-class="button-hover"
+          >航班资料</button>
+          <button
+            class="row-action"
+            wx:if="{{item.flightNo}}"
+            data-staffid="{{item.staffId}}"
+            bindtap="onShowStatusMenu"
+            hover-class="button-hover"
+          >航班状态</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="edit-dock" wx:if="{{editedCount > 0}}">
+    <view class="edit-dock-copy">
+      <text class="edit-dock-count">{{editedCount}}</text>
+      <text>项修改待合规检查</text>
+    </view>
+    <button class="discard-btn" bindtap="onDiscardEdits" disabled="{{publishing}}" hover-class="button-hover">放弃</button>
+    <button class="edit-bar-btn" bindtap="onPublish" loading="{{publishing}}" disabled="{{publishing || isOffline}}" hover-class="button-hover">检查并发布</button>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="card empty-wrap" wx:if="{{!loading && displayRows.length === 0}}">
+    <text class="empty-text">{{searchKeyword || statusFilter !== 'ALL' ? '没有符合筛选条件的人员' : '暂无人员数据'}}</text>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 导出菜单 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showExportMenu}}" bindtap="onCloseExportMenu">
+    <view class="export-sheet" catchtap="noop">
+      <view class="export-sheet-title"> 导出排班表</view>
+      <view class="export-sheet-sub">{{scheduleDate}} · 共 {{rows.length}} 人</view>
+      <view class="export-option" bindtap="onExportExcel">
+        <text class="export-icon">表</text>
+        <view class="export-info">
+          <text class="export-label">导出为 Excel</text>
+          <text class="export-desc">生成 .xlsx 文件，可编辑和分享</text>
+        </view>
+      </view>
+      <view class="export-option" bindtap="onPrintSchedule">
+        <text class="export-icon">印</text>
+        <view class="export-info">
+          <text class="export-label">打印排班总表</text>
+          <text class="export-desc">生成横向总表，在文档菜单中选择打印或转发</text>
+        </view>
+      </view>
+      <view class="export-option" bindtap="onExportImage">
+        <text class="export-icon">图</text>
+        <view class="export-info">
+          <text class="export-label">导出为图片</text>
+          <text class="export-desc">渲染排班表为长图，保存到相册</text>
+        </view>
+      </view>
+      <button class="export-cancel" bindtap="onCloseExportMenu">取消</button>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 隐藏 Canvas（图片导出用） -->
+  <!-- ════════════════════════════════════════════ -->
+  <canvas type="2d" id="exportCanvas" class="export-canvas-hidden"></canvas>
+
+  <view class="modal-overlay" wx:if="{{showFlightEditModal}}" bindtap="onCloseFlightEdit">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title">航班资料维护</text>
+        <text class="modal-close" bindtap="onCloseFlightEdit">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="flight-edit-summary">
+          {{flightEditTarget.flightNo}} · {{scheduleDate}}
+        </view>
+        <view class="form-group">
+          <text class="form-label">机型</text>
+          <input class="form-input" value="{{flightEditForm.aircraftType}}" data-field="aircraftType" bindinput="onFlightEditInput" placeholder="如 A320"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">发动机型号</text>
+          <input class="form-input" value="{{flightEditForm.engineModel}}" data-field="engineModel" bindinput="onFlightEditInput" placeholder="如 CFM56-5B"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">机号</text>
+          <input class="form-input" value="{{flightEditForm.aircraftRegistration}}" data-field="aircraftRegistration" bindinput="onFlightEditInput" placeholder="如 B-1234"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">预计到达时间</text>
+          <view class="flight-time-field">
+            <view class="time-field-row">
+              <picker class="time-field-picker" mode="time" value="{{flightEditForm.estimatedArrivalClock}}" bindchange="onEstimatedArrivalTimeChange">
+                <view class="form-input picker-input">{{flightEditForm.estimatedArrivalClock || '选择预计到达时间'}}</view>
+              </picker>
+              <view class="time-clear-action" wx:if="{{flightEditForm.estimatedArrivalClock}}" bindtap="onClearEstimatedArrival" hover-class="tap-active">清除</view>
+            </view>
+            <text class="form-help">人工录入，保存后同步全部关联排班</text>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseFlightEdit" disabled="{{flightEditSaving}}">取消</button>
+        <button class="modal-btn btn-primary" bindtap="onSaveFlightEdit" loading="{{flightEditSaving}}" disabled="{{flightEditSaving}}">保存航班资料</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：智能排班推荐 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showRecommendation}}" bindtap="onCloseRecommendation">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 智能排班推荐</text>
+        <text class="modal-close" bindtap="onCloseRecommendation">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="m-rec-meta">
+          <text class="m-rec-flight">{{recFlightNo}}</text>
+          <text class="m-rec-info">{{recAirline}} · {{recAircraftType}}</text>
+        </view>
+        <scroll-view class="m-rec-list" scroll-y scroll-into-view="{{recScrollIntoView}}" scroll-with-animation>
+          <view class="m-rec-item" wx:for="{{recommendation}}" wx:key="staffId" id="{{index === 0 ? 'rec-item-target' : ''}}">
+            <view class="m-rec-left">
+              <text class="m-rec-name">{{item.name}}</text>
+              <text class="m-rec-employ">{{item.employeeNo}}</text>
+            </view>
+            <view class="m-rec-right">
+              <text class="m-rec-stat">连续{{item.continuousDays}}天</text>
+              <text class="m-rec-stat">本月{{item.monthAssignedCount}}次</text>
+            </view>
+          </view>
+          <view class="m-rec-empty" wx:if="{{recommendation.length === 0}}">暂无推荐人选</view>
+        </scroll-view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseRecommendation">取消</button>
+        <button class="modal-btn btn-primary" loading="{{committing}}" bindtap="onCommitSmartSchedule"> 确认排班</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：TSV 导入 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showTSVImportModal}}">
+    <view class="modal-content modal-tsv" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> TSV 导入排班</text>
+        <text class="modal-close" bindtap="onCloseTSVImport">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="tsv-hint">
+          <view class="tsv-hint-title"> 格式说明</view>
+          <view class="tsv-hint-box">
+            <text class="tsv-hint-line">航班号\t航司\t机型\t发动机型号\t起飞时间\t计划到达\t预计到达</text>
+            <text class="tsv-hint-line">MU5688\t东航\tA320\tCFM56-5B\t14:00\t12:00\t12:15</text>
+          </view>
+          <text class="tsv-hint-note">列顺序可任意调整，程序自动匹配</text>
+        </view>
+
+        <!-- 文件选择 -->
+        <view class="tsv-upload" wx:if="{{!selectedFileName}}" bindtap="onChooseTSVFile">
+          <text class="tsv-upload-icon">TSV</text>
+          <text class="tsv-upload-text">点击选择 TSV/TXT 排班文件</text>
+          <text class="tsv-upload-hint">支持 .tsv / .txt 格式</text>
+        </view>
+        <view class="tsv-file" wx:else>
+          <view class="tsv-file-card">
+            <text class="tsv-file-icon">文</text>
+            <view class="tsv-file-info">
+              <text class="tsv-file-name">{{selectedFileName}}</text>
+              <text class="tsv-file-size" wx:if="{{selectedFileSize}}">{{selectedFileSize}}</text>
+            </view>
+          </view>
+          <button class="tsv-rechoose" bindtap="onRechooseTSVFile">重新选择</button>
+        </view>
+
+        <!-- 解析结果预览 -->
+        <view class="tsv-preview" wx:if="{{tsvFlights.length > 0}}">
+          <view class="tsv-preview-title">
+            <text> 解析到 {{tsvFlights.length}} 条航班</text>
+            <text class="tsv-preview-hint">请核对后确认排班</text>
+          </view>
+          <scroll-view class="tsv-preview-list" scroll-y>
+            <view class="tsv-preview-item" wx:for="{{tsvFlights}}" wx:key="index">
+              <view class="tpi-header">
+                <text class="tpi-flight">{{item.flightNo}}</text>
+                <text class="tpi-airline">{{item.airline}}</text>
+              </view>
+              <view class="tpi-details">
+                <text class="tpi-detail">{{item.aircraftType}} / {{item.engineModel || '发动机待录入'}} · {{item.departureDisplay || item.departureTime}}</text>
+                <text class="tpi-detail" wx:if="{{item.estimatedArrivalDisplay}}">预计到达 {{item.estimatedArrivalDisplay}}</text>
+                <text class="tpi-detail" wx:if="{{item.stayHours > 0}}">停留 {{item.stayHours}}h</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <!-- 错误 -->
+        <view class="tsv-errors" wx:if="{{tsvErrors.length > 0}}">
+          <view class="tsv-error-title"> 解析问题</view>
+          <view class="tsv-error-item" wx:for="{{tsvErrors}}" wx:key="*this">{{item}}</view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseTSVImport">取消</button>
+        <button class="modal-btn btn-primary" loading="{{tsvParsing}}" bindtap="onParseTSVFile" wx:if="{{!tsvFlights.length && selectedFileName}}"> 解析文件</button>
+        <button class="modal-btn btn-primary" loading="{{imageImporting}}" bindtap="onConfirmTSVImport" wx:if="{{tsvFlights.length > 0}}"> 确认排班</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：智能排班参数 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showSmartForm}}">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 智能排班</text>
+        <text class="modal-close" bindtap="onCloseSmartForm">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="form-group">
+          <text class="form-label">航班号</text>
+          <input class="form-input" value="{{smartForm.flightNo}}" bindinput="onSmartFormInput" data-field="flightNo" placeholder="如 MU5688"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">航司</text>
+          <input class="form-input" value="{{smartForm.airline}}" bindinput="onSmartFormInput" data-field="airline" placeholder="如 东方航空"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">机型</text>
+          <input class="form-input" value="{{smartForm.aircraftType}}" bindinput="onSmartFormInput" data-field="aircraftType" placeholder="如 A320"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">发动机型号</text>
+          <input class="form-input" value="{{smartForm.engineModel}}" bindinput="onSmartFormInput" data-field="engineModel" placeholder="如 CFM56-5B"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">机号</text>
+          <input class="form-input" value="{{smartForm.aircraftRegistration}}" bindinput="onSmartFormInput" data-field="aircraftRegistration" placeholder="如 B-1234"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">预计到达时间</text>
+          <input class="form-input" value="{{smartForm.estimatedArrivalTime}}" bindinput="onSmartFormInput" data-field="estimatedArrivalTime" placeholder="2026-07-29T12:15"/>
+        </view>
+        <view class="form-group">
+          <text class="form-label">起飞时间</text>
+          <input class="form-input" value="{{smartForm.departureTime}}" bindinput="onSmartFormInput" data-field="departureTime" placeholder="2026-05-12T14:00"/>
+        </view>
+        <view class="form-row">
+          <view class="form-group form-group-half">
+            <text class="form-label">停留(h)</text>
+            <input class="form-input" type="digit" value="{{smartForm.stayHours}}" bindinput="onSmartFormInput" data-field="stayHours" placeholder="2"/>
+          </view>
+          <view class="form-group form-group-half">
+            <text class="form-label">人数</text>
+            <input class="form-input" type="number" value="{{smartForm.requiredCount}}" bindinput="onSmartFormInput" data-field="requiredCount" placeholder="1"/>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseSmartForm">取消</button>
+        <button class="modal-btn btn-primary" loading="{{analyzing}}" bindtap="onAnalyzeSchedule"> 分析推荐</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：合规检查结果 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showComplianceModal}}" bindtap="onCloseComplianceModal">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 排班合规检查</text>
+        <text class="modal-close" bindtap="onCloseComplianceModal">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="compliance-summary">
+          <text class="cs-count" wx:if="{{complianceResult.summary.totalViolations > 0}}">发现 {{complianceResult.summary.totalViolations}} 项潜在问题</text>
+          <view class="cs-badges" wx:if="{{complianceResult.summary.totalViolations > 0}}">
+            <text class="cs-badge badge-high" wx:if="{{complianceResult.summary.highCount > 0}}">{{complianceResult.summary.highCount}} 项高危</text>
+            <text class="cs-badge badge-medium" wx:if="{{complianceResult.summary.mediumCount > 0}}">{{complianceResult.summary.mediumCount}} 项中危</text>
+          </view>
+        </view>
+        <scroll-view class="compliance-list" scroll-y wx:if="{{complianceResult.violations.length > 0}}">
+          <view class="violation-item {{item.severity === 'HIGH' ? 'v-high' : item.severity === 'MEDIUM' ? 'v-medium' : 'v-low'}}" wx:for="{{complianceResult.violations}}" wx:key="*this">
+            <view class="v-header">
+              <text class="v-badge">{{item.severity === 'HIGH' ? '高危' : item.severity === 'MEDIUM' ? '中危' : '提示'}}</text>
+              <text class="v-type">{{item.type}}</text>
+            </view>
+            <text class="v-desc">{{item.description}}</text>
+            <text class="v-suggest" wx:if="{{item.suggestion}}">建议：{{item.suggestion}}</text>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseComplianceModal">取消返回修改</button>
+        <button
+          class="modal-btn {{complianceResult.summary.highCount > 0 ? 'btn-disabled' : 'btn-danger'}}"
+          bindtap="onIgnoreAndPublish"
+          disabled="{{complianceResult.summary.highCount > 0}}"
+        >{{complianceResult.summary.highCount > 0 ? '高危项禁止发布' : '人工复核后发布'}}</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：一键改班 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showReassignModal}}" bindtap="onCloseReassign">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 一键改班</text>
+        <text class="modal-close" bindtap="onCloseReassign">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="rs-target" wx:if="{{reassignTarget}}">
+          原班：<text class="rs-name">{{reassignTarget.row.name}}</text>
+          <text class="rs-meta">{{reassignTarget.row.employeeNo}} · {{reassignTarget.row.shiftCode ? shiftOptions[reassignTarget.row.shiftIndex] : '未排班'}}</text>
+          <text class="rs-flight" wx:if="{{reassignTarget.row.flightNo}}">航班 {{reassignTarget.row.flightNo}}</text>
+        </view>
+        <view class="rs-loading" wx:if="{{reassignLoading}}">查询可用人员中…</view>
+        <view class="rs-list" wx:else>
+          <view class="rs-item" wx:for="{{reassignCandidates}}" wx:key="staffId" wx:for-item="c"
+                data-staffid="{{c.staffId}}" bindtap="onConfirmReassign">
+            <view class="rs-avatar">{{c.initial}}</view>
+            <view class="rs-info">
+              <text class="rs-cand-name">{{c.name}}</text>
+              <text class="rs-cand-meta">{{c.employeeNo}} · {{c.groupId}}</text>
+              <text class="rs-quals" wx:if="{{c.authorizedAircraftTypes && c.authorizedAircraftTypes.length}}">
+                {{c.qualificationText}}
+              </text>
+            </view>
+            <button class="rs-btn">改至此人</button>
+          </view>
+          <view class="rs-empty" wx:if="{{!reassignLoading && reassignCandidates.length === 0}}">
+             当前无可用人员
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  </block>
+</view>

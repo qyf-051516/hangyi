@@ -1,0 +1,57 @@
+<view class="page {{themeClass}}">
+  <view class="card head">
+    <view class="title">我的排班</view>
+    <view class="sub" wx:if="{{staff}}">{{staff.name}} · {{staff.employeeNo}} · {{staff.groupId}}</view>
+    <view class="sub" wx:else>未绑定工号</view>
+  </view>
+
+  <view class="card" wx:if="{{loading}}">
+    <view class="loading-text">加载中…</view>
+  </view>
+
+  <view class="card error-card" wx:elif="{{errorText}}">
+    <view class="error-text">{{errorText}}</view>
+  </view>
+
+  <block wx:elif="{{schedules.length > 0}}">
+    <view class="card schedule-item" wx:for="{{schedules}}" wx:key="_id">
+      <view class="schedule-header">
+        <view class="flight">{{item.flightNo || '待定'}}</view>
+        <view class="shift-tag {{item.shiftCode === 'NIGHT' ? 'night' : ''}}">{{item.shiftLabelText}}</view>
+      </view>
+      <view class="schedule-body">
+        <view class="line">日期：{{item.scheduleDate}}</view>
+        <view class="line">航司：{{item.airline || '-'}}</view>
+        <view class="line">机型：{{item.aircraftType || '-'}}</view>
+        <view class="line">发动机型号：{{item.engineModel || '-'}}</view>
+        <view class="line">计划到达：{{item.scheduledArrivalTimeText}}</view>
+        <view class="line">预计到达：{{item.arrivalTimeText}}</view>
+        <view class="line">出港：{{item.departureTimeText}}</view>
+        <view class="line">状态：{{item.statusText}}</view>
+        <view class="conflict-line" wx:if="{{item.needsReassignment}}">该排班与已批准请假冲突，正在等待管理员改派</view>
+      </view>
+      <view class="schedule-actions" wx:if="{{item.canComplete}}">
+        <button
+          class="complete-btn"
+          data-schedule-id="{{item._id}}"
+          loading="{{completingId === item._id}}"
+          disabled="{{completingId !== ''}}"
+          bindtap="onCompleteSchedule"
+          hover-class="button-hover"
+        >确认完成</button>
+      </view>
+      <view class="schedule-actions" wx:elif="{{item.status === 'COMPLETED'}}">
+        <view class="completed-badge">已完成</view>
+      </view>
+      <view class="schedule-actions" wx:else>
+        <view class="pending-badge">{{item.completionHint || '暂不可操作'}}</view>
+      </view>
+    </view>
+  </block>
+
+  <view class="card empty-card" wx:else>
+    <view class="empty-icon">排</view>
+    <view class="empty-text">暂无排班记录</view>
+    <view class="empty-sub">今日及未来的排班将显示在此</view>
+  </view>
+</view>

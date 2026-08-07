@@ -1,0 +1,15 @@
+# ============================================
+# 航翼排班 · 前端 Dockerfile (本地构建产物版)
+# 用于服务器没有 node 镜像时，从本地构建产物打包
+# ============================================
+FROM nginx:alpine
+
+COPY dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+ENV GATEWAY_HOST=host.docker.internal
+ENV GATEWAY_PORT=9000
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,124 @@
+<view class="page {{themeClass}}">
+  <view class="card">
+    <view class="title">航翼调班申请</view>
+    <view class="sub">从本人真实排班中选择，审批通过后系统会把任务转给指定替班人员</view>
+
+    <view class="identity-panel">
+      <view class="identity-label">申请人</view>
+      <view class="identity-value">{{name || '未绑定员工'}}<text wx:if="{{employeeNo}}"> / {{employeeNo}}</text></view>
+    </view>
+
+    <view class="field">
+      <view class="label">需要调整的排班</view>
+      <view class="list-state compact" wx:if="{{scheduleLoading}}">正在加载本人排班...</view>
+      <view class="list-state compact error-text" wx:elif="{{scheduleError}}">{{scheduleError}}</view>
+      <picker
+        wx:elif="{{mySchedules.length}}"
+        mode="selector"
+        range="{{mySchedules}}"
+        range-key="pickerText"
+        value="{{scheduleIndex}}"
+        bindchange="onPickSchedule"
+      >
+        <view class="input picker">{{selectedSchedule.pickerText}}</view>
+      </picker>
+      <view class="list-state compact" wx:else>暂无可申请调班的未完成排班</view>
+      <view class="schedule-detail" wx:if="{{selectedSchedule}}">
+        <view>{{selectedSchedule.airline || '航司待定'}} / {{selectedSchedule.aircraftType || '机型待定'}}</view>
+        <view>当前状态：{{selectedSchedule.status || 'ASSIGNED'}}</view>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="label">调班原因</view>
+      <view class="reason-help">文字或图片至少填写一种，也可以同时提交</view>
+      <textarea class="textarea" placeholder="可填写文字说明，最多 500 字" value="{{reason}}" bindinput="onInputReason" maxlength="500" />
+      <view class="image-grid">
+        <view class="image-item" wx:for="{{reasonImages}}" wx:key="displayUrl">
+          <image
+            class="reason-image"
+            src="{{item.displayUrl}}"
+            mode="aspectFill"
+            data-index="{{index}}"
+            bindtap="onPreviewReasonImage"
+          ></image>
+          <view class="image-remove" data-index="{{index}}" bindtap="onRemoveReasonImage">删除</view>
+        </view>
+        <view
+          class="image-add"
+          wx:if="{{reasonImages.length < 6}}"
+          bindtap="onChooseReasonImages"
+          hover-class="tap-active"
+        >
+          <text class="image-add-mark">+</text>
+          <text>图片 {{reasonImages.length}}/6</text>
+        </view>
+      </view>
+    </view>
+
+    <button class="submit-btn" loading="{{submitting}}" disabled="{{submitting || !selectedScheduleId}}" bindtap="onSubmit" hover-class="button-hover">提交申请</button>
+  </view>
+
+  <view class="card request-list-card">
+    <view class="list-head">
+      <view class="list-title">我的申请</view>
+      <view class="list-count">{{myRequests.length}} 条</view>
+    </view>
+    <view class="list-state" wx:if="{{listLoading}}">加载中...</view>
+    <view class="list-state" wx:elif="{{myRequests.length === 0}}">暂无调班申请</view>
+    <view class="request-item" wx:for="{{myRequests}}" wx:key="_id">
+      <view class="request-head">
+        <view>
+          <text class="request-type">{{item.requestTypeText}}</text>
+          <text class="request-flight" wx:if="{{item.flightNo}}">{{item.flightNo}}</text>
+        </view>
+        <text class="request-status status-{{item.status}}">{{item.statusText}}</text>
+      </view>
+      <view class="request-meta" wx:if="{{item.scheduleDate}}">排班日期：{{item.scheduleDate}}</view>
+      <view class="request-meta" wx:if="{{item.startTime || item.endTime}}">排班时段：{{item.startTime || '待定'}} 至 {{item.endTime || '待定'}}</view>
+      <view class="request-meta" wx:if="{{item.replacementName}}">替班人员：{{item.replacementName}} / {{item.replacementEmployeeNo}}</view>
+      <view class="request-meta" wx:if="{{item.targetScheduleId}}">目标排班：{{item.targetScheduleId}}</view>
+      <view class="request-reason" wx:if="{{item.reasonText}}">原因：{{item.reasonText}}</view>
+      <view class="request-images" wx:if="{{item.reasonImages.length}}">
+        <image
+          class="request-image"
+          wx:for="{{item.reasonImages}}"
+          wx:for-item="image"
+          wx:for-index="imageIndex"
+          wx:key="fileID"
+          src="{{image.displayUrl}}"
+          mode="aspectFill"
+          data-id="{{item._id}}"
+          data-index="{{imageIndex}}"
+          bindtap="onPreviewRequestImage"
+        ></image>
+      </view>
+      <view class="validation-line {{item.validationSnapshot && item.validationSnapshot.passed === false ? 'validation-warn' : ''}}">
+        {{item.validationText}}
+      </view>
+      <view class="request-comment" wx:if="{{item.comment}}">审批备注：{{item.comment}}</view>
+      <view class="audit-block" wx:if="{{item.auditTrail.length}}">
+        <view class="audit-title">操作记录</view>
+        <view class="audit-row" wx:for="{{item.auditTrail}}" wx:for-item="audit" wx:key="atText">
+          <text class="audit-dot"></text>
+          <view class="audit-main">
+            <view>{{audit.operatorName || '系统'}} · {{audit.status}}</view>
+            <view class="audit-meta">{{audit.atText}} {{audit.detail}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="request-foot">
+        <text class="request-time">{{item.createdAtText}}</text>
+        <button
+          class="withdraw-btn"
+          wx:if="{{item.status === 'PENDING'}}"
+          data-id="{{item._id}}"
+          loading="{{withdrawingId === item._id}}"
+          disabled="{{withdrawingId !== ''}}"
+          bindtap="onWithdraw"
+          hover-class="button-hover"
+        >撤回</button>
+      </view>
+    </view>
+  </view>
+</view>

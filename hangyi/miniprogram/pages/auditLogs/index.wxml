@@ -1,0 +1,72 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="denied-icon">!</view>
+    <view class="denied-title">需要管理员权限</view>
+    <view class="denied-sub">此页面仅供管理员访问</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+  <block wx:else>
+  <!-- 操作类型筛选 -->
+  <view class="card filter-card">
+    <view class="filter-title">操作类型筛选</view>
+    <scroll-view class="filter-scroll" scroll-x>
+      <view class="filter-tags">
+        <view class="filter-tag {{filterAction === '' ? 'filter-tag-active' : ''}}" bindtap="onFilterChange" data-action="">
+          全部
+        </view>
+        <view class="filter-tag {{filterAction === item.value ? 'filter-tag-active' : ''}}"
+              wx:for="{{actionOptions}}" wx:key="value" bindtap="onFilterChange" data-action="{{item.value}}">
+          {{item.label}}
+        </view>
+      </view>
+    </scroll-view>
+    <view class="date-filter-row">
+      <picker mode="date" value="{{startDate}}" bindchange="onDateChange" data-field="startDate">
+        <view class="date-filter">{{startDate || '开始日期'}}</view>
+      </picker>
+      <picker mode="date" value="{{endDate}}" bindchange="onDateChange" data-field="endDate">
+        <view class="date-filter">{{endDate || '结束日期'}}</view>
+      </picker>
+      <view class="date-clear" wx:if="{{startDate || endDate}}" bindtap="onClearDates" hover-class="tap-active">清除</view>
+    </view>
+  </view>
+
+  <!-- 统计 -->
+  <view class="card stats-card" wx:if="{{!loading}}">
+    <text class="stats-text">共 {{total}} 条操作记录</text>
+    <button class="export-btn" bindtap="onExportLogs"> 导出审计日志</button>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-text" wx:if="{{loading}}">加载中…</view>
+  <view class="card error-card" wx:elif="{{errorMessage}}">
+    <view class="denied-title">日志暂时无法加载</view>
+    <view class="denied-sub">{{errorMessage}}</view>
+    <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <!-- 日志列表 -->
+  <view class="log-list" wx:for="{{logs}}" wx:key="_id" wx:for-item="log">
+    <view class="card log-card">
+      <view class="log-header">
+        <text class="log-action-badge log-action-{{log.action}}">{{log.actionText}}</text>
+        <text class="log-time">{{log.createdAtText}}</text>
+      </view>
+      <view class="log-operator">{{log.operatorText}}</view>
+      <view class="log-detail">{{log.detail}}</view>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{logs.length > 0 && logs.length < total}}">
+    <button class="load-more-btn" loading="{{loadingMore}}" bindtap="onLoadMore">
+      {{loadingMore ? '加载中…' : '加载更多 (' + logs.length + '/' + total + ')'}}
+    </button>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{!loading && logs.length === 0}}">
+    <text class="empty-text">暂无操作记录</text>
+  </view>
+  </block>
+</view>

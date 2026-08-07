@@ -1,0 +1,39 @@
+package com.qyf.hangyi.schedule.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Data
+@TableName("schedule_detail")
+public class ScheduleDetail {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    private String sourceKey;
+    private Long scheduleId;
+    private Long employeeId;
+    private LocalDate workDate;
+    private Long shiftId;
+    private String shiftGroup;
+    private String scheduleType;
+    private String remark;
+    private Long flightId;
+    private String taskType;
+    private LocalDateTime taskStart;
+    private LocalDateTime taskEnd;
+    private String source;
+    private String recordStatus;
+    private Boolean needsReassignment;
+    private Long leaveRequestId;
+    private Integer prepTime;
+    private Integer wrapTime;
+
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createdAt;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
+}

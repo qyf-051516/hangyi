@@ -1,0 +1,56 @@
+<svg width="1600" height="1040" viewBox="0 0 1600 1040" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" stroke="#6F849C" stroke-opacity=".075" stroke-width="1"/>
+      <circle cx="0" cy="0" r="1.2" fill="#536B87" fill-opacity=".16"/>
+    </pattern>
+    <linearGradient id="routeFade" x1="-72" y1="852" x2="1460" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#587491" stop-opacity="0"/>
+      <stop offset=".22" stop-color="#587491" stop-opacity=".2"/>
+      <stop offset=".75" stop-color="#587491" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#587491" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="scopeFade" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1362 152) rotate(90) scale(360)">
+      <stop stop-color="#7894AD" stop-opacity=".11"/>
+      <stop offset="1" stop-color="#7894AD" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="1040" fill="url(#grid)"/>
+  <circle cx="1362" cy="152" r="360" fill="url(#scopeFade)"/>
+
+  <g stroke="#6B829C" stroke-width="1" stroke-opacity=".12">
+    <circle cx="1362" cy="152" r="92"/>
+    <circle cx="1362" cy="152" r="176"/>
+    <circle cx="1362" cy="152" r="264"/>
+    <path d="M1074 152H1600M1362 0V440"/>
+    <path d="M1176 354L1538 0"/>
+  </g>
+
+  <path
+    d="M-96 858C168 752 262 570 506 584C756 598 834 376 1068 332C1274 293 1406 396 1688 166"
+    stroke="url(#routeFade)"
+    stroke-width="1.6"
+    stroke-dasharray="7 11"
+  />
+  <path
+    d="M128 1040C292 856 474 812 678 846C914 885 1082 765 1246 588C1378 445 1512 438 1662 466"
+    stroke="#587491"
+    stroke-opacity=".12"
+    stroke-width="1.2"
+  />
+
+  <g fill="#F5F8FA" stroke="#587491" stroke-opacity=".3">
+    <circle cx="274" cy="675" r="5"/>
+    <circle cx="506" cy="584" r="5"/>
+    <circle cx="828" cy="431" r="5"/>
+    <circle cx="1068" cy="332" r="5"/>
+    <circle cx="1417" cy="364" r="5"/>
+  </g>
+
+  <g transform="translate(184 190) rotate(-18)" stroke="#6B829C" stroke-opacity=".12">
+    <path d="M0 0H238" stroke-width="1"/>
+    <path d="M0 18H238" stroke-width="1"/>
+    <path d="M28 0V18M74 0V18M120 0V18M166 0V18M212 0V18" stroke-width="2"/>
+  </g>
+</svg>

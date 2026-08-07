@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "openapi": [
+      "wxacode.get",
+      "phonenumber.getPhoneNumber",
+      "subscribeMessage.send"
+    ]
+  },
+  "timeout": 60
+}

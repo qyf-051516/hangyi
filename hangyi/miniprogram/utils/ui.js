@@ -1,0 +1,153 @@
+// 班组映射：兼容中文名（"A组"）和下划线格式（"group_a"）
+const GROUP_LABEL_MAP = {
+  "A组": "A组", group_a: "A组",
+  "B组": "B组", group_b: "B组",
+  "C组": "C组", group_c: "C组",
+  "D组": "D组", group_d: "D组",
+  "E组": "E组", group_e: "E组",
+  "F组": "F组", group_f: "F组",
+  "G组": "G组", group_g: "G组",
+  "H组": "H组", group_h: "H组",
+};
+
+const groupLabel = (raw) => GROUP_LABEL_MAP[raw] || raw || "-";
+
+const THEME_STYLE_MAP = {
+  light: {
+    navigationBarBackgroundColor: "#f3f8fe",
+    navigationBarTextStyle: "black",
+    backgroundColor: "#eef5fd",
+    tabBarColor: "#8b9bb0",
+    tabBarSelectedColor: "#1178ee",
+    tabBarBackgroundColor: "#ffffff",
+    tabBarBorderStyle: "white",
+  },
+  dark: {
+    navigationBarBackgroundColor: "#0a1b33",
+    navigationBarTextStyle: "white",
+    backgroundColor: "#071429",
+    tabBarColor: "#84a6d8",
+    tabBarSelectedColor: "#37e2ff",
+    tabBarBackgroundColor: "#08162d",
+    tabBarBorderStyle: "black",
+  },
+};
+
+const normalizeTheme = (theme) => {
+  if (theme === "dark") return "dark";
+  // 默认浅色主题
+  return "light";
+};
+
+const getUiSettings = () => {
+  const theme = normalizeTheme(wx.getStorageSync("ui_theme"));
+  return {
+    theme,
+    themeClass: theme === "light" ? "theme-light" : "theme-dark",
+  };
+};
+
+const applySystemTheme = (theme) => {
+  const nextTheme = normalizeTheme(theme);
+  const style = THEME_STYLE_MAP[nextTheme];
+
+  if (wx.setNavigationBarColor) {
+    wx.setNavigationBarColor({
+      frontColor: style.navigationBarTextStyle === "black" ? "#000000" : "#ffffff",
+      backgroundColor: style.navigationBarBackgroundColor,
+      animation: {
+        duration: 180,
+        timingFunc: "easeIn",
+      },
+      fail: () => {},
+    });
+  }
+
+  if (wx.setBackgroundColor) {
+    wx.setBackgroundColor({
+      backgroundColor: style.backgroundColor,
+      backgroundColorTop: style.backgroundColor,
+      backgroundColorBottom: style.backgroundColor,
+      fail: () => {},
+    });
+  }
+
+  if (wx.setTabBarStyle) {
+    wx.setTabBarStyle({
+      color: style.tabBarColor,
+      selectedColor: style.tabBarSelectedColor,
+      backgroundColor: style.tabBarBackgroundColor,
+      borderStyle: style.tabBarBorderStyle,
+      fail: () => {},
+    });
+  }
+};
+
+const applyUiSettings = (ctx) => {
+  const ui = getUiSettings();
+  if (ctx && typeof ctx.setData === "function") {
+    ctx.setData(ui);
+  }
+  applySystemTheme(ui.theme);
+  return ui;
+};
+
+const setUiTheme = (theme, ctx) => {
+  const nextTheme = normalizeTheme(theme);
+  wx.setStorageSync("ui_theme", nextTheme);
+  const ui = {
+    theme: nextTheme,
+    themeClass: nextTheme === "light" ? "theme-light" : "theme-dark",
+  };
+  if (ctx && typeof ctx.setData === "function") {
+    ctx.setData(ui);
+  }
+  applySystemTheme(nextTheme);
+  return ui;
+};
+
+// ═══ 管理员身份缓存 (5 分钟) ═══
+// 各页面 onShow 时调用, 普通员工相关 admin UI 自动隐藏
+let _adminCache = { openid: null, isAdmin: false, ts: 0 };
+const ADMIN_TTL_MS = 5 * 60 * 1000;
+
+const { callBackend } = require("./api");
+
+// 拉一次 (含缓存): 普通用户场景下, mine 加载过, 其他页面复用
+const loadIsAdmin = async (forceRefresh = false) => {
+  const { readCache, writeCache } = require("./cache");
+  const cached = readCache("isAdmin", ADMIN_TTL_MS);
+  if (!forceRefresh && cached !== null) return cached;
+  try {
+    const profile = await callBackend("getMyProfile", {
+      forceRefresh: forceRefresh === true,
+    });
+    const isAdmin = !!(profile && profile.isAdmin);
+    writeCache("isAdmin", isAdmin);
+    return isAdmin;
+  } catch {
+    return false;
+  }
+};
+
+// 同步版本: 读已加载的缓存 (可能返回 false, 调用方要 fallback 异步)
+const readIsAdminCache = () => {
+  const { readCache } = require("./cache");
+  const v = readCache("isAdmin", ADMIN_TTL_MS);
+  return v === true;
+};
+
+const clearIsAdminCache = () => {
+  const { writeCache } = require("./cache");
+  writeCache("isAdmin", false);
+};
+
+module.exports = {
+  getUiSettings,
+  applyUiSettings,
+  setUiTheme,
+  groupLabel,
+  loadIsAdmin,
+  readIsAdminCache,
+  clearIsAdminCache,
+};

@@ -1,0 +1,235 @@
+
+/* 主题 / 页面 / 卡片基类由 app.wxss 提供(.page / .card / .t-* / .c-*) */
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.row,
+.field {
+  margin-bottom: 14rpx;
+}
+
+.label {
+  font-size: 24rpx;
+  margin-bottom: 8rpx;
+}
+
+.theme-dark .label {
+  color: #9abde3;
+}
+
+.theme-light .label {
+  color: #3d5270;
+}
+
+.value {
+  font-size: 24rpx;
+}
+
+.readonly-note {
+  margin-bottom: 16rpx;
+  padding: 14rpx 16rpx;
+  border-radius: 12rpx;
+  font-size: 21rpx;
+  line-height: 1.55;
+  color: #6d5322;
+  background: rgba(205, 151, 55, 0.12);
+}
+.theme-dark .readonly-note {
+  color: #e3c27d;
+  background: rgba(205, 151, 55, 0.14);
+}
+.readonly-row {
+  min-height: 66rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  border-bottom: 1rpx solid rgba(115, 145, 176, 0.16);
+}
+.readonly-row .label { margin-bottom: 0; flex-shrink: 0; }
+.readonly-value {
+  text-align: right;
+  font-size: 22rpx;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.picker,
+.input {
+  height: 68rpx;
+  line-height: 68rpx;
+  border-radius: 12rpx;
+  padding: 0 16rpx;
+  font-size: 24rpx;
+}
+
+.theme-dark .picker,
+.theme-dark .input {
+  background: rgba(17, 43, 77, 0.9);
+  border: 1rpx solid rgba(89, 168, 255, 0.35);
+  color: #d8ebff;
+}
+
+.theme-light .picker,
+.theme-light .input {
+  background: rgba(240, 247, 255, 0.95);
+  border: 1rpx solid rgba(124, 156, 198, 0.42);
+  color: #17355f;
+}
+
+.save-btn {
+  margin-top: 8rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  width: auto;
+  min-width: 0;
+  padding: 0 16rpx;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+}
+
+.theme-dark .save-btn {
+  background: rgba(46, 222, 255, 0.22);
+  color: #dff6ff;
+  border: 1rpx solid rgba(77, 232, 255, 0.5);
+}
+
+.theme-light .save-btn {
+  background: rgba(83, 153, 255, 0.12);
+  color: #245090;
+  border: 1rpx solid rgba(83, 153, 255, 0.4);
+}
+
+/* 标签网格 */
+.tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.tag {
+  min-height: 64rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 10rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+
+.theme-dark .tag {
+  background: rgba(17, 43, 77, 0.85);
+  border: 1rpx solid rgba(89, 168, 255, 0.25);
+  color: #9abde3;
+}
+
+.theme-light .tag {
+  background: rgba(240, 247, 255, 0.9);
+  border: 1rpx solid rgba(124, 156, 198, 0.3);
+  color: #3d5270;
+}
+
+.tag-active {
+  border-color: #37e2ff !important;
+  color: #fff !important;
+  background: rgba(55, 226, 255, 0.28) !important;
+}
+
+.theme-light .tag-active {
+  color: #0e274c !important;
+  background: rgba(36, 80, 144, 0.15) !important;
+  border-color: #245090 !important;
+}
+
+/* 已选资质 */
+.selected-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.selected-tag {
+  padding: 8rpx 18rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  line-height: 1;
+}
+
+.theme-dark .selected-tag {
+  background: rgba(55, 226, 255, 0.2);
+  color: #5fe8ff;
+  border: 1rpx solid rgba(55, 226, 255, 0.4);
+}
+
+.theme-light .selected-tag {
+  background: rgba(36, 80, 144, 0.12);
+  color: #245090;
+  border: 1rpx solid rgba(36, 80, 144, 0.35);
+}
+
+/* 自定义输入行 */
+.custom-row {
+  display: flex;
+  gap: 12rpx;
+}
+
+.custom-input {
+  flex: 1;
+}
+
+.add-btn {
+  flex-shrink: 0;
+  margin: 0;
+  height: 68rpx;
+  line-height: 68rpx;
+  padding: 0 20rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+}
+
+.theme-dark .add-btn {
+  background: rgba(55, 226, 255, 0.18);
+  color: #5fe8ff;
+  border: 1rpx solid rgba(55, 226, 255, 0.35);
+}
+
+/* 退出登录 */
+.logout-card {
+  text-align: center;
+  padding: 24rpx 20rpx;
+}
+
+.logout-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.theme-dark .logout-btn {
+  background: rgba(255, 77, 90, 0.18);
+  color: #ff6b7a;
+  border: 1rpx solid rgba(255, 77, 90, 0.4);
+}
+
+.theme-light .logout-btn {
+  background: rgba(255, 77, 90, 0.08);
+  color: #e04858;
+  border: 1rpx solid rgba(255, 77, 90, 0.35);
+}
+
+.logout-btn::after {
+  border: none;
+}
+
+.theme-light .add-btn {
+  background: rgba(36, 80, 144, 0.1);
+  color: #245090;
+  border: 1rpx solid rgba(36, 80, 144, 0.3);
+}

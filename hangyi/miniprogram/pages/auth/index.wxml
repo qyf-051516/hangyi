@@ -1,0 +1,40 @@
+<view class="page {{themeClass}}">
+  <view class="card">
+    <view class="title">已绑定账号辅助验证</view>
+    <view class="sub">首次绑定请使用手机号一键登录。此方式仅用于已绑定当前微信的账号辅助验证，不能创建或抢占员工账号。</view>
+
+    <view class="field">
+      <view class="label">工号</view>
+      <input
+        class="input"
+        placeholder="请输入工号"
+        value="{{employeeNo}}"
+        bindinput="onInputEmployeeNo"
+      />
+    </view>
+
+    <view class="field">
+      <view class="label">姓名</view>
+      <input
+        class="input"
+        placeholder="请输入姓名"
+        value="{{name}}"
+        bindinput="onInputName"
+      />
+    </view>
+
+    <view class="field">
+      <view class="label">电话号码</view>
+      <input
+        class="input"
+        type="number"
+        maxlength="11"
+        placeholder="请输入手机号码"
+        value="{{phone}}"
+        bindinput="onInputPhone"
+      />
+    </view>
+
+    <button class="submit-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="onSubmit">验证已绑定账号</button>
+  </view>
+</view>

@@ -1,0 +1,9 @@
+{
+  "name": "syncToHangyi",
+  "version": "1.0.0",
+  "description": "Scheduled sync from mini-program to Hangyi Spring Boot",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "4.0.2"
+  }
+}

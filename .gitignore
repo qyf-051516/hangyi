@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# 本地 Maven 缓存(2.7G,不入库)
+.m2-local/
+
+# Reasonix 工具内部配置
+.reasonix/
+
+# 临时审查报告
+code-review-report.md

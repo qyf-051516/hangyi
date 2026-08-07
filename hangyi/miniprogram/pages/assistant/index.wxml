@@ -1,0 +1,85 @@
+<view class="page {{themeClass}}">
+  <view class="assistant-head">
+    <view>
+      <view class="head-title">航翼智能助手</view>
+      <view class="head-sub">排班制度与操作知识问答</view>
+    </view>
+    <button class="clear-btn" bindtap="onClear" disabled="{{messages.length === 0}}">清空本页</button>
+  </view>
+
+  <view class="status-bar {{ready ? (fallbackMode ? 'status-local' : 'status-ready') : 'status-warn'}}">
+    <view class="status-dot"></view>
+    <text>{{statusText}}</text>
+    <text class="mode-text" wx:if="{{ready}}">{{fallbackMode ? '内置知识' : '联网知识库'}}</text>
+    <text class="quota-text" wx:if="{{remainingQuota !== null}}">今日剩余 {{remainingQuota}} 次</text>
+  </view>
+
+  <scroll-view
+    class="message-list"
+    scroll-y
+    scroll-with-animation
+    scroll-into-view="{{scrollTarget}}"
+  >
+    <view class="empty-state" wx:if="{{messages.length === 0}}">
+      <view class="empty-mark">
+        <image class="empty-mark-icon" src="/images/menu/assistant-white.svg" mode="aspectFit"></image>
+      </view>
+      <view class="empty-title">从一个具体问题开始</view>
+      <view class="empty-desc">我可以解释排班、调班、请假、资质与管理员操作</view>
+      <view class="suggestion-list">
+        <button class="suggestion-item" data-question="调班申请怎么提交？" bindtap="onSuggestionTap">调班申请怎么提交？</button>
+        <button class="suggestion-item" data-question="系统会自动校验哪些排班冲突？" bindtap="onSuggestionTap">系统会校验哪些冲突？</button>
+        <button class="suggestion-item" data-question="管理员工具在哪里？" bindtap="onSuggestionTap">管理员工具在哪里？</button>
+      </view>
+    </view>
+
+    <view
+      wx:for="{{messages}}"
+      wx:key="id"
+      id="message-{{item.id}}"
+      class="message-row {{item.role === 'user' ? 'message-user' : 'message-assistant'}}"
+    >
+      <view class="message-bubble {{item.isError ? 'message-error' : ''}}" bindlongpress="onCopyMessage" data-content="{{item.content}}">
+        <text user-select>{{item.content}}</text>
+      </view>
+      <view class="source-list" wx:if="{{item.sources && item.sources.length}}">
+        <view class="source-label">参考依据</view>
+        <view class="source-item" wx:for="{{item.sources}}" wx:for-item="source" wx:key="id">
+          <view class="source-copy">
+            <text>{{source.title || source.documentName || '知识库文档'}}</text>
+            <text class="source-section" wx:if="{{source.section}}">{{source.section}}</text>
+          </view>
+          <text class="source-score" wx:if="{{source.score}}">{{source.score}}</text>
+        </view>
+      </view>
+      <view class="feedback-row" wx:if="{{item.role === 'assistant' && !item.isError && item.id}}">
+        <button class="feedback-btn {{item.feedback === 'UP' ? 'feedback-active' : ''}}" disabled="{{item.feedback}}" data-id="{{item.id}}" data-rating="UP" bindtap="onFeedback">有帮助</button>
+        <button class="feedback-btn {{item.feedback === 'DOWN' ? 'feedback-active' : ''}}" disabled="{{item.feedback}}" data-id="{{item.id}}" data-rating="DOWN" bindtap="onFeedback">需改进</button>
+      </view>
+    </view>
+
+    <view class="typing" wx:if="{{sending}}">
+      <view class="typing-dot"></view>
+      <view class="typing-dot"></view>
+      <view class="typing-dot"></view>
+    </view>
+  </scroll-view>
+
+  <view class="composer">
+    <textarea
+      class="question-input"
+      value="{{question}}"
+      maxlength="500"
+      auto-height
+      placeholder="{{fallbackMode ? '询问排班、调班、请假或资质' : '输入排班或制度问题'}}"
+      bindinput="onQuestionInput"
+      disabled="{{sending || !ready}}"
+    ></textarea>
+    <button
+      class="send-btn"
+      bindtap="onSend"
+      loading="{{sending}}"
+      disabled="{{sending || !question || !ready}}"
+    >发送</button>
+  </view>
+</view>

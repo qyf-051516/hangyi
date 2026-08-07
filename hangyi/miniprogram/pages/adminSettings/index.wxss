@@ -1,0 +1,93 @@
+/* 页面基类与主题变量由 app.wxss 提供 */
+
+.page { padding-bottom: calc(130rpx + env(safe-area-inset-bottom)); }
+.page-head { padding: 10rpx 2rpx 26rpx; }
+.eyebrow { color: var(--c-primary); font-size: 19rpx; font-weight: 700; letter-spacing: 3rpx; }
+.page-title { margin-top: 8rpx; font-size: 44rpx; line-height: 1.08; font-weight: 800; letter-spacing: -2rpx; }
+.page-copy { max-width: 620rpx; margin-top: 10rpx; font-size: 22rpx; line-height: 1.55; opacity: 0.65; }
+.section-label { margin: 30rpx 4rpx 10rpx; font-size: 24rpx; font-weight: 720; }
+.setting-card { padding: 0 20rpx; }
+.setting-row {
+  min-height: 112rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  border-bottom: 1rpx solid rgba(108, 143, 181, 0.16);
+}
+.setting-row:last-child { border-bottom: 0; }
+.setting-main { min-width: 0; flex: 1; }
+.setting-title { font-size: 24rpx; font-weight: 680; }
+.setting-copy { margin-top: 5rpx; font-size: 19rpx; line-height: 1.42; opacity: 0.6; }
+.number-control {
+  min-width: 176rpx;
+  min-height: 68rpx;
+  padding: 0 13rpx;
+  border-radius: 13rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+}
+.theme-light .number-control { background: #e6f0fb; }
+.theme-dark .number-control { background: #113150; }
+.number-control input {
+  width: 74rpx;
+  height: 68rpx;
+  text-align: right;
+  font-size: 25rpx;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+.number-control text { font-size: 18rpx; opacity: 0.6; white-space: nowrap; }
+.switch-setting { min-height: 132rpx; }
+
+.save-dock {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(16rpx + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr 1.55fr;
+  gap: 12rpx;
+  padding: 12rpx;
+  border-radius: 18rpx;
+  box-shadow: 0 12rpx 36rpx rgba(20, 65, 105, 0.2);
+}
+.theme-light .save-dock { background: rgba(245, 250, 255, 0.96); }
+.theme-dark .save-dock { background: rgba(9, 29, 52, 0.96); }
+.reset-btn,
+.save-btn {
+  margin: 0;
+  min-height: 76rpx;
+  line-height: 76rpx;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+  font-weight: 680;
+}
+.reset-btn { color: inherit; background: rgba(107, 133, 158, 0.14); }
+.save-btn { color: #ffffff; background: #285f96; }
+.save-btn[disabled] { opacity: 0.46; }
+
+.loading-card,
+.error-card,
+.denied-card { padding: 40rpx 24rpx; text-align: center; }
+.loading-line { height: 92rpx; margin-bottom: 10rpx; border-radius: 13rpx; opacity: 0.5; }
+.theme-light .loading-line { background: #d4e3f3; }
+.theme-dark .loading-line { background: #1b446c; }
+.state-title { font-size: 29rpx; font-weight: 750; }
+.state-copy { margin-top: 9rpx; font-size: 21rpx; line-height: 1.5; opacity: 0.65; }
+.state-btn {
+  margin-top: 24rpx;
+  min-height: 70rpx;
+  line-height: 70rpx;
+  border-radius: 14rpx;
+  color: #ffffff;
+  background: #285f96;
+  font-size: 24rpx;
+}
+
+@media (max-width: 340px) {
+  .setting-row { align-items: stretch; flex-direction: column; padding: 20rpx 0; gap: 12rpx; }
+  .number-control { align-self: flex-end; }
+}

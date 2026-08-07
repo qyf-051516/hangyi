@@ -1,0 +1,185 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="state-title">需要管理员权限</view>
+    <view class="state-copy">当前账号不能查看或修改人员资料</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+    <view class="page-head">
+      <view>
+        <view class="eyebrow">STAFF DIRECTORY</view>
+        <view class="page-title">人员管理</view>
+        <view class="page-copy">账号状态、岗位、班组、资质与管理员权限</view>
+      </view>
+    </view>
+
+    <view class="summary-grid">
+      <view class="summary-cell">
+        <text class="summary-value">{{summary.active}}</text>
+        <text class="summary-label">在职</text>
+      </view>
+      <view class="summary-cell">
+        <text class="summary-value warn">{{summary.inactive}}</text>
+        <text class="summary-label">停用</text>
+      </view>
+      <view class="summary-cell">
+        <text class="summary-value">{{summary.admins}}</text>
+        <text class="summary-label">管理员</text>
+      </view>
+      <view class="summary-cell">
+        <text class="summary-value">{{summary.bound}}</text>
+        <text class="summary-label">已绑定</text>
+      </view>
+    </view>
+
+    <view class="card filter-panel">
+      <view class="search-row">
+        <text class="search-code">查</text>
+        <input
+          class="search-input"
+          value="{{query}}"
+          placeholder="搜索姓名或工号"
+          confirm-type="search"
+          bindinput="onQueryInput"
+        />
+        <view class="clear-action" wx:if="{{query}}" bindtap="onClearQuery" hover-class="tap-active">清除</view>
+      </view>
+      <view class="filter-row">
+        <picker mode="selector" range="{{groupOptions}}" range-key="label" value="{{groupIndex}}" bindchange="onGroupFilter">
+          <view class="filter-control">{{groupOptions[groupIndex].label}}</view>
+        </picker>
+        <picker mode="selector" range="{{roleOptions}}" range-key="label" value="{{roleIndex}}" bindchange="onRoleFilter">
+          <view class="filter-control">{{roleOptions[roleIndex].label}}</view>
+        </picker>
+        <picker mode="selector" range="{{statusOptions}}" range-key="label" value="{{statusIndex}}" bindchange="onStatusFilter">
+          <view class="filter-control">{{statusOptions[statusIndex].label}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="card loading-card" wx:if="{{loading}}">
+      <view class="loading-line" wx:for="{{skeletonRows}}" wx:key="*this"></view>
+    </view>
+
+    <view class="card error-card" wx:elif="{{errorMessage}}">
+      <view class="state-title">人员列表加载失败</view>
+      <view class="state-copy">{{errorMessage}}</view>
+      <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+    </view>
+
+    <view class="staff-list" wx:elif="{{list.length}}">
+      <view class="staff-card" wx:for="{{list}}" wx:key="staffId">
+        <view class="staff-top">
+          <view class="staff-avatar">{{item.initial}}</view>
+          <view class="staff-main">
+            <view class="staff-title-row">
+              <text class="staff-name">{{item.name}}</text>
+              <text class="admin-tag" wx:if="{{item.isAdmin}}">管理员</text>
+              <text class="inactive-tag" wx:if="{{!item.active}}">已停用</text>
+            </view>
+            <view class="staff-meta">{{item.employeeNo}} · {{item.groupText}} · {{item.roleText}}</view>
+          </view>
+          <button
+            class="edit-btn"
+            data-id="{{item.staffId}}"
+            bindtap="onOpenEditor"
+            hover-class="button-hover"
+          >管理</button>
+        </view>
+        <view class="staff-detail-row">
+          <text>{{item.bindText}}</text>
+          <text wx:if="{{item.phoneMasked}}">{{item.phoneMasked}}</text>
+        </view>
+        <view class="qualification-line">机型：{{item.qualificationText}}</view>
+        <view class="qualification-line secondary">航司：{{item.airlineText}}</view>
+      </view>
+      <view class="load-more" wx:if="{{loadingMore}}">正在加载更多</view>
+      <view class="load-more" wx:elif="{{hasMore}}">继续上拉加载</view>
+      <view class="load-more" wx:else>已显示全部 {{total}} 人</view>
+    </view>
+
+    <view class="card empty-card" wx:else>
+      <view class="state-title">没有匹配的员工</view>
+      <view class="state-copy">尝试清除搜索词或调整筛选条件</view>
+    </view>
+  </block>
+
+  <view class="modal-overlay" wx:if="{{showEditor}}" bindtap="onCloseEditor">
+    <view class="editor-sheet" catchtap="noop">
+      <view class="editor-head">
+        <view>
+          <view class="editor-title">{{selectedStaff.name}}</view>
+          <view class="editor-copy">{{selectedStaff.employeeNo}} · {{selectedStaff.bindText}}</view>
+        </view>
+        <view class="close-btn" bindtap="onCloseEditor" hover-class="tap-active">关闭</view>
+      </view>
+
+      <scroll-view class="editor-body" scroll-y>
+        <view class="form-row">
+          <text class="form-label">班组</text>
+          <picker mode="selector" range="{{groupOptions}}" range-key="label" value="{{editForm.groupIndex}}" bindchange="onEditGroup">
+            <view class="form-control">{{groupOptions[editForm.groupIndex].label}}</view>
+          </picker>
+        </view>
+        <view class="form-row">
+          <text class="form-label">岗位角色</text>
+          <picker mode="selector" range="{{roleOptions}}" range-key="label" value="{{editForm.roleIndex}}" bindchange="onEditRole">
+            <view class="form-control">{{roleOptions[editForm.roleIndex].label}}</view>
+          </picker>
+        </view>
+        <view class="form-row form-row-column">
+          <text class="form-label">航司授权</text>
+          <textarea
+            class="qualification-input"
+            value="{{editForm.airlineText}}"
+            maxlength="400"
+            placeholder="使用逗号分隔，例如 中国南方航空, 中国国际航空"
+            bindinput="onEditAirlines"
+          ></textarea>
+          <text class="form-help">航司与机型同时匹配时，人员才会进入排班候选</text>
+        </view>
+        <view class="form-row form-row-column">
+          <text class="form-label">维修资质</text>
+          <textarea
+            class="qualification-input"
+            value="{{editForm.qualificationText}}"
+            maxlength="240"
+            placeholder="使用逗号分隔，例如 A320, B737"
+            bindinput="onEditQualifications"
+          ></textarea>
+          <text class="form-help">保存时自动去重并标准化机型代码</text>
+        </view>
+        <view class="switch-row">
+          <view>
+            <view class="switch-title">在职状态</view>
+            <view class="switch-copy">停用后员工无法继续使用业务功能</view>
+          </view>
+          <switch
+            checked="{{editForm.active}}"
+            color="#285f96"
+            data-field="active"
+            bindchange="onEditSwitch"
+          />
+        </view>
+        <view class="switch-row">
+          <view>
+            <view class="switch-title">管理员权限</view>
+            <view class="switch-copy">允许访问全部管理端功能</view>
+          </view>
+          <switch
+            checked="{{editForm.isAdmin}}"
+            color="#285f96"
+            data-field="isAdmin"
+            bindchange="onEditSwitch"
+          />
+        </view>
+      </scroll-view>
+
+      <view class="editor-footer">
+        <button class="cancel-btn" bindtap="onCloseEditor" disabled="{{saving}}" hover-class="button-hover">取消</button>
+        <button class="save-btn" bindtap="onSaveStaff" loading="{{saving}}" disabled="{{saving}}" hover-class="button-hover">保存人员资料</button>
+      </view>
+    </view>
+  </view>
+</view>

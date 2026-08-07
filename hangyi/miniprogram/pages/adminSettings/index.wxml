@@ -1,0 +1,157 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="state-title">需要管理员权限</view>
+    <view class="state-copy">当前账号不能修改排班规则</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+    <view class="page-head">
+      <view class="eyebrow">SCHEDULING POLICY</view>
+      <view class="page-title">排班参数</view>
+      <view class="page-copy">这些规则直接影响智能排班、疲劳检查、勤务和放行任务时间窗</view>
+    </view>
+
+    <view class="card loading-card" wx:if="{{loading}}">
+      <view class="loading-line" wx:for="{{skeletonRows}}" wx:key="*this"></view>
+    </view>
+
+    <view class="card error-card" wx:elif="{{errorMessage}}">
+      <view class="state-title">参数暂时无法加载</view>
+      <view class="state-copy">{{errorMessage}}</view>
+      <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+    </view>
+
+    <block wx:else>
+      <view class="section-label">合规与疲劳</view>
+      <view class="card setting-card">
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">连续工作天数</view>
+            <view class="setting-copy">超过后进入疲劳优化与合规提示</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.fatigueMaxContinuousDays}}" data-field="fatigueMaxContinuousDays" bindinput="onNumberInput" />
+            <text>天</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">单人日工时上限</view>
+            <view class="setting-copy">合规预检使用的当日工时阈值</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.maxDailyWorkHours}}" data-field="maxDailyWorkHours" bindinput="onNumberInput" />
+            <text>小时</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">连续夜班上限</view>
+            <view class="setting-copy">控制夜班连续分配次数</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.maxConsecutiveNightShifts}}" data-field="maxConsecutiveNightShifts" bindinput="onNumberInput" />
+            <text>次</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">最小休息间隔</view>
+            <view class="setting-copy">同一人员相邻任务之间的最短空档</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.minRestIntervalMinutes}}" data-field="minRestIntervalMinutes" bindinput="onNumberInput" />
+            <text>分钟</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-label">勤务任务</view>
+      <view class="card setting-card">
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">每航班勤务人数</view>
+            <view class="setting-copy">自动排班时的最低勤务配置</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.serviceRequiredCount}}" data-field="serviceRequiredCount" bindinput="onNumberInput" />
+            <text>人</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">提前到位时间</view>
+            <view class="setting-copy">航班任务开始前预留的准备时间</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.servicePrepTimeMinutes}}" data-field="servicePrepTimeMinutes" bindinput="onNumberInput" />
+            <text>分钟</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">收尾时间</view>
+            <view class="setting-copy">航班任务结束后预留的返回时间</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.serviceWrapTimeMinutes}}" data-field="serviceWrapTimeMinutes" bindinput="onNumberInput" />
+            <text>分钟</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-label">放行任务</view>
+      <view class="card setting-card">
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">每航班放行人数</view>
+            <view class="setting-copy">自动排班时的最低放行配置</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.releaseRequiredCount}}" data-field="releaseRequiredCount" bindinput="onNumberInput" />
+            <text>人</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">提前到位时间</view>
+            <view class="setting-copy">放行任务开始前的准备时间</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.releasePrepTimeMinutes}}" data-field="releasePrepTimeMinutes" bindinput="onNumberInput" />
+            <text>分钟</text>
+          </view>
+        </view>
+        <view class="setting-row">
+          <view class="setting-main">
+            <view class="setting-title">收尾时间</view>
+            <view class="setting-copy">放行任务完成后的返回时间</view>
+          </view>
+          <view class="number-control">
+            <input type="number" value="{{form.releaseWrapTimeMinutes}}" data-field="releaseWrapTimeMinutes" bindinput="onNumberInput" />
+            <text>分钟</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-label">测试工具</view>
+      <view class="card setting-card">
+        <view class="setting-row switch-setting">
+          <view class="setting-main">
+            <view class="setting-title">演示数据工具</view>
+            <view class="setting-copy">仅用于测试环境的数据重建与流量模拟，生产环境保持关闭</view>
+          </view>
+          <switch checked="{{form.demoToolsEnabled}}" color="#b5631b" bindchange="onDemoSwitch" />
+        </view>
+      </view>
+
+      <view class="save-dock">
+        <button class="reset-btn" bindtap="onReset" disabled="{{saving}}" hover-class="button-hover">放弃修改</button>
+        <button class="save-btn" bindtap="onSave" loading="{{saving}}" disabled="{{saving || !dirty}}" hover-class="button-hover">
+          {{dirty ? '保存全部参数' : '参数未修改'}}
+        </button>
+      </view>
+    </block>
+  </block>
+</view>

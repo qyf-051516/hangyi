@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "请假申请",
+  "navigationBarBackgroundColor": "#d6ebff",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "usingComponents": {}
+}

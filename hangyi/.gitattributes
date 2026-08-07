@@ -1,0 +1,9 @@
+# 统一行结束符为 LF, Windows 用户也能 work
+* text=auto eol=lf
+
+# 明确某些文件
+*.js eol=lf
+*.wxml eol=lf
+*.wxss eol=lf
+*.json eol=lf
+*.md eol=lf

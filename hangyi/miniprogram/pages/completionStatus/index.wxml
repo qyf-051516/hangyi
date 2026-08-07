@@ -1,0 +1,90 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="state-title">需要管理员权限</view>
+    <view class="state-copy">完成统计仅供管理员查看</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+  <view class="card head">
+    <view class="title">排班完成统计</view>
+    <view class="sub">统计区间：{{dateStart}} ~ {{dateEnd}} · 已排班 {{total}} 条</view>
+    <view class="head-actions">
+      <button class="refresh-btn" bindtap="onManualRefresh">刷新数据</button>
+      <text class="auto-refresh-hint" wx:if="{{autoRefreshActive}}">自动刷新中 (30s)</text>
+      <text class="auto-refresh-hint refresh-failed" wx:if="{{autoRefreshError}}">{{autoRefreshError}}</text>
+    </view>
+  </view>
+
+  <view class="card filters">
+    <picker mode="selector" range="{{groupOptions}}" range-key="label" value="{{groupIndex}}" bindchange="onPickGroup">
+      <view class="picker-item">班组：{{groupOptions[groupIndex].label}}</view>
+    </picker>
+    <view class="date-row">
+      <picker mode="date" value="{{dateStart}}" bindchange="onPickStartDate">
+        <view class="picker-item date-picker">起始：{{dateStart}}</view>
+      </picker>
+      <text class="date-sep">~</text>
+      <picker mode="date" value="{{dateEnd}}" bindchange="onPickEndDate">
+        <view class="picker-item date-picker">结束：{{dateEnd}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="card error-card" wx:if="{{errorMessage && !loading}}">
+    <view class="state-title">完成统计暂时无法加载</view>
+    <view class="state-copy">{{errorMessage}}</view>
+    <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <view class="card stats-card" wx:if="{{!errorMessage}}">
+    <view class="stat-row">
+      <view class="stat-item">
+        <text class="stat-value">{{total}}</text>
+        <text class="stat-label">总排班</text>
+      </view>
+      <view class="stat-item completed-stat">
+        <text class="stat-value">{{completed}}</text>
+        <text class="stat-label">已完成</text>
+      </view>
+      <view class="stat-item pending-stat">
+        <text class="stat-value">{{pending}}</text>
+        <text class="stat-label">待完成</text>
+      </view>
+    </view>
+    <view class="rate-bar">
+      <view class="rate-fill" style="width: {{completedRate}}%"></view>
+    </view>
+    <view class="rate-labels">
+      <text class="rate-text compl-rate">完成率 {{completedRate}}%</text>
+      <text class="rate-text pend-rate">待完成 {{pendingRate}}%</text>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{!errorMessage}}">
+    <view class="section-title">每日明细</view>
+    <view class="loading-text" wx:if="{{loading}}">加载中…</view>
+    <block wx:else>
+      <view class="daily-header">
+        <text class="dh-date">日期</text>
+        <text class="dh-num">总数</text>
+        <text class="dh-num">已完成</text>
+        <text class="dh-num">待完成</text>
+        <text class="dh-num dh-rate">完成率</text>
+      </view>
+      <view class="daily-row" wx:for="{{dailyBreakdown}}" wx:key="date">
+        <text class="dh-date">{{item.date}}</text>
+        <text class="dh-num">{{item.total}}</text>
+        <text class="dh-num">{{item.completed}}</text>
+        <text class="dh-num">{{item.pending}}</text>
+        <text class="dh-num dh-rate {{item.isRateHigh ? 'rate-high' : 'rate-low'}}">
+          {{item.completedRate}}%
+        </text>
+      </view>
+      <view class="daily-empty" wx:if="{{!dailyBreakdown.length}}">
+        <text class="empty-text">暂无数据</text>
+      </view>
+    </block>
+  </view>
+  </block>
+</view>

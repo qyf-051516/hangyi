@@ -1,0 +1,182 @@
+[
+  {
+    "id": "role-employee-fields",
+    "question": "普通员工能自己修改班组和机型资质吗？",
+    "expectedSourcePaths": ["01-系统定位与角色.md", "04-资质与人员可用性.md"],
+    "admin": false
+  },
+  {
+    "id": "role-first-admin",
+    "question": "系统第一次怎么开通管理员？",
+    "expectedSourcePaths": ["01-系统定位与角色.md"],
+    "admin": false
+  },
+  {
+    "id": "role-admin-capability",
+    "question": "管理员工作台能处理哪些事情？",
+    "expectedSourcePaths": ["01-系统定位与角色.md", "06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "role-identity-trust",
+    "question": "小程序调用智能助手时身份从哪里来？",
+    "expectedSourcePaths": ["01-系统定位与角色.md"],
+    "admin": false
+  },
+  {
+    "id": "schedule-shifts",
+    "question": "系统有哪些常用班次？",
+    "expectedSourcePaths": ["02-排班与合规规则.md"],
+    "admin": false
+  },
+  {
+    "id": "schedule-hard-rules",
+    "question": "自动排班会检查哪些硬性冲突？",
+    "expectedSourcePaths": ["02-排班与合规规则.md"],
+    "admin": false
+  },
+  {
+    "id": "schedule-default-hours",
+    "question": "系统默认单日最大工时是多少？",
+    "expectedSourcePaths": ["02-排班与合规规则.md"],
+    "admin": false
+  },
+  {
+    "id": "schedule-publish",
+    "question": "管理员编辑排班后应该怎样发布？",
+    "expectedSourcePaths": ["02-排班与合规规则.md", "06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "schedule-service-preview",
+    "question": "勤务与放行排班为什么要先生成预览？",
+    "expectedSourcePaths": ["02-排班与合规规则.md", "06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "schedule-complete",
+    "question": "未来排班可以提前点完成吗？",
+    "expectedSourcePaths": ["02-排班与合规规则.md"],
+    "admin": false
+  },
+  {
+    "id": "swap-types",
+    "question": "调班申请的 SWAP 和 SHIFT_APPLY 有什么区别？",
+    "expectedSourcePaths": ["03-调班与请假.md"],
+    "admin": false
+  },
+  {
+    "id": "swap-evidence",
+    "question": "调班理由可以只上传图片不写文字吗？",
+    "expectedSourcePaths": ["03-调班与请假.md"],
+    "admin": false
+  },
+  {
+    "id": "swap-validation",
+    "question": "提交调班时系统自动校验什么？",
+    "expectedSourcePaths": ["03-调班与请假.md"],
+    "admin": false
+  },
+  {
+    "id": "swap-withdraw",
+    "question": "已经审批通过的调班还能撤回吗？",
+    "expectedSourcePaths": ["03-调班与请假.md"],
+    "admin": false
+  },
+  {
+    "id": "swap-approval-recheck",
+    "question": "管理员批准调班前为什么还要再校验一次？",
+    "expectedSourcePaths": ["03-调班与请假.md", "06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "leave-evidence",
+    "question": "请假原因支持图片吗？",
+    "expectedSourcePaths": ["03-调班与请假.md"],
+    "admin": false
+  },
+  {
+    "id": "leave-impact",
+    "question": "请假批准以后原来的排班怎么处理？",
+    "expectedSourcePaths": ["03-调班与请假.md"],
+    "admin": false
+  },
+  {
+    "id": "qualification-available",
+    "question": "什么条件下员工才算合格可用人员？",
+    "expectedSourcePaths": ["04-资质与人员可用性.md"],
+    "admin": false
+  },
+  {
+    "id": "qualification-expiry",
+    "question": "资质快到期的红黄预警标准是什么？",
+    "expectedSourcePaths": ["04-资质与人员可用性.md"],
+    "admin": false
+  },
+  {
+    "id": "qualification-change",
+    "question": "管理员修改员工机型资质后，未来排班会怎样？",
+    "expectedSourcePaths": ["04-资质与人员可用性.md", "06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "fatigue-scope",
+    "question": "疲劳评分是不是医学判断？",
+    "expectedSourcePaths": ["04-资质与人员可用性.md"],
+    "admin": false
+  },
+  {
+    "id": "flight-fields",
+    "question": "航班运行资料包含发动机型号和预计到达时间吗？",
+    "expectedSourcePaths": ["05-航班与运行资料.md"],
+    "admin": false
+  },
+  {
+    "id": "flight-manual-eta",
+    "question": "预计到达时间能不能由管理员人工录入？",
+    "expectedSourcePaths": ["05-航班与运行资料.md"],
+    "admin": false
+  },
+  {
+    "id": "flight-aircraft-change",
+    "question": "修改航班机型以后为什么要重新检查排班？",
+    "expectedSourcePaths": ["05-航班与运行资料.md"],
+    "admin": false
+  },
+  {
+    "id": "flight-realtime",
+    "question": "实时航班状态有哪些？",
+    "expectedSourcePaths": ["05-航班与运行资料.md"],
+    "admin": false
+  },
+  {
+    "id": "flight-rag-limit",
+    "question": "知识助手能告诉我今天某航班的实时状态吗？",
+    "expectedSourcePaths": ["05-航班与运行资料.md"],
+    "admin": false
+  },
+  {
+    "id": "export-print",
+    "question": "怎么生成可以打印的排班总表？",
+    "expectedSourcePaths": ["05-航班与运行资料.md"],
+    "admin": false
+  },
+  {
+    "id": "audit-sources",
+    "question": "要追查一次错误改派应该查看哪些记录？",
+    "expectedSourcePaths": ["06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "audit-demo",
+    "question": "生产环境的演示数据开关应该怎么设置？",
+    "expectedSourcePaths": ["01-系统定位与角色.md", "06-管理员操作与审计.md"],
+    "admin": true
+  },
+  {
+    "id": "audit-secrets",
+    "question": "助手密钥可以写在小程序代码里吗？",
+    "expectedSourcePaths": ["01-系统定位与角色.md", "06-管理员操作与审计.md"],
+    "admin": true
+  }
+]

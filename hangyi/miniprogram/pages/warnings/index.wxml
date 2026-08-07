@@ -1,0 +1,242 @@
+<view class="page {{themeClass}}">
+  <view class="card state-card loading-card" wx:if="{{loading && !loaded}}">
+    <view class="skeleton skeleton-title"></view>
+    <view class="skeleton skeleton-block"></view>
+    <view class="skeleton skeleton-block short"></view>
+  </view>
+
+  <view class="card state-card" wx:elif="{{errorMessage && !loaded}}">
+    <view class="state-title">预警数据暂时无法加载</view>
+    <view class="state-copy">{{errorMessage}}</view>
+    <button class="btn state-action" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <block wx:if="{{loaded}}">
+    <view class="inline-error" wx:if="{{swapNotice && !errorMessage}}">
+      <text class="inline-error-text">{{swapNotice}}</text>
+    </view>
+    <view class="inline-error" wx:if="{{errorMessage}}">
+      <text class="inline-error-text">{{errorMessage}}</text>
+      <view class="inline-error-action" bindtap="onRetry" hover-class="tap-active">重试</view>
+    </view>
+
+    <view class="card approval-card" wx:if="{{isAdmin}}">
+      <view class="section-title-row">
+        <view>
+          <view class="section-title">调班审批队列</view>
+          <view class="section-copy">互换可批量处理，替班申请需先选择人员</view>
+        </view>
+        <text class="section-count">{{pendingSwaps.length}} 条待审</text>
+      </view>
+
+      <view class="batch-bar" wx:if="{{selectedSwapIds.length > 0}}">
+        <text class="batch-info">已选 {{selectedSwapIds.length}} 条</text>
+        <view class="batch-actions">
+          <button class="batch-btn batch-agree" bindtap="onBatchApproveSwap" hover-class="button-hover">批量通过</button>
+          <button class="batch-btn batch-reject" bindtap="onShowBatchReject" hover-class="button-hover">批量驳回</button>
+          <button class="batch-btn batch-clear" bindtap="onClearSelection" hover-class="button-hover">取消</button>
+        </view>
+      </view>
+
+      <view wx:if="{{pendingSwaps.length}}">
+        <view class="swap-item" wx:for="{{pendingSwaps}}" wx:key="_id">
+          <view class="swap-head">
+            <view>
+              <view class="request-type">{{item.requestType === 'SHIFT_APPLY' ? '替班申请' : '排班互换'}}</view>
+              <view class="request-name">{{item.name || '未命名员工'}} / {{item.employeeNo || '无工号'}}</view>
+            </view>
+            <view
+              class="checkbox {{item.selected ? 'checkbox-on' : ''}}"
+              wx:if="{{(item.requestType || 'SWAP') === 'SWAP'}}"
+              data-id="{{item._id}}"
+              bindtap="onToggleSwapSelect"
+              hover-class="tap-active"
+            >{{item.selected ? '已选' : '选择'}}</view>
+          </view>
+
+          <view class="request-summary">
+            <view class="summary-row" wx:if="{{item.flightNo}}">
+              <text class="summary-label">航班</text>
+              <text class="summary-value">{{item.flightNo}}</text>
+            </view>
+            <view class="summary-row" wx:if="{{item.scheduleDate}}">
+              <text class="summary-label">日期</text>
+              <text class="summary-value">{{item.scheduleDate}}</text>
+            </view>
+            <view class="summary-row" wx:if="{{item.startTime || item.endTime}}">
+              <text class="summary-label">时段</text>
+              <text class="summary-value">{{item.startTime || '待定'}} 至 {{item.endTime || '待定'}}</text>
+            </view>
+            <view class="summary-row">
+              <text class="summary-label">原因</text>
+              <text class="summary-value">{{item.reasonText || item.reason || (item.reasonImages.length ? '见图片' : '未填写')}}</text>
+            </view>
+            <view class="swap-images" wx:if="{{item.reasonImages.length}}">
+              <image
+                class="swap-image"
+                wx:for="{{item.reasonImages}}"
+                wx:for-item="image"
+                wx:for-index="imageIndex"
+                wx:key="*this"
+                src="{{image}}"
+                mode="aspectFill"
+                data-id="{{item._id}}"
+                data-index="{{imageIndex}}"
+                bindtap="onPreviewSwapImage"
+              ></image>
+            </view>
+            <view class="compliance-note">{{item.validationText}}</view>
+          </view>
+
+          <view class="actions">
+            <button
+              class="mini-btn agree"
+              data-id="{{item._id}}"
+              bindtap="onApproveSwap"
+              hover-class="button-hover"
+            >{{item.requestType === 'SHIFT_APPLY' ? '选择替班人员' : '通过'}}</button>
+            <button
+              class="mini-btn reject"
+              data-id="{{item._id}}"
+              bindtap="onShowReject"
+              hover-class="button-hover"
+            >驳回</button>
+          </view>
+        </view>
+      </view>
+
+      <view class="approval-empty" wx:else>
+        <view class="empty-title">暂无待审批申请</view>
+        <view class="empty-copy">新的调班或互换申请会显示在这里</view>
+      </view>
+    </view>
+
+    <view class="card workload-card">
+      <view class="section-title">人员工作负荷</view>
+      <view class="section-copy">按累计时长排序，疲劳度越高越需要关注</view>
+      <view wx:if="{{rankingRows.length}}" class="rank-table">
+        <view class="table-head table-row">
+          <text class="cell rank">排名</text>
+          <text class="cell name">人员</text>
+          <text class="cell group">班组</text>
+          <text class="cell hours">时长</text>
+          <text class="cell fatigue">疲劳度</text>
+        </view>
+        <scroll-view class="rank-scroll" scroll-y="true" enhanced="true" show-scrollbar="false">
+          <view class="table-row" wx:for="{{rankingRows}}" wx:key="staffId">
+            <text class="cell rank">{{item.rank}}</text>
+            <text class="cell name">{{item.name}}/{{item.employeeNo}}</text>
+            <text class="cell group">{{item.groupId}}</text>
+            <text class="cell hours">{{item.totalWorkedHoursText}}</text>
+            <text class="cell fatigue {{fatigueResults[item.staffId] ? (fatigueResults[item.staffId].riskLevel || '') : ''}}">
+              {{fatigueResults[item.staffId] ? fatigueResults[item.staffId].score : '-'}}
+            </text>
+          </view>
+        </scroll-view>
+      </view>
+      <view class="analytics-empty" wx:else>暂无人员工作数据</view>
+    </view>
+  </block>
+
+  <view class="modal-overlay" wx:if="{{showRejectModal}}" bindtap="onCloseRejectModal">
+    <view class="modal-content" catchtap="onModalContentTap">
+      <view class="modal-header">
+        <text class="modal-title">驳回调班申请</text>
+        <text class="modal-close tap-target" bindtap="onCloseRejectModal">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="reject-info">将驳回 {{rejectTargetIds.length}} 条申请</view>
+        <view class="reject-quick">
+          <text class="reject-quick-label">快捷理由</text>
+          <view class="reject-quick-tags">
+            <view class="reject-tag tap-target" data-reason="资质不匹配" bindtap="onPickRejectReason" hover-class="tap-active">资质不匹配</view>
+            <view class="reject-tag tap-target" data-reason="时间冲突" bindtap="onPickRejectReason" hover-class="tap-active">时间冲突</view>
+            <view class="reject-tag tap-target" data-reason="配额已满" bindtap="onPickRejectReason" hover-class="tap-active">配额已满</view>
+            <view class="reject-tag tap-target" data-reason="请重新申请" bindtap="onPickRejectReason" hover-class="tap-active">请重新申请</view>
+          </view>
+        </view>
+        <textarea
+          class="reject-textarea"
+          placeholder="或输入自定义理由"
+          value="{{rejectComment}}"
+          bindinput="onInputRejectComment"
+          maxlength="100"
+        ></textarea>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseRejectModal" hover-class="button-hover">取消</button>
+        <button class="modal-btn btn-reject" loading="{{rejecting}}" disabled="{{rejecting}}" bindtap="onConfirmReject" hover-class="button-hover">确认驳回</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="modal-overlay" wx:if="{{showCandidateModal}}" bindtap="onCloseCandidateModal">
+    <view class="modal-content candidate-modal" catchtap="onModalContentTap">
+      <view class="modal-header">
+        <view>
+          <view class="modal-title">选择替班人员</view>
+          <view class="modal-sub">仅显示当日空闲且资质匹配的人员</view>
+        </view>
+        <text class="modal-close tap-target" bindtap="onCloseCandidateModal">关闭</text>
+      </view>
+
+      <view class="candidate-search">
+        <image class="search-code" src="/images/menu/search.svg" mode="aspectFit"></image>
+        <input
+          class="candidate-input"
+          value="{{candidateQuery}}"
+          placeholder="搜索姓名、工号、班组或资质"
+          confirm-type="search"
+          bindinput="onInputCandidateQuery"
+        />
+      </view>
+
+      <view class="candidate-loading" wx:if="{{candidateLoading}}">
+        <view class="skeleton candidate-skeleton"></view>
+        <view class="skeleton candidate-skeleton"></view>
+        <view class="skeleton candidate-skeleton short"></view>
+      </view>
+
+      <view class="candidate-error" wx:elif="{{candidateError}}">
+        <view class="empty-title">暂时没有可选人员</view>
+        <view class="empty-copy">{{candidateError}}</view>
+        <view class="candidate-retry tap-target" bindtap="onRetryCandidates" hover-class="tap-active">重新查询</view>
+      </view>
+
+      <scroll-view class="candidate-list" scroll-y="true" wx:elif="{{filteredCandidateList.length}}">
+        <view
+          class="candidate-item {{selectedCandidateId === item.staffId ? 'selected' : ''}}"
+          wx:for="{{filteredCandidateList}}"
+          wx:key="staffId"
+          data-id="{{item.staffId}}"
+          bindtap="onSelectCandidate"
+          hover-class="tap-active"
+        >
+          <view class="candidate-avatar">{{item.nameInitial}}</view>
+          <view class="candidate-body">
+            <view class="candidate-name">{{item.name}} / {{item.employeeNo}}</view>
+            <view class="candidate-meta">{{item.groupText}} / 机型 {{item.qualificationText}}</view>
+            <view class="candidate-meta">航司 {{item.airlineText}}</view>
+          </view>
+          <view class="candidate-check">{{selectedCandidateId === item.staffId ? '已选' : '选择'}}</view>
+        </view>
+      </scroll-view>
+
+      <view class="candidate-error" wx:else>
+        <view class="empty-title">没有匹配的人员</view>
+        <view class="empty-copy">请调整搜索条件后重试</view>
+      </view>
+
+      <view class="modal-footer candidate-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseCandidateModal" hover-class="button-hover">取消</button>
+        <button
+          class="modal-btn btn-confirm"
+          loading="{{candidateSubmitting}}"
+          disabled="{{!selectedCandidateId || candidateSubmitting}}"
+          bindtap="onConfirmCandidate"
+          hover-class="button-hover"
+        >确认替班</button>
+      </view>
+    </view>
+  </view>
+</view>

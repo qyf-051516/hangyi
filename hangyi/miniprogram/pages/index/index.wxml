@@ -1,0 +1,288 @@
+<view class="page {{themeClass}}">
+  <view class="hero card aviation-command">
+    <view class="hero-top">
+      <view>
+        <view class="eyebrow">航翼排班指挥舱</view>
+        <view class="title">机务保障全局态势</view>
+      </view>
+      <view class="sync-state" wx:if="{{loaded}}">
+        <text class="sync-dot {{loading ? 'syncing' : ''}}"></text>
+        <text>{{loading ? '更新中' : (isAdmin ? '管理员' : '员工')}}</text>
+      </view>
+    </view>
+
+    <view class="date-nav">
+      <view
+        class="date-arrow tap-target"
+        bindtap="onPrevDay"
+        hover-class="tap-active"
+        aria-label="查看前一天"
+      >
+        <image class="date-arrow-icon" src="/images/menu/chevron-left.svg" mode="aspectFit"></image>
+      </view>
+      <view class="date-center">
+        <text class="date-value">{{scheduleDate}} {{scheduleWeekday}}</text>
+        <text class="date-caption">{{isToday ? '今日值守与排班状态' : '历史排班与运行状态'}}</text>
+      </view>
+      <view
+        class="date-arrow tap-target"
+        bindtap="onNextDay"
+        hover-class="tap-active"
+        aria-label="查看后一天"
+      >
+        <image class="date-arrow-icon" src="/images/menu/chevron-right.svg" mode="aspectFit"></image>
+      </view>
+    </view>
+
+    <view class="hero-footer">
+      <view class="hero-update" wx:if="{{loaded}}">
+        <view class="update-mark">
+          <image class="update-mark-icon" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+        </view>
+        <view>
+          <view class="update-time">{{updatedAtText}} 已更新</view>
+          <view class="update-copy">数据来自航翼云端</view>
+        </view>
+      </view>
+      <view class="hero-actions">
+        <button
+          class="ghost-btn"
+          wx:if="{{!isToday}}"
+          bindtap="onGoToday"
+          hover-class="button-hover"
+        >今天</button>
+        <button
+          class="ghost-btn primary-ghost"
+          loading="{{loading}}"
+          disabled="{{loading}}"
+          bindtap="onForceRefresh"
+          hover-class="button-hover"
+        >刷新概览</button>
+        <button
+          class="ghost-btn demo-btn"
+          wx:if="{{isAdmin && demoToolsEnabled}}"
+          bindtap="onResetDemoData"
+          hover-class="button-hover"
+        >演示数据</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="card loading-overview" wx:if="{{loading && !loaded}}">
+    <view class="skeleton skeleton-heading"></view>
+    <view class="skeleton-grid">
+      <view class="skeleton skeleton-metric"></view>
+      <view class="skeleton skeleton-metric"></view>
+      <view class="skeleton skeleton-metric"></view>
+      <view class="skeleton skeleton-metric"></view>
+    </view>
+    <view class="skeleton skeleton-wide"></view>
+  </view>
+
+  <view class="card state-card" wx:elif="{{errorMessage && !loaded}}">
+    <view class="state-title">概览暂时无法加载</view>
+    <view class="state-copy">{{errorMessage}}</view>
+    <button class="btn state-action" bindtap="onRetryOverview" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <block wx:if="{{loaded}}">
+    <view class="inline-error" wx:if="{{errorMessage}}">
+      <text class="inline-error-text">{{errorMessage}}</text>
+      <view class="inline-error-action" bindtap="onRetryOverview" hover-class="tap-active">重试</view>
+    </view>
+
+    <view class="card quick-card">
+      <view class="section-head">
+        <view>
+          <view class="section-title">常用操作</view>
+          <view class="section-copy">{{isAdmin ? '审批与排班管理入口' : '围绕个人班次快速办理'}}</view>
+        </view>
+      </view>
+
+      <view class="quick-grid" wx:if="{{isAdmin}}">
+        <view class="quick-action" bindtap="onGoAdminCenter" hover-class="tap-active">
+          <view class="quick-code tone-blue">
+            <image class="quick-icon-image" src="/images/menu/dashboard.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">管理工作台</text>
+          <text class="quick-meta">{{pendingCount}} 项待办</text>
+        </view>
+        <view class="quick-action" bindtap="onGoWarnings" hover-class="tap-active">
+          <view class="quick-code tone-green">
+            <image class="quick-icon-image" src="/images/menu/swap.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">调班审批</text>
+          <text class="quick-meta">{{pendingSwapCount}} 条待办</text>
+        </view>
+        <view class="quick-action" bindtap="onGoLeaveApproval" hover-class="tap-active">
+          <view class="quick-code tone-coral">
+            <image class="quick-icon-image" src="/images/menu/leave.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">请假审批</text>
+          <text class="quick-meta">{{pendingLeaveCount}} 条待办</text>
+        </view>
+        <view class="quick-action" bindtap="onGoAdminSchedule" hover-class="tap-active">
+          <view class="quick-code tone-blue">
+            <image class="quick-icon-image" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">排班编辑</text>
+          <text class="quick-meta">发布与调整</text>
+        </view>
+      </view>
+
+      <view class="quick-grid" wx:else>
+        <view class="quick-action" bindtap="onGoMySchedules" hover-class="tap-active">
+          <view class="quick-code tone-blue">
+            <image class="quick-icon-image" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">我的排班</text>
+          <text class="quick-meta">查看与完成</text>
+        </view>
+        <view class="quick-action" bindtap="onGoSwapRequest" hover-class="tap-active">
+          <view class="quick-code tone-green">
+            <image class="quick-icon-image" src="/images/menu/swap.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">调班申请</text>
+          <text class="quick-meta">申请与撤回</text>
+        </view>
+        <view class="quick-action" bindtap="onGoLeave" hover-class="tap-active">
+          <view class="quick-code tone-coral">
+            <image class="quick-icon-image" src="/images/menu/leave.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">请假申请</text>
+          <text class="quick-meta">进度可追踪</text>
+        </view>
+        <view class="quick-action" bindtap="onGoNotification" hover-class="tap-active">
+          <view class="quick-code tone-coral">
+            <image class="quick-icon-image" src="/images/menu/bell.svg" mode="aspectFit"></image>
+          </view>
+          <text class="quick-title">通知中心</text>
+          <text class="quick-meta">查看处理结果</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card metric-panel">
+      <view class="section-head">
+        <view>
+          <view class="section-title">人员分配</view>
+          <view class="section-copy">{{scheduleDate}} 当日人员状态</view>
+        </view>
+        <text class="section-total">{{assigned}} / {{total}}</text>
+      </view>
+
+      <view class="metric-grid">
+        <view class="metric-cell">
+          <view class="metric-value">{{total}}</view>
+          <view class="metric-title">总人数</view>
+        </view>
+        <view class="metric-cell">
+          <view class="metric-value">{{assigned}}</view>
+          <view class="metric-title">已排班</view>
+        </view>
+        <view class="metric-cell">
+          <view class="metric-value danger">{{unassigned}}</view>
+          <view class="metric-title">未排班</view>
+        </view>
+        <view class="metric-cell">
+          <view class="metric-value warn">{{leave}}</view>
+          <view class="metric-title">休假</view>
+        </view>
+      </view>
+
+      <view class="allocation">
+        <view class="allocation-track">
+          <view class="allocation-segment assigned" style="width: {{assignedPct}}%;"></view>
+          <view class="allocation-segment unassigned" style="width: {{unassignedPct}}%;"></view>
+          <view class="allocation-segment leave" style="width: {{leavePct}}%;"></view>
+        </view>
+        <view class="allocation-legend">
+          <text><text class="legend-dot assigned"></text>已排班 {{assignedPct}}%</text>
+          <text><text class="legend-dot unassigned"></text>未排班 {{unassignedPct}}%</text>
+          <text><text class="legend-dot leave"></text>休假 {{leavePct}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card metric-panel">
+      <view class="section-head">
+        <view>
+          <view class="section-title">运行关注</view>
+          <view class="section-copy">风险、夜班与审批状态</view>
+        </view>
+      </view>
+      <view class="metric-grid">
+        <view class="metric-cell actionable" bindtap="onGoWarnings" hover-class="tap-active">
+          <view class="metric-value danger">{{warningCount}}</view>
+          <view class="metric-title">合规异常</view>
+        </view>
+        <view class="metric-cell actionable" bindtap="onGoWarnings" hover-class="tap-active">
+          <view class="metric-value danger">{{highRiskCount}}</view>
+          <view class="metric-title">阻断问题</view>
+        </view>
+        <view class="metric-cell">
+          <view class="metric-value">{{nightShiftOnDuty}}</view>
+          <view class="metric-title">夜班在岗</view>
+        </view>
+        <view class="metric-cell actionable" bindtap="onGoWarnings" hover-class="tap-active">
+          <view class="metric-value warn">{{pendingCount}}</view>
+          <view class="metric-title">待审批</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card todo-card" wx:if="{{warningCount > 0 || pendingCount > 0 || unassigned > 0}}">
+      <view class="section-title">待处理事项</view>
+      <view class="todo-row" bindtap="onGoWarnings" hover-class="tap-active" wx:if="{{warningCount > 0}}">
+        <view class="todo-icon todo-icon-warn">
+          <image class="todo-icon-image" src="/images/menu/alert.svg" mode="aspectFit"></image>
+        </view>
+        <view class="todo-body">
+          <view class="todo-title">{{warningCount}} 个合规问题待关注</view>
+          <view class="todo-meta">其中 {{highRiskCount}} 个资质或请假冲突</view>
+        </view>
+        <text class="todo-action">查看</text>
+      </view>
+      <view class="todo-row" bindtap="onGoWarnings" hover-class="tap-active" wx:if="{{pendingSwapCount > 0}}">
+        <view class="todo-icon todo-icon-info">
+          <image class="todo-icon-image" src="/images/menu/swap.svg" mode="aspectFit"></image>
+        </view>
+        <view class="todo-body">
+          <view class="todo-title">{{pendingSwapCount}} 条调班审批</view>
+          <view class="todo-meta">核对冲突、资质与替班人员</view>
+        </view>
+        <text class="todo-action">处理</text>
+      </view>
+      <view class="todo-row" bindtap="onGoLeaveApproval" hover-class="tap-active" wx:if="{{pendingLeaveCount > 0}}">
+        <view class="todo-icon todo-icon-info">
+          <image class="todo-icon-image" src="/images/menu/leave.svg" mode="aspectFit"></image>
+        </view>
+        <view class="todo-body">
+          <view class="todo-title">{{pendingLeaveCount}} 条请假审批</view>
+          <view class="todo-meta">批准后自动检查排班冲突</view>
+        </view>
+        <text class="todo-action">处理</text>
+      </view>
+      <view class="todo-row" bindtap="onGoSchedule" hover-class="tap-active" wx:if="{{unassigned > 0}}">
+        <view class="todo-icon todo-icon-danger">
+          <image class="todo-icon-image" src="/images/menu/user-minus.svg" mode="aspectFit"></image>
+        </view>
+        <view class="todo-body">
+          <view class="todo-title">{{unassigned}} 人尚未排班</view>
+          <view class="todo-meta">打开排班总表查看具体人员</view>
+        </view>
+        <text class="todo-action">查看</text>
+      </view>
+    </view>
+
+    <view class="card calm-card" wx:else>
+      <view class="calm-mark">
+        <image class="calm-mark-icon" src="/images/menu/check-circle.svg" mode="aspectFit"></image>
+      </view>
+      <view>
+        <view class="calm-title">当前没有紧急待办</view>
+        <view class="calm-copy">人员分配、合规校验和审批均处于可控状态</view>
+      </view>
+    </view>
+  </block>
+</view>

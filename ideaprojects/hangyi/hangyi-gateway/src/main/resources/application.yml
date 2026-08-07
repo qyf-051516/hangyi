@@ -1,0 +1,55 @@
+server:
+  port: ${GATEWAY_PORT:9000}
+
+spring:
+  application:
+    name: hangyi-gateway
+  main:
+    web-application-type: reactive
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+    gateway:
+      routes:
+        - id: core-service
+          uri: "http://${CORE_HOST:localhost}:${CORE_PORT:9001}"
+          predicates:
+            - Path=/api/auth/**, /api/users/**, /api/employees/**, /api/groups/**, /api/qualifications/**, /api/aircraft-types/**, /api/leaves/**, /api/preferences/**, /api/flights/**, /api/sync/**, /api/reports/**, /api/audit/**, /api/statistics/**, /api/dashboard/**
+          filters:
+            - StripPrefix=0
+
+        - id: schedule-service
+          uri: "http://${SCHEDULE_HOST:localhost}:${SCHEDULE_PORT:9002}"
+          predicates:
+            - Path=/api/schedules/**, /api/schedule-changes/**, /api/shifts/**, /api/schedule-rules/**, /api/swap/**, /api/notifications/**, /api/service-schedules/**
+          filters:
+            - StripPrefix=0
+
+        - id: assistant-service
+          uri: "http://${ASSISTANT_HOST:localhost}:${ASSISTANT_PORT:9004}"
+          predicates:
+            - Path=/api/assistant/**
+          filters:
+            - StripPrefix=0
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:123456}
+      timeout: 5000
+
+cors:
+  allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:9003}"
+
+jwt:
+  secret: ${JWT_SECRET:?JWT_SECRET required in .env}
+
+logging:
+  level:
+    com.qyf.hangyi.gateway: debug

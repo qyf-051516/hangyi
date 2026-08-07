@@ -1,0 +1,142 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="state-title">需要管理员权限</view>
+    <view class="state-copy">排班分析仅供管理员查看</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+  <view class="card head">
+    <view class="title">排班统计看板</view>
+    <picker mode="date" value="{{dateLabel}}" bindchange="onDateChange">
+      <view class="date-control">{{dateLabel}}</view>
+    </picker>
+    <view class="head-actions">
+      <button class="refresh-btn" bindtap="onRefresh">刷新</button>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="loading-text">加载中…</view>
+  </view>
+
+  <view class="card error-card" wx:elif="{{errorMessage}}">
+    <view class="state-title">排班分析暂时无法加载</view>
+    <view class="state-copy">{{errorMessage}}</view>
+    <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <block wx:else>
+    <!-- ════════════════════════════════════════ -->
+    <!-- 1. 班组负荷对比 -->
+    <!-- ════════════════════════════════════════ -->
+    <view class="card sec-card">
+      <view class="sec-title"> 班组负荷对比</view>
+      <view class="sec-desc">各组今日任务数、人均任务、利用率</view>
+      <view class="bar-chart" wx:if="{{groupStats.length > 0}}">
+        <view class="bc-row" wx:for="{{groupStats}}" wx:key="groupId" wx:for-item="g">
+          <view class="bc-label">{{g.groupId}}</view>
+          <view class="bc-track">
+            <view class="bc-fill" style="width: {{g.utilization}}%; background: {{g.utilization >= 80 ? '#2ed46a' : g.utilization >= 50 ? '#f0a030' : '#ff4d5a'}};">
+              <text class="bc-fill-text" wx:if="{{g.utilization > 20}}">{{g.utilization}}%</text>
+            </view>
+          </view>
+          <view class="bc-meta">{{g.taskCount}}任务 · {{g.avgTasksPerStaff}}/人</view>
+        </view>
+      </view>
+      <view class="empty-small" wx:else>暂无班组数据</view>
+    </view>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- 2. 人员利用率排序 -->
+    <!-- ════════════════════════════════════════ -->
+    <view class="card sec-card">
+      <view class="sec-title"> 人员利用率排序</view>
+      <view class="sec-desc">按今日任务数降序 · 含疲劳度标签</view>
+      <view class="util-list" wx:if="{{staffUtilization.length > 0}}">
+        <view class="ul-header">
+          <text class="ul-hc ul-hc-name">姓名</text>
+          <text class="ul-hc ul-hc-tasks">任务</text>
+          <text class="ul-hc ul-hc-util">效率</text>
+          <text class="ul-hc ul-hc-fatigue">疲劳</text>
+        </view>
+        <view class="ul-row" wx:for="{{staffUtilization}}" wx:key="staffId" wx:for-item="u">
+          <view class="ul-cell ul-cell-name">
+            <text class="ul-name">{{u.name}}</text>
+            <text class="ul-meta">{{u.employeeNo}}</text>
+          </view>
+          <view class="ul-cell ul-cell-tasks">{{u.taskCount}}班</view>
+          <view class="ul-cell ul-cell-util">
+            <view class="ul-bar-track">
+              <view class="ul-bar-fill {{u.utilizationClass}}" style="width: {{u.utilizationWidth}}%;"></view>
+            </view>
+          </view>
+          <view class="ul-cell ul-cell-fatigue">
+            <text class="ul-fatigue-chip {{u.fatigueRiskClass}}">{{u.fatigueRiskText}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="empty-small" wx:else>暂无人员数据</view>
+    </view>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- 3. 资质覆盖 -->
+    <!-- ════════════════════════════════════════ -->
+    <view class="card sec-card">
+      <view class="sec-title"> 资质覆盖率</view>
+      <view class="sec-desc">各机型资质持有率</view>
+      <view class="qual-grid" wx:if="{{qualificationStats.length > 0}}">
+        <view class="qual-item" wx:for="{{qualificationStats}}" wx:key="aircraftType" wx:for-item="q">
+          <view class="qi-header">
+            <text class="qi-type">{{q.aircraftType}}</text>
+            <text class="qi-rate {{q.coverageRate < 30 ? 'qi-rate-low' : q.coverageRate < 60 ? 'qi-rate-mid' : 'qi-rate-high'}}">{{q.coverageRate}}%</text>
+          </view>
+          <view class="qi-bar-track">
+            <view class="qi-bar-fill" style="width: {{q.coverageRate}}%; background: {{q.coverageRate >= 60 ? '#2ed46a' : q.coverageRate >= 30 ? '#f0a030' : '#ff4d5a'}};"></view>
+          </view>
+          <view class="qi-meta">{{q.qualifiedCount}} / {{q.totalStaff}} 人</view>
+        </view>
+      </view>
+      <view class="empty-small" wx:else>暂无资质数据</view>
+    </view>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- 4. 夜班分布（近7天） -->
+    <!-- ════════════════════════════════════════ -->
+    <view class="card sec-card">
+      <view class="sec-title"> 近7天夜班分布</view>
+      <view class="sec-desc">含早班、下午班、夜班分布</view>
+      <view class="night-chart" wx:if="{{nightDistribution.length > 0}}">
+        <view class="nc-yaxis">
+          <view class="nc-day" wx:for="{{nightDistribution}}" wx:key="date" wx:for-item="n">
+            <view class="nc-date-label">{{n.dateText}}</view>
+            <view class="nc-bar-wrap">
+              <view class="nc-bar-stack" style="height: {{n.stackHeight}}rpx;">
+                <!-- 夜班（红） -->
+                <view class="nc-seg nc-seg-night" style="height: {{n.nightRate}}%;" wx:if="{{n.night > 0}}">
+                  <text class="nc-seg-label" wx:if="{{n.nightRate > 25}}">{{n.night}}</text>
+                </view>
+                <!-- 下午班（橙） -->
+                <view class="nc-seg nc-seg-afternoon" style="height: {{n.afternoonRate}}%;" wx:if="{{n.afternoon > 0}}">
+                  <text class="nc-seg-label" wx:if="{{n.afternoon > 2}}">{{n.afternoon}}</text>
+                </view>
+                <!-- 早班（蓝） -->
+                <view class="nc-seg nc-seg-morning" style="height: {{n.morningRate}}%;" wx:if="{{n.morning > 0}}">
+                  <text class="nc-seg-label" wx:if="{{n.morning > 2}}">{{n.morning}}</text>
+                </view>
+              </view>
+              <text class="nc-night-rate" wx:if="{{n.nightRate > 0}}">{{n.nightRate}}%夜</text>
+            </view>
+          </view>
+        </view>
+        <view class="nc-legend">
+          <text class="nc-legend-item"><text class="nc-dot nc-dot-night"></text>夜班</text>
+          <text class="nc-legend-item"><text class="nc-dot nc-dot-afternoon"></text>下午</text>
+          <text class="nc-legend-item"><text class="nc-dot nc-dot-morning"></text>早班</text>
+        </view>
+      </view>
+      <view class="empty-small" wx:else>暂无排班数据</view>
+    </view>
+  </block>
+  </block>
+</view>

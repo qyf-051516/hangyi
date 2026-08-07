@@ -1,0 +1,109 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="denied-icon">!</view>
+    <view class="denied-title">需要管理员权限</view>
+    <view class="denied-sub">此页面仅供管理员访问</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+  <block wx:else>
+  <view class="card head">
+    <view class="title">排班历史快照</view>
+    <view class="sub">查看每日排班版本，对比发布前后变化</view>
+    <view class="date-picker">
+      <picker mode="date" value="{{scheduleDate}}" bindchange="onDateChange">
+        <view class="date-btn">{{scheduleDate}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 版本统计 -->
+  <view class="card stats-card">
+    <view class="sh-stats">
+      <view class="sh-stat">
+        <text class="sh-stat-num sh-active">{{activeCount}}</text>
+        <text class="sh-stat-lbl">当前活跃</text>
+      </view>
+      <view class="sh-stat">
+        <text class="sh-stat-num sh-archived">{{archivedCount}}</text>
+        <text class="sh-stat-lbl">历史存档</text>
+      </view>
+      <view class="sh-stat">
+        <text class="sh-stat-num sh-pub">{{publishHistory.length}}</text>
+        <text class="sh-stat-lbl">发布次数</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 发布历史 -->
+  <view class="card" wx:if="{{publishHistory.length > 0}}">
+    <view class="section-title">发布记录</view>
+    <view class="ph-item" wx:for="{{publishHistory}}" wx:key="*this">
+      <view class="ph-dot"></view>
+      <view class="ph-info">
+        <text class="ph-action">{{item.actionText}}</text>
+        <text class="ph-detail">{{item.detail}}</text>
+        <text class="ph-time">{{item.createdAtText}} · {{item.operatorText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card error-card" wx:if="{{errorMessage && !loading}}">
+    <view class="denied-title">排班历史暂时无法加载</view>
+    <view class="denied-sub">{{errorMessage}}</view>
+    <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <!-- 当前活跃排班 -->
+  <view class="card">
+    <view class="section-title">当前活跃排班（{{activeCount}} 条）</view>
+    <view class="loading-text" wx:if="{{loading}}">加载中…</view>
+    <view class="sh-empty" wx:elif="{{active.length === 0}}">暂无排班数据</view>
+    <view class="schedule-list" wx:elif="{{active.length > 0}}">
+      <view class="schedule-row" wx:for="{{active}}" wx:key="_id">
+        <view class="schedule-row-head">
+          <view>
+            <text class="schedule-name">{{item.staffName || '-'}}</text>
+            <text class="schedule-no">{{item.staffEmployeeNo || '-'}}</text>
+          </view>
+          <text class="schedule-status">{{item.statusText}}</text>
+        </view>
+        <view class="schedule-meta">
+          <text>航班 {{item.flightNo || '-'}}</text>
+          <text>{{item.shiftText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史存档排班 -->
+  <view class="card" wx:if="{{archived.length > 0}}">
+    <view class="section-title archive-toggle" bindtap="toggleArchived" hover-class="tap-active">
+      历史存档（{{archivedCount}} 条）
+      <text class="toggle-arrow">{{showArchived ? '收起' : '展开'}}</text>
+    </view>
+    <view wx:if="{{showArchived}}">
+      <view class="schedule-list archived-list">
+        <view class="schedule-row" wx:for="{{archived}}" wx:key="_id">
+          <view class="schedule-row-head">
+            <view>
+              <text class="schedule-name">{{item.staffName || '-'}}</text>
+              <text class="schedule-no">{{item.staffEmployeeNo || '-'}}</text>
+            </view>
+            <text class="schedule-status archived-status">已归档</text>
+          </view>
+          <view class="schedule-meta">
+            <text>航班 {{item.flightNo || '-'}}</text>
+            <text>{{item.shiftText}}</text>
+          </view>
+          <view class="archive-time">{{item.archivedAtText || '存档时间未知'}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="sh-hint" wx:else>点击展开查看存档记录</view>
+  </view>
+
+  <view class="card" wx:elif="{{!loading && active.length === 0 && archived.length === 0}}">
+    <view class="sh-empty">该日期暂无排班记录</view>
+  </view>
+  </block>
+</view>

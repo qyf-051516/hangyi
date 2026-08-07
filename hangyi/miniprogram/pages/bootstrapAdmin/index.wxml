@@ -1,0 +1,89 @@
+<view class="page {{themeClass}}">
+  <view class="card head">
+    <view class="title">管理员开通</view>
+    <view class="sub">首次部署或旧管理员失效时，通过独立云函数安全恢复管理权限</view>
+  </view>
+
+  <view class="card status-card">
+    <view class="section-title">当前状态</view>
+    <view class="status-row">
+      <text class="status-label">当前账号</text>
+      <text class="status-value">{{status.currentEmployeeNo || '尚未登录'}}</text>
+    </view>
+    <view class="status-row">
+      <text class="status-label">当前权限</text>
+      <text class="status-value {{status.currentUserIsAdmin ? 'ok' : 'warn'}}">
+        {{status.currentUserIsAdmin ? '管理员' : '普通员工'}}
+      </text>
+    </view>
+    <view class="status-row">
+      <text class="status-label">可用管理员</text>
+      <text class="status-value {{status.usableAdminCount > 0 ? 'ok' : 'warn'}}">{{status.usableAdminCount}} 人</text>
+    </view>
+    <view class="status-row" wx:if="{{status.staleAdminCount > 0}}">
+      <text class="status-label">失效管理员记录</text>
+      <text class="status-value warn">{{status.staleAdminCount}} 人</text>
+    </view>
+    <view class="status-row">
+      <text class="status-label">员工总数</text>
+      <text class="status-value">{{status.staffTotal}}</text>
+    </view>
+    <view class="status-summary success-summary" wx:if="{{status.currentUserIsAdmin}}">
+      当前账号已具备管理员权限。
+    </view>
+    <view class="status-summary" wx:elif="{{status.usableAdminCount > 0}}">
+      系统已有管理员，请联系现有管理员为当前工号授权。
+    </view>
+    <view class="status-summary" wx:elif="{{status.currentUserBound}}">
+      当前账号可以作为首个管理员，请按下方步骤执行独立云函数。
+    </view>
+    <view class="status-summary" wx:else>
+      请先使用准备设为管理员的工号登录。
+    </view>
+  </view>
+
+  <view class="card success-card" wx:if="{{status.currentUserIsAdmin}}">
+    <view class="section-title">管理员已就绪</view>
+    <view class="action-copy">权限已刷新，可以进入首页使用排班、审批和配置功能。</view>
+    <button class="btn action-button" bindtap="onGoAdminHome" hover-class="button-hover">进入管理员首页</button>
+  </view>
+
+  <view class="card existing-card" wx:elif="{{status.usableAdminCount > 0}}">
+    <view class="section-title">需要现有管理员授权</view>
+    <view class="action-copy">首个管理员保护已生效，不能再次自举。请让现有管理员调用 setStaffAdmin 为 {{status.currentEmployeeNo || '你的工号'}} 授权。</view>
+    <button class="btn btn-ghost action-button" loading="{{loading}}" disabled="{{loading}}" bindtap="onRefreshStatus" hover-class="button-hover">刷新管理员状态</button>
+  </view>
+
+  <view class="card login-card" wx:elif="{{!status.currentUserBound}}">
+    <view class="section-title">先绑定员工账号</view>
+    <view class="action-copy">首个管理员必须是已经登录并绑定微信的有效员工。</view>
+    <button class="btn action-button" bindtap="onGoLogin" hover-class="button-hover">去登录</button>
+  </view>
+
+  <view class="card steps-card" wx:else>
+    <view class="section-title">操作步骤</view>
+    <view class="step-item" wx:for="{{status.steps}}" wx:key="*this">
+      <text class="step-text">{{item}}</text>
+    </view>
+
+    <view class="console-box">
+      <view class="console-label">独立云函数</view>
+      <text class="console-value" selectable="true">{{status.consoleFunctionName}}</text>
+      <view class="console-label parameter-label">云端测试参数</view>
+      <text class="console-code" selectable="true">{{consoleCallText}}</text>
+    </view>
+
+    <view class="action-row">
+      <button class="btn btn-ghost action-button" bindtap="onCopyConsoleCall" hover-class="button-hover">复制参数</button>
+      <button class="btn action-button" loading="{{loading}}" disabled="{{loading}}" bindtap="onRefreshStatus" hover-class="button-hover">刷新管理员状态</button>
+    </view>
+  </view>
+
+  <view class="card tip-card">
+    <view class="tip-title">安全提示</view>
+    <view class="tip-text">bootstrapAdmin 拒绝所有来自小程序端的调用，只允许云开发控制台执行。</view>
+    <view class="tip-text">系统已有可用管理员后，独立自举函数会自动拒绝再次授权。</view>
+    <view class="tip-text">未绑定微信或已停用的旧管理员会被视为失效记录，并在恢复时撤销权限。</view>
+    <view class="tip-text">目标工号必须已经登录并绑定当前微信，避免产生无法使用的管理员。</view>
+  </view>
+</view>

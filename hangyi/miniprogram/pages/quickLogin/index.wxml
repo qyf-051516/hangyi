@@ -1,0 +1,39 @@
+<view class="page {{themeClass}}">
+  <view class="brand">
+    <view class="brand-title">航翼排班</view>
+    <view class="brand-sub">智能机务排班 · 一键登录</view>
+  </view>
+
+  <!-- A: 手机号一键登录 -->
+  <view class="card">
+    <view class="card-title">手机号一键登录</view>
+    <view class="card-sub">微信绑定的手机号即可直接登录，无需输入工号</view>
+    <button
+      class="primary-btn"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="onGetPhoneNumber"
+      loading="{{phoneLoading}}"
+      disabled="{{phoneLoading}}"
+    >本机手机号一键登录</button>
+  </view>
+
+  <!-- C: 微信资料登录 -->
+  <view class="card">
+    <view class="card-title">微信快速登录</view>
+    <view class="card-sub">老员工直接进入，无需再填工号</view>
+    <button
+      class="primary-btn"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+      loading="{{profileLoading}}"
+      disabled="{{profileLoading}}"
+    >微信账号登录</button>
+  </view>
+
+  <view class="divider"><view class="divider-text">其他方式</view></view>
+
+  <!-- 已绑定账号辅助验证 -->
+  <button class="secondary-btn" bindtap="onGoLegacyLogin">已绑定账号辅助验证</button>
+
+  <view class="foot">登录即代表同意航翼排班服务条款</view>
+</view>

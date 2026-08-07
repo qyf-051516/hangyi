@@ -1,0 +1,69 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/staffSchedule/index",
+    "pages/warnings/index",
+    "pages/mine/index",
+    "pages/auth/index",
+    "pages/quickLogin/index",
+    "pages/adminSchedule/index",
+    "pages/mySchedules/index",
+    "pages/swapRequest/index",
+    "pages/notification/index",
+    "pages/settings/index",
+    "pages/completionStatus/index",
+    "pages/serviceSchedule/index",
+    "pages/scheduleStats/index",
+    "pages/qualificationWarnings/index",
+    "pages/auditLogs/index",
+    "pages/scheduleHistory/index",
+    "pages/leave/index",
+    "pages/bootstrapAdmin/index",
+    "pages/adminCenter/index",
+    "pages/staffManagement/index",
+    "pages/adminSettings/index",
+    "pages/assistant/index"
+  ],
+  "window": {
+    "backgroundColor": "#eef5fd",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#f3f8fe",
+    "navigationBarTitleText": "航翼排班",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#8b9bb0",
+    "selectedColor": "#1178ee",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "总览",
+        "iconPath": "images/icons/home.png",
+        "selectedIconPath": "images/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/staffSchedule/index",
+        "text": "排班",
+        "iconPath": "images/icons/business.png",
+        "selectedIconPath": "images/icons/business-active.png"
+      },
+      {
+        "pagePath": "pages/warnings/index",
+        "text": "预警",
+        "iconPath": "images/icons/goods.png",
+        "selectedIconPath": "images/icons/goods-active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "images/icons/usercenter.png",
+        "selectedIconPath": "images/icons/usercenter-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

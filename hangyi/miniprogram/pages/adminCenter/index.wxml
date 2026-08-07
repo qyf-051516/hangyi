@@ -1,0 +1,262 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="state-code">403</view>
+    <view class="state-title">需要管理员权限</view>
+    <view class="state-copy">当前账号没有访问管理工作台的权限</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+    <view class="command-head">
+      <view>
+        <view class="eyebrow">航翼管理</view>
+        <view class="page-title">管理中心</view>
+        <view class="page-copy" wx:if="{{dashboard.operator.name}}">
+          {{dashboard.operator.name}} · {{dashboard.operator.employeeNo}}
+        </view>
+      </view>
+      <picker mode="date" value="{{scheduleDate}}" bindchange="onDateChange">
+        <view class="date-control">{{scheduleDate}}</view>
+      </picker>
+    </view>
+
+    <view class="card skeleton-card" wx:if="{{loading && !loaded}}">
+      <view class="skeleton skeleton-title"></view>
+      <view class="skeleton skeleton-line"></view>
+      <view class="skeleton-grid">
+        <view class="skeleton skeleton-block"></view>
+        <view class="skeleton skeleton-block"></view>
+        <view class="skeleton skeleton-block"></view>
+      </view>
+    </view>
+
+    <view class="card error-card" wx:elif="{{errorMessage && !loaded}}">
+      <view class="state-title">管理数据暂时无法加载</view>
+      <view class="state-copy">{{errorMessage}}</view>
+      <button class="state-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+    </view>
+
+    <block wx:if="{{loaded}}">
+      <view class="health-strip health-{{healthClass}}">
+        <view class="health-mark">
+          <image class="health-icon" src="{{healthIcon}}" mode="aspectFit"></image>
+        </view>
+        <view class="health-body">
+          <view class="health-title">{{healthTitle}}</view>
+          <view class="health-copy">{{healthCopy}}</view>
+        </view>
+        <view class="refresh-action" bindtap="onRefresh" hover-class="tap-active">
+          {{refreshing ? '更新中' : '刷新'}}
+        </view>
+      </view>
+
+      <view class="metric-board">
+        <view class="metric-primary">
+          <text class="metric-value">{{dashboard.schedule.assignedPeople}}</text>
+          <text class="metric-label">当日已排人员</text>
+          <text class="metric-note">共 {{dashboard.staff.active}} 名在职员工</text>
+        </view>
+        <view class="metric-stack">
+          <view class="metric-small">
+            <text class="metric-small-value warn">{{dashboard.schedule.unassigned}}</text>
+            <text class="metric-small-label">未排班</text>
+          </view>
+          <view class="metric-small">
+            <text class="metric-small-value danger">{{dashboard.schedule.leaveConflicts}}</text>
+            <text class="metric-small-label">待改派</text>
+          </view>
+          <view class="metric-small">
+            <text class="metric-small-value">{{dashboard.approvals.total}}</text>
+            <text class="metric-small-label">待审批</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-head">
+        <view>
+          <view class="section-title">优先处理</view>
+          <view class="section-copy">从影响当天运行的事项开始</view>
+        </view>
+      </view>
+
+      <view class="priority-list">
+        <view
+          class="priority-row"
+          bindtap="onNavigate"
+          data-url="/pages/adminSchedule/index"
+          hover-class="tap-active"
+          wx:if="{{dashboard.schedule.leaveConflicts > 0 || dashboard.schedule.unassigned > 0}}"
+        >
+          <view class="priority-code danger">
+            <image class="priority-icon" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+          </view>
+          <view class="priority-body">
+            <view class="priority-title">补齐排班与冲突改派</view>
+            <view class="priority-copy">
+              {{dashboard.schedule.unassigned}} 人未排班，{{dashboard.schedule.leaveConflicts}} 条待改派
+            </view>
+          </view>
+          <text class="priority-action">处理</text>
+        </view>
+        <view
+          class="priority-row"
+          bindtap="onNavigate"
+          data-url="/pages/warnings/index"
+          data-mode="tab"
+          hover-class="tap-active"
+          wx:if="{{dashboard.approvals.swap > 0}}"
+        >
+          <view class="priority-code">
+            <image class="priority-icon" src="/images/menu/swap.svg" mode="aspectFit"></image>
+          </view>
+          <view class="priority-body">
+            <view class="priority-title">调班审批</view>
+            <view class="priority-copy">{{dashboard.approvals.swap}} 条申请等待核对</view>
+          </view>
+          <text class="priority-action">审批</text>
+        </view>
+        <view
+          class="priority-row"
+          bindtap="onNavigate"
+          data-url="/pages/leave/index?mode=approval"
+          hover-class="tap-active"
+          wx:if="{{dashboard.approvals.leave > 0}}"
+        >
+          <view class="priority-code">
+            <image class="priority-icon" src="/images/menu/leave.svg" mode="aspectFit"></image>
+          </view>
+          <view class="priority-body">
+            <view class="priority-title">请假审批</view>
+            <view class="priority-copy">{{dashboard.approvals.leave}} 条申请等待处理</view>
+          </view>
+          <text class="priority-action">审批</text>
+        </view>
+        <view
+          class="priority-row"
+          bindtap="onNavigate"
+          data-url="/pages/qualificationWarnings/index"
+          hover-class="tap-active"
+          wx:if="{{dashboard.qualifications.riskCount > 0}}"
+        >
+          <view class="priority-code warn">
+            <image class="priority-icon" src="/images/menu/certificate.svg" mode="aspectFit"></image>
+          </view>
+          <view class="priority-body">
+            <view class="priority-title">资质到期处理</view>
+            <view class="priority-copy">{{dashboard.qualifications.riskCount}} 项资质已到期或 60 天内到期</view>
+          </view>
+          <text class="priority-action">查看</text>
+        </view>
+        <view class="priority-empty" wx:if="{{dashboard.issueCount === 0}}">
+          当日排班、审批和资质状态均正常
+        </view>
+      </view>
+
+      <view class="section-head">
+        <view>
+          <view class="section-title">管理模块</view>
+          <view class="section-copy">11 项管理工具集中在这里</view>
+        </view>
+      </view>
+
+      <view class="module-grid">
+        <view class="module-card module-wide" bindtap="onNavigate" data-url="/pages/adminSchedule/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/calendar.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">排班编制</view>
+          <view class="module-copy">编辑、智能排班、导入与发布</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/serviceSchedule/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/service.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">勤务放行</view>
+          <view class="module-copy">人务链与实时改班</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/warnings/index" data-mode="tab" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/swap.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">调班审批</view>
+          <view class="module-copy">申请复核与替班选择</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/leave/index?mode=approval" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/leave.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">请假审批</view>
+          <view class="module-copy">申请审批与冲突改派</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/staffManagement/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/users.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">人员管理</view>
+          <view class="module-copy">{{dashboard.staff.total}} 人 · {{dashboard.staff.admins}} 名管理员</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/qualificationWarnings/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/certificate.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">资质预警</view>
+          <view class="module-copy">到期风险与资质覆盖</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/completionStatus/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/check-circle.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">完成统计</view>
+          <view class="module-copy">执行进度与完成率</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/scheduleStats/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/risk.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">排班分析</view>
+          <view class="module-copy">负荷、疲劳与资质覆盖</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/scheduleHistory/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/history.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">发布历史</view>
+          <view class="module-copy">活动版本与归档记录</view>
+        </view>
+        <view class="module-card" bindtap="onNavigate" data-url="/pages/auditLogs/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/audit.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">操作审计</view>
+          <view class="module-copy">筛选和导出管理日志</view>
+        </view>
+        <view class="module-card module-wide" bindtap="onNavigate" data-url="/pages/adminSettings/index" hover-class="tap-active">
+          <view class="module-code">
+            <image class="module-icon" src="/images/menu/sliders.svg" mode="aspectFit"></image>
+          </view>
+          <view class="module-title">排班参数</view>
+          <view class="module-copy">疲劳、休息、勤务和放行规则</view>
+        </view>
+      </view>
+
+      <view class="section-head" wx:if="{{dashboard.recentOperations.length}}">
+        <view>
+          <view class="section-title">最近操作</view>
+          <view class="section-copy">仅展示摘要，完整记录进入操作审计</view>
+        </view>
+      </view>
+      <view class="card operation-list" wx:if="{{dashboard.recentOperations.length}}">
+        <view class="operation-row" wx:for="{{dashboard.recentOperations}}" wx:key="createdAt">
+          <view class="operation-time">{{item.createdAtText}}</view>
+          <view class="operation-body">
+            <view class="operation-title">{{item.actionText}}</view>
+            <view class="operation-copy">{{item.detail}}</view>
+          </view>
+        </view>
+        <view class="operation-more" bindtap="onNavigate" data-url="/pages/auditLogs/index" hover-class="tap-active">
+          查看全部操作记录
+        </view>
+      </view>
+    </block>
+  </block>
+</view>

@@ -1,0 +1,264 @@
+/* 航翼排班全局设计系统 */
+
+page {
+  background: #eef5fd;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+button {
+  background: initial;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding-left: 16rpx !important;
+  padding-right: 16rpx !important;
+  box-sizing: border-box;
+  white-space: nowrap;
+  font-size: 26rpx;
+  line-height: 1.4;
+  border-radius: 14rpx;
+  min-height: 64rpx;
+}
+
+button:focus { outline: 0; }
+button::after { border: none; }
+
+/* 设计 Token */
+page {
+  --r-card: 18rpx;
+  --r-chip: 12rpx;
+  --r-pill: 999rpx;
+  --p-card: 22rpx;
+  --gap-card: 16rpx;
+  --gap-row: 12rpx;
+  --t-tap: 72rpx;
+  --fs-display: 40rpx;
+  --fs-title: 34rpx;
+  --fs-section: 30rpx;
+  --fs-body: 28rpx;
+  --fs-meta: 24rpx;
+  --fs-mini: 22rpx;
+  --fs-tiny: 20rpx;
+  --c-bg-1: #f3f8fe;
+  --c-bg-2: #eaf3fd;
+  --c-surface: rgba(255, 255, 255, 0.94);
+  --c-surface-solid: #ffffff;
+  --c-border: #dce8f5;
+  --c-border-strong: #c8d9eb;
+  --c-text: #132642;
+  --c-text-body: #203652;
+  --c-text-meta: #667b95;
+  --c-text-muted: #8b9bb0;
+  --c-primary: #1178ee;
+  --c-primary-deep: #0759cc;
+  --c-accent: #49a7ff;
+  --c-success: #16b979;
+  --c-warn: #e58a19;
+  --c-danger: #ed4f62;
+  --c-info: #237ce4;
+  --sh-card: 0 8rpx 24rpx rgba(35, 91, 157, 0.08);
+  --sh-card-hover: 0 12rpx 34rpx rgba(35, 91, 157, 0.14);
+}
+
+/* 深色主题 */
+.theme-dark,
+page.theme-dark {
+  --c-bg-1: #071429;
+  --c-bg-2: #10294d;
+  --c-surface: rgba(14, 35, 66, 0.88);
+  --c-surface-solid: #0f2540;
+  --c-border: rgba(84, 170, 255, 0.35);
+  --c-border-strong: rgba(84, 170, 255, 0.5);
+  --c-text: #d8ebff;
+  --c-text-body: #dff6ff;
+  --c-text-meta: #b4d6f5;
+  --c-text-muted: #9abde3;
+  --c-primary: #5fe8ff;
+  --c-primary-deep: #2abfdb;
+  --c-accent: #2ed8ff;
+  --c-success: #2ed46a;
+  --c-warn: #ffcf66;
+  --c-danger: #ff8c8c;
+  --c-info: #5399ff;
+  --sh-card: 0 8rpx 28rpx rgba(0, 0, 0, 0.35);
+  --sh-card-hover: 0 12rpx 36rpx rgba(0, 0, 0, 0.5);
+}
+
+/* 页面与卡片基类 */
+.page {
+  min-height: 100vh;
+  padding: 20rpx 22rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  color: var(--c-text);
+  background:
+    radial-gradient(circle at 8% 2%, rgba(81, 166, 255, 0.13), transparent 31%),
+    linear-gradient(180deg, var(--c-bg-1) 0%, var(--c-bg-2) 100%);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.card {
+  background: var(--c-surface);
+  border: 1rpx solid var(--c-border);
+  border-radius: var(--r-card);
+  padding: var(--p-card);
+  margin-bottom: var(--gap-card);
+  box-shadow: var(--sh-card);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 字号语义类 */
+.t-display { font-size: var(--fs-display); font-weight: 700; }
+.t-title   { font-size: var(--fs-title);   font-weight: 700; }
+.t-section { font-size: var(--fs-section); font-weight: 600; }
+.t-body    { font-size: var(--fs-body);    font-weight: 400; }
+.t-meta    { font-size: var(--fs-meta);    font-weight: 400; color: var(--c-text-meta); }
+.t-mini    { font-size: var(--fs-mini);    font-weight: 400; color: var(--c-text-muted); }
+.t-tiny    { font-size: var(--fs-tiny);    font-weight: 400; color: var(--c-text-muted); }
+
+/* 颜色语义类 */
+.c-primary { color: var(--c-primary); }
+.c-accent  { color: var(--c-accent); }
+.c-success { color: var(--c-success); }
+.c-warn    { color: var(--c-warn); }
+.c-danger  { color: var(--c-danger); }
+.c-info    { color: var(--c-info); }
+.c-meta    { color: var(--c-text-meta); }
+.c-muted   { color: var(--c-text-muted); }
+
+/* 通用按钮 */
+.btn {
+  height: var(--t-tap);
+  line-height: var(--t-tap);
+  padding: 0 28rpx;
+  font-size: var(--fs-body);
+  font-weight: 500;
+  border-radius: var(--r-chip);
+  background: var(--c-primary);
+  color: #ffffff;
+  border: 1rpx solid transparent;
+  transition: opacity 0.15s ease, transform 0.05s ease;
+}
+.btn[disabled] { opacity: 0.5; }
+.btn:active { transform: scale(0.98); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--c-primary);
+  border: 1rpx solid var(--c-border-strong);
+}
+.btn-mini {
+  height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 20rpx;
+  font-size: var(--fs-meta);
+}
+
+/* 通用交互与页面状态 */
+.tap-target {
+  min-height: 64rpx;
+}
+
+.tap-active,
+.button-hover {
+  opacity: 0.72;
+  transform: scale(0.985);
+}
+
+.state-card {
+  display: flex;
+  min-height: 220rpx;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.state-title {
+  font-size: var(--fs-section);
+  font-weight: 600;
+}
+
+.state-copy {
+  max-width: 560rpx;
+  margin-top: 10rpx;
+  color: var(--c-text-meta);
+  font-size: var(--fs-meta);
+  line-height: 1.6;
+}
+
+.state-action {
+  min-width: 200rpx;
+  margin-top: 24rpx;
+}
+
+.inline-error {
+  display: flex;
+  min-height: 72rpx;
+  align-items: center;
+  gap: 16rpx;
+  padding: 14rpx 18rpx;
+  margin-bottom: var(--gap-card);
+  box-sizing: border-box;
+  color: var(--c-danger);
+  background: rgba(201, 75, 86, 0.08);
+  border: 1rpx solid rgba(201, 75, 86, 0.3);
+  border-radius: var(--r-chip);
+  font-size: var(--fs-meta);
+}
+
+.inline-error-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-error-action {
+  display: inline-flex;
+  min-width: 96rpx;
+  min-height: 64rpx;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-primary);
+  font-weight: 600;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(124, 156, 198, 0.18);
+  border-radius: 10rpx;
+}
+
+.skeleton::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -70%;
+  width: 55%;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.34),
+    rgba(255, 255, 255, 0)
+  );
+  animation: skeleton-sweep 1.25s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  from { left: -70%; }
+  to { left: 120%; }
+}

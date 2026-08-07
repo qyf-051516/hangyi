@@ -1,0 +1,154 @@
+
+/* 主题 / 页面 / 卡片基类由 app.wxss 提供(.page / .card / .t-* / .c-*) */
+
+.head .title { font-size: 30rpx; font-weight: 700; }
+.head .sub { margin-top: 6rpx; font-size: 22rpx; }
+.theme-dark .head .sub { color: #9abde3; }
+.theme-light .head .sub { color: #3d5270; }
+.head-actions { margin-top: 10rpx; }
+.refresh-btn { min-height: 64rpx; line-height: 64rpx; padding: 0 22rpx; font-size: 22rpx; border-radius: 12rpx; background: rgba(83, 153, 255, 0.12); color: #245090; border: 1rpx solid rgba(83, 153, 255, 0.4); }
+.theme-dark .refresh-btn { background: rgba(46, 222, 255, 0.22); color: #b8e8ff; border: 1rpx solid rgba(77, 232, 255, 0.5); }
+.date-control {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64rpx;
+  margin-top: 10rpx;
+  padding: 0 18rpx;
+  border-radius: 12rpx;
+  color: #285f8e;
+  background: rgba(83, 153, 255, 0.1);
+  font-size: 22rpx;
+}
+.theme-dark .date-control { color: #afd8fa; background: #123553; }
+
+.sec-card { }
+.sec-title { font-size: 28rpx; font-weight: 700; margin-bottom: 4rpx; }
+.sec-desc { font-size: 20rpx; margin-bottom: 16rpx; }
+.theme-dark .sec-desc { color: #9abde3; }
+.theme-light .sec-desc { color: #3d5270; }
+
+/* ── 柱状图 ── */
+.bar-chart { display: flex; flex-direction: column; gap: 12rpx; }
+.bc-row { display: flex; align-items: center; gap: 10rpx; }
+.bc-label { width: 100rpx; font-size: 22rpx; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.theme-dark .bc-label { color: #d8ebff; }
+.theme-light .bc-label { color: #1a4f8a; }
+.bc-track { flex: 1; height: 36rpx; border-radius: 18rpx; overflow: hidden; }
+.theme-dark .bc-track { background: rgba(30, 60, 100, 0.5); }
+.theme-light .bc-track { background: rgba(160, 185, 215, 0.35); }
+.bc-fill { height: 100%; border-radius: 18rpx; display: flex; align-items: center; padding-left: 12rpx; transition: width 0.3s; min-width: 0; }
+.bc-fill-text { font-size: 20rpx; font-weight: 700; color: #fff; text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.3); }
+.bc-meta { width: 140rpx; font-size: 20rpx; text-align: right; }
+.theme-dark .bc-meta { color: #9abde3; }
+.theme-light .bc-meta { color: #3d5270; }
+
+/* ── 人员利用率表 ── */
+.util-list { display: flex; flex-direction: column; }
+.ul-header { display: flex; padding: 8rpx 0; border-bottom: 1rpx solid; font-size: 20rpx; font-weight: 700; }
+.theme-dark .ul-header { border-color: rgba(84, 170, 255, 0.15); color: #9abde3; }
+.theme-light .ul-header { border-color: rgba(124, 156, 198, 0.2); color: #3d5270; }
+.ul-hc { padding: 0 6rpx; }
+.ul-hc-name { flex: 2; }
+.ul-hc-tasks { width: 70rpx; text-align: center; }
+.ul-hc-util { flex: 1; text-align: center; }
+.ul-hc-fatigue { width: 80rpx; text-align: center; }
+
+.ul-row { display: flex; align-items: center; padding: 10rpx 0; border-bottom: 1rpx solid; }
+.theme-dark .ul-row { border-color: rgba(84, 170, 255, 0.06); }
+.theme-light .ul-row { border-color: rgba(124, 156, 198, 0.08); }
+.ul-row:last-child { border-bottom: none; }
+
+.ul-cell { padding: 0 6rpx; }
+.ul-cell-name { flex: 2; display: flex; flex-direction: column; }
+.ul-name { font-size: 24rpx; font-weight: 700; }
+.theme-dark .ul-name { color: #d8ebff; }
+.theme-light .ul-name { color: #1a4f8a; }
+.ul-meta { font-size: 18rpx; }
+.theme-dark .ul-meta { color: #6e9fc9; }
+.theme-light .ul-meta { color: #6e88ad; }
+.ul-cell-tasks { width: 70rpx; font-size: 22rpx; font-weight: 600; text-align: center; }
+.ul-cell-util { flex: 1; }
+.ul-bar-track { height: 12rpx; border-radius: 6rpx; overflow: hidden; }
+.theme-dark .ul-bar-track { background: rgba(30, 60, 100, 0.5); }
+.theme-light .ul-bar-track { background: rgba(160, 185, 215, 0.35); }
+.ul-bar-fill { height: 100%; border-radius: 6rpx; transition: width 0.3s; }
+.util-high { background: #2aaf6a; }
+.util-mid { background: #d49224; }
+.util-low { background: #c54b59; }
+.ul-cell-fatigue { width: 80rpx; text-align: center; }
+.ul-fatigue-chip { font-size: 18rpx; padding: 2rpx 10rpx; border-radius: 12rpx; font-weight: 600; }
+.risk-high { background: rgba(255,77,90,0.12); color: #ff4d5a; border: 1rpx solid rgba(255,77,90,0.3); }
+.risk-mid { background: rgba(240,160,48,0.12); color: #f0a030; border: 1rpx solid rgba(240,160,48,0.3); }
+.risk-low { background: rgba(46,212,106,0.12); color: #2ed46a; border: 1rpx solid rgba(46,212,106,0.3); }
+
+/* ── 资质覆盖 ── */
+.qual-grid { display: flex; flex-direction: column; gap: 14rpx; }
+.qual-item { }
+.qi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4rpx; }
+.qi-type { font-size: 24rpx; font-weight: 700; }
+.theme-dark .qi-type { color: #d8ebff; }
+.theme-light .qi-type { color: #1a4f8a; }
+.qi-rate { font-size: 26rpx; font-weight: 800; }
+.qi-rate-high { color: #2ed46a; }
+.qi-rate-mid { color: #f0a030; }
+.qi-rate-low { color: #ff4d5a; }
+.qi-bar-track { height: 16rpx; border-radius: 8rpx; overflow: hidden; }
+.theme-dark .qi-bar-track { background: rgba(30, 60, 100, 0.5); }
+.theme-light .qi-bar-track { background: rgba(160, 185, 215, 0.35); }
+.qi-bar-fill { height: 100%; border-radius: 8rpx; transition: width 0.3s; }
+.qi-meta { font-size: 18rpx; margin-top: 2rpx; }
+.theme-dark .qi-meta { color: #6e9fc9; }
+.theme-light .qi-meta { color: #6e88ad; }
+
+/* ── 夜班分布 ── */
+.night-chart { }
+.nc-yaxis { display: flex; justify-content: space-around; align-items: flex-end; gap: 8rpx; padding: 0 10rpx; }
+.nc-day { display: flex; flex-direction: column; align-items: center; gap: 6rpx; flex: 1; }
+.nc-date-label { font-size: 20rpx; }
+.theme-dark .nc-date-label { color: #9abde3; }
+.theme-light .nc-date-label { color: #3d5270; }
+.nc-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.nc-bar-stack { width: 60rpx; border-radius: 8rpx; overflow: hidden; display: flex; flex-direction: column-reverse; }
+.theme-dark .nc-bar-stack { background: rgba(30, 60, 100, 0.3); }
+.theme-light .nc-bar-stack { background: rgba(160, 185, 215, 0.2); }
+.nc-seg { width: 100%; display: flex; align-items: center; justify-content: center; transition: height 0.3s; min-height: 0; }
+.nc-seg-night { background: linear-gradient(180deg, #ff6b7a, #ff4d5a); }
+.nc-seg-afternoon { background: linear-gradient(180deg, #f0c030, #f0a030); }
+.nc-seg-morning { background: linear-gradient(180deg, #7fe9ff, #5399ff); }
+.nc-seg-label { font-size: 16rpx; font-weight: 700; color: #fff; text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.3); }
+.nc-night-rate { font-size: 18rpx; font-weight: 600; }
+.theme-dark .nc-night-rate { color: #ff4d5a; }
+.theme-light .nc-night-rate { color: #cc3340; }
+
+.nc-legend { display: flex; justify-content: center; gap: 24rpx; margin-top: 16rpx; }
+.nc-legend-item { font-size: 22rpx; display: flex; align-items: center; gap: 6rpx; }
+.theme-dark .nc-legend-item { color: #9abde3; }
+.theme-light .nc-legend-item { color: #3d5270; }
+.nc-dot { display: inline-block; width: 16rpx; height: 16rpx; border-radius: 50%; }
+.nc-dot-night { background: #ff4d5a; }
+.nc-dot-afternoon { background: #f0a030; }
+.nc-dot-morning { background: #5399ff; }
+
+/* ── 公共 ── */
+.loading-wrap { text-align: center; padding: 60rpx 0; }
+.loading-text { font-size: 28rpx; }
+.theme-dark .loading-text { color: #9abde3; }
+.theme-light .loading-text { color: #3d5270; }
+
+.empty-small { text-align: center; font-size: 24rpx; padding: 30rpx; }
+.theme-dark .empty-small { color: #6e9fc9; }
+.theme-light .empty-small { color: #6e88ad; }
+
+.denied-card,
+.error-card { padding: 46rpx 24rpx; text-align: center; }
+.state-title { font-size: 29rpx; font-weight: 750; }
+.state-copy { margin-top: 9rpx; font-size: 21rpx; line-height: 1.5; opacity: 0.65; }
+.state-btn {
+  margin-top: 24rpx;
+  min-height: 70rpx;
+  line-height: 70rpx;
+  border-radius: 14rpx;
+  color: #ffffff;
+  background: #285f96;
+  font-size: 24rpx;
+}

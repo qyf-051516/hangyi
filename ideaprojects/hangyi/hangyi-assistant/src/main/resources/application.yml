@@ -1,0 +1,79 @@
+server:
+  port: ${ASSISTANT_PORT:9004}
+
+spring:
+  application:
+    name: hangyi-assistant
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:hangyi_scheduling}?serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:123456}
+      database: 0
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+
+jwt:
+  secret: ${JWT_SECRET:?JWT_SECRET required}
+
+assistant:
+  engine-enabled: ${ASSISTANT_ENGINE_ENABLED:false}
+  dependency-probe-enabled: ${ASSISTANT_DEPENDENCY_PROBE_ENABLED:false}
+  internal-api-key: ${ASSISTANT_INTERNAL_KEY:}
+  internal-signature-max-age: ${ASSISTANT_INTERNAL_SIGNATURE_MAX_AGE:60s}
+  qdrant-url: ${QDRANT_URL:http://localhost:6333}
+  qdrant-api-key: ${QDRANT_API_KEY:}
+  qdrant-collection: ${QDRANT_COLLECTION:hangyi_business_knowledge}
+  ollama-url: ${OLLAMA_URL:http://localhost:11434}
+  embedding-model: ${OLLAMA_EMBEDDING_MODEL:bge-m3}
+  embedding-dimension: ${ASSISTANT_EMBEDDING_DIMENSION:1024}
+  qwen-base-url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+  qwen-api-key: ${QWEN_API_KEY:}
+  qwen-chat-model: ${QWEN_CHAT_MODEL:qwen-plus}
+  connect-timeout: ${ASSISTANT_CONNECT_TIMEOUT:3s}
+  read-timeout: ${ASSISTANT_READ_TIMEOUT:25s}
+  request-timeout: ${ASSISTANT_REQUEST_TIMEOUT:18s}
+  top-k: ${ASSISTANT_TOP_K:5}
+  score-threshold: ${ASSISTANT_SCORE_THRESHOLD:0.48}
+  max-context-chars: ${ASSISTANT_MAX_CONTEXT_CHARS:12000}
+  max-answer-tokens: ${ASSISTANT_MAX_ANSWER_TOKENS:900}
+  employee-daily-quota: ${ASSISTANT_EMPLOYEE_DAILY_QUOTA:20}
+  admin-daily-quota: ${ASSISTANT_ADMIN_DAILY_QUOTA:100}
+  employee-minute-limit: ${ASSISTANT_EMPLOYEE_MINUTE_LIMIT:10}
+  admin-minute-limit: ${ASSISTANT_ADMIN_MINUTE_LIMIT:30}
+  rate-limit-window: ${ASSISTANT_RATE_LIMIT_WINDOW:60s}
+  knowledge-path: ${ASSISTANT_KNOWLEDGE_PATH:knowledge/business}
+  ingestion-mode: ${ASSISTANT_INGESTION_MODE:off}
+  confirm-full-rebuild: ${ASSISTANT_CONFIRM_FULL_REBUILD:false}
+  evaluation-enabled: ${ASSISTANT_EVALUATION_ENABLED:false}
+  evaluation-path: ${ASSISTANT_EVALUATION_PATH:knowledge/evaluation/questions.json}
+  min-recall-at5: ${ASSISTANT_MIN_RECALL_AT5:0.85}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.qyf.hangyi.assistant: info
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    nacos:
+      discovery:
+        enabled: false

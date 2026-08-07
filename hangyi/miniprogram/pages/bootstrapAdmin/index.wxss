@@ -1,0 +1,182 @@
+/* bootstrapAdmin - 复用 .page .card .t-* 基类 */
+.head,
+.status-card,
+.steps-card,
+.action-card,
+.tip-card,
+.success-card,
+.existing-card,
+.login-card {
+  padding: 22rpx 24rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.sub {
+  margin-top: 8rpx;
+  color: var(--c-text-meta);
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 14rpx;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid var(--c-border);
+}
+.status-row:last-of-type { border-bottom: none; }
+.status-label {
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: var(--c-text-meta);
+}
+.status-value {
+  min-width: 0;
+  margin-left: 18rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--c-text);
+  text-align: right;
+  overflow-wrap: break-word;
+}
+.status-value.ok { color: var(--c-success); }
+.status-value.warn { color: var(--c-warn); }
+.status-value.danger { color: var(--c-danger); }
+
+.status-summary {
+  margin-top: 14rpx;
+  padding: 14rpx 18rpx;
+  background: var(--c-surface-solid);
+  border: 1rpx solid var(--c-border);
+  border-radius: var(--r-chip);
+  font-size: 26rpx;
+  color: var(--c-text-body);
+  line-height: 1.5;
+}
+
+.success-summary {
+  color: var(--c-success);
+  border-color: rgba(46, 212, 106, 0.35);
+}
+
+.step-item {
+  padding: 10rpx 0;
+  border-bottom: 1rpx dashed var(--c-border);
+  font-size: 26rpx;
+  color: var(--c-text-body);
+  line-height: 1.5;
+}
+.step-item:last-child { border-bottom: none; }
+.step-text {
+  display: block;
+}
+
+.action-copy {
+  color: var(--c-text-meta);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.console-box {
+  margin-top: 20rpx;
+  padding: 18rpx;
+  background: var(--c-surface-solid);
+  border: 1rpx solid var(--c-border);
+  border-radius: var(--r-chip);
+}
+
+.console-label {
+  color: var(--c-text-meta);
+  font-size: 22rpx;
+}
+
+.parameter-label {
+  margin-top: 18rpx;
+}
+
+.console-value,
+.console-code {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--c-primary);
+  font-family: monospace;
+  font-size: 24rpx;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.action-button {
+  flex: 1 1 240rpx;
+  min-height: 72rpx;
+  margin: 18rpx 0 0;
+}
+
+.action-row .action-button {
+  margin-top: 0;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid var(--c-border);
+  gap: 14rpx;
+}
+.form-row.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+.form-row.column .form-label { margin-bottom: 8rpx; }
+.form-label {
+  font-size: 26rpx;
+  color: var(--c-text-meta);
+  min-width: 80rpx;
+}
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--c-text);
+  background: transparent;
+  min-height: 64rpx;
+  line-height: 64rpx;
+}
+.submit-btn {
+  margin-top: 22rpx;
+  min-height: 80rpx;
+  line-height: 80rpx;
+}
+
+.tip-card { background: rgba(255, 207, 102, 0.08); border-color: var(--c-warn); }
+.tip-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--c-warn);
+  margin-bottom: 10rpx;
+}
+.tip-text {
+  display: block;
+  font-size: 24rpx;
+  color: var(--c-text-meta);
+  line-height: 1.6;
+  padding: 4rpx 0;
+}

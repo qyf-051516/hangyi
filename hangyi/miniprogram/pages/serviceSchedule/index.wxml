@@ -1,0 +1,406 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{adminDenied}}">
+    <view class="denied-title">需要管理员权限</view>
+    <view class="denied-copy">勤务与放行排班仅供管理员使用</view>
+    <button class="denied-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+  <view class="card head">
+    <view class="head-title-row">
+      <view>
+        <view class="title">勤务与放行排班</view>
+        <view class="sub">任务时间窗、人务链与实时调度</view>
+      </view>
+      <picker mode="date" value="{{scheduleDate}}" bindchange="onDateChange">
+        <view class="date-picker">{{dateLabel}}</view>
+      </picker>
+    </view>
+    <view class="head-actions">
+      <button class="action-btn action-primary" bindtap="onAutoSchedule" disabled="{{isOffline || loading}}">自动排班</button>
+      <button class="action-btn" bindtap="onPublish" disabled="{{isOffline || loading || !isPreview}}">发布预览</button>
+      <button class="action-btn" bindtap="onViewChains">人务链</button>
+      <button class="action-btn action-btn-stats" bindtap="onOpenStats">排班分析</button>
+      <button class="action-btn" bindtap="onRefresh" disabled="{{loading}}">刷新</button>
+    </view>
+    <view class="preview-banner" wx:if="{{isPreview}}">
+      当前为未发布预览。检查人员缺口和人务链后，再发布到正式排班。
+    </view>
+    <!-- 实时状态工具栏 -->
+    <view class="realtime-bar" wx:if="{{realtimeStatuses.length > 0}}">
+      <text class="realtime-label"> 实时状态：</text>
+      <view class="realtime-badges">
+        <view class="rt-badge" wx:for="{{realtimeStatuses}}" wx:key="flightNo" wx:if="{{item.isAlert}}"
+              data-flightno="{{item.flightNo}}" bindtap="onShowStatusMenu">
+          <text class="rt-dot {{'rt-dot-' + item.realtimeStatus}}"></text>
+          <text class="rt-flight">{{item.flightNo}}</text>
+          <text class="rt-status {{'rt-status-' + item.realtimeStatus}}">
+            {{item.statusText}}
+          </text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card error-card" wx:if="{{errorMessage && !loading}}">
+    <view class="error-title">勤务排班暂时无法加载</view>
+    <view class="error-copy">{{errorMessage}}</view>
+    <button class="retry-btn" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <!-- 离线提示 -->
+  <view class="offline-banner" wx:if="{{isOffline}}">
+    <text class="offline-icon">!</text>
+    <text class="offline-text">网络已断开，当前显示缓存数据</text>
+  </view>
+
+  <!-- 统计摘要 -->
+  <view class="card" wx:if="{{stats.totalFlights > 0}}">
+    <view class="stats-grid">
+      <view class="stat-item"><text class="sv">{{stats.totalFlights}}</text><text class="sl">航班</text></view>
+      <view class="stat-item"><text class="sv">{{stats.totalServiceTasks}}</text><text class="sl">勤务</text></view>
+      <view class="stat-item"><text class="sv">{{stats.totalReleaseTasks}}</text><text class="sl">放行</text></view>
+      <view class="stat-item"><text class="sv">{{stats.totalStaffUsed}}</text><text class="sl">人员</text></view>
+      <view class="stat-item"><text class="sv">{{stats.avgEfficiency}}%</text><text class="sl">效率</text></view>
+      <view class="stat-item"><text class="sv">{{stats.wastedMinutes}}m</text><text class="sl">沉没</text></view>
+    </view>
+  </view>
+  <view class="card staffing-warning" wx:if="{{stats.unfilledTaskCount > 0}}">
+    <view class="staffing-warning-title">当前预览不能发布</view>
+    <view class="staffing-warning-copy">
+      {{stats.unfilledTaskCount}} 个任务仍缺 {{stats.missingStaffCount}} 人，请调整资质、人员或排班参数后重新生成。
+    </view>
+  </view>
+
+  <!-- Tab 切换 -->
+  <view class="card tab-card">
+    <view class="tab-bar">
+      <view class="tab-item {{tabIndex === 0 ? 'tab-active' : ''}}" bindtap="onSwitchTab" data-index="0">
+         甘特图
+      </view>
+      <view class="tab-item {{tabIndex === 1 ? 'tab-active' : ''}}" bindtap="onSwitchTab" data-index="1">
+         人务链
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- Tab 0: 甘特图 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view wx:if="{{tabIndex === 0}}">
+    <view class="loading-text" wx:if="{{loading}}">加载中…</view>
+
+    <!-- 甘特图 -->
+    <scroll-view class="gantt-scroll" scroll-x wx:if="{{ganttData && !loading}}">
+      <view class="gantt-container" style="width: {{ganttData.timelineWidth + 260}}rpx;">
+        <!-- 时间轴 -->
+        <view class="gantt-axis" style="width: {{ganttData.timelineWidth}}rpx;">
+          <view class="gantt-label" wx:for="{{ganttData.labels}}" wx:key="label" style="left: {{item.left}}rpx;">
+            {{item.label}}
+          </view>
+          <!-- 时间网格竖线 -->
+          <view class="gantt-gridline" wx:for="{{ganttData.labels}}" wx:key="label" style="left: {{item.left}}rpx;"></view>
+        </view>
+
+        <!-- 当前时间红线 -->
+        <view class="gantt-now-line" wx:if="{{ganttData.showCurrentTime}}"
+              style="left: {{ganttData.currentTimeLeft + 260}}rpx;">
+          <view class="gantt-now-dot"></view>
+          <text class="gantt-now-text">{{ganttData.currentTimeLabel}}</text>
+        </view>
+
+        <!-- 人员行 -->
+        <view class="gantt-row" wx:for="{{ganttData.staffRows}}" wx:key="staffId" wx:for-item="row">
+          <!-- 左侧固定标签 -->
+          <view class="gantt-staff-label" data-staffid="{{row.staffId}}" bindtap="onTapPersonRow">
+            <view class="gsl-avatar {{'gsl-avatar-' + row.roleType}}">
+              {{row.initial}}
+            </view>
+            <view class="gsl-info">
+              <view class="gsl-top">
+                <text class="gsl-name">{{row.name}}</text>
+                <text class="gsl-chip gsl-chip-{{row.roleType === 'RELEASE' ? 'release' : row.roleType === 'BOTH' ? 'both' : 'service'}}">
+                  {{row.roleType === 'RELEASE' ? '放' : row.roleType === 'BOTH' ? '双' : '勤'}}
+                </text>
+              </view>
+              <view class="gsl-meta">
+                <text class="gsl-efficiency">{{row.efficiency}}%</text>
+                <text class="gsl-duty" wx:if="{{row.dutyStartLabel || row.dutyEndLabel}}">
+                  {{row.dutyStartLabel}}~{{row.dutyEndLabel}}
+                </text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 任务轨道区域 -->
+          <view class="gantt-row-tracks" style="width: {{ganttData.timelineWidth}}rpx;">
+            <!-- 间隙条 -->
+            <view class="gantt-gap" wx:for="{{row.gaps}}" wx:key="startMin"
+                  style="left: {{item.left}}rpx; width: {{item.width}}rpx;">
+              <text class="gg-text" wx:if="{{item.width > 50}}">{{item.minutes}}m</text>
+            </view>
+
+            <!-- 任务条 -->
+            <view class="gantt-task {{'gantt-task-' + (row.tasks.length > 1 && item.taskType === 'RELEASE' ? 'release' : 'service')}} {{'gantt-task-' + item.realtimeStatus}}"
+                  wx:for="{{row.tasks}}" wx:key="key"
+                  style="left: {{item.left}}rpx; width: {{item.width}}rpx;"
+                  data-flightno="{{item.flightNo}}" data-tasktype="{{item.taskType}}"
+                  bindtap="onTapTaskBar">
+              <text class="gt-text">{{item.flightNo}}</text>
+              <text class="gt-airline" wx:if="{{item.width > 120 && item.airline}}">{{item.airline}}</text>
+              <text class="gt-status-badge {{'badge-' + item.realtimeStatus}}" wx:if="{{item.realtimeStatus && item.realtimeStatus !== 'ON_TIME'}}">
+                {{item.statusLabel}}
+              </text>
+              <text class="gt-time" wx:if="{{item.width > 80}}">{{item.startLabel}}-{{item.endLabel}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 旧式任务卡片回退（无甘特图数据时） -->
+    <view wx:elif="{{!loading}}">
+      <view class="task-card" wx:for="{{tasks}}" wx:key="taskId" wx:for-item="t">
+        <view class="tc-header">
+          <text class="tc-flightno">{{t.flightNo}}</text>
+          <text class="tc-typetag {{t.taskType === 'SERVICE' ? 'tag-service' : 'tag-release'}}">
+            {{t.taskType === 'SERVICE' ? '勤务' : '放行'}}
+          </text>
+        </view>
+        <view class="tc-meta">{{t.airline}} · {{t.aircraftType}}</view>
+        <view class="tc-meta">{{t.taskWindowText}}</view>
+        <view class="tc-staff">
+          <text class="staff-chip {{item.roleType === 'SERVICE' ? 'chip-service' : item.roleType === 'RELEASE' ? 'chip-release' : 'chip-both'}}"
+                wx:for="{{t.staff}}" wx:key="staffId" wx:for-item="item">
+            {{item.name}} ({{item.employeeNo}})
+          </text>
+        </view>
+      </view>
+      <view class="empty-wrap" wx:if="{{!tasks.length}}">
+        <text class="empty-text">暂无排班数据，点击「自动排班」</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- Tab 1: 人务链 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view wx:elif="{{tabIndex === 1}}">
+    <view class="loading-text" wx:if="{{!staffChains.length}}">暂无数据，请先自动排班</view>
+    <view class="chain-card" wx:for="{{staffChains}}" wx:key="staffId" wx:for-item="c">
+      <view class="cc-header">
+        <text class="cc-name">{{c.name}} ({{c.employeeNo}})</text>
+        <text class="cc-role tag-{{c.roleType === 'SERVICE' ? 'service' : c.roleType === 'RELEASE' ? 'release' : 'both'}}">
+          {{c.roleText}}
+        </text>
+      </view>
+      <view class="cc-efficiency">
+        执勤 {{c.dutyStart}} ~ {{c.dutyEnd}} · 效率 {{c.efficiency}}%
+      </view>
+      <view class="cc-timeline">
+        <view class="cc-task-item" wx:for="{{c.tasks}}" wx:key="taskId" wx:for-item="t">
+          {{t.taskType === 'SERVICE' ? '勤务' : '放行'}} {{t.flightNo}} {{t.start}}~{{t.end}}
+        </view>
+        <view class="cc-gap" wx:for="{{c.gaps}}" wx:key="start" wx:for-item="g">
+           间隙 {{g.minutes}}分钟 ({{g.start}}~{{g.end}})
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：任务详情 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showTaskDetail}}" bindtap="onCloseDetail">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 任务详情</text>
+        <text class="modal-close" bindtap="onCloseDetail">关闭</text>
+      </view>
+      <view class="modal-body" wx:if="{{detailTask}}">
+        <view class="md-row">
+          <text class="md-label">航班号</text>
+          <text class="md-value">{{detailTask.flightNo}}</text>
+        </view>
+        <view class="md-row">
+          <text class="md-label">实时状态</text>
+          <text class="md-value">
+            <text class="{{'flight-status-' + detailTask.realtimeStatus}}">
+              {{detailTask.realtimeStatusText}}
+            </text>
+          </text>
+        </view>
+        <view class="md-row">
+          <text class="md-label">任务类型</text>
+          <text class="md-value md-tag {{detailTask.taskType === 'SERVICE' ? 'tag-service' : 'tag-release'}}">
+            {{detailTask.taskType === 'SERVICE' ? '勤务' : '放行'}}
+          </text>
+        </view>
+        <view class="md-row">
+          <text class="md-label">航空公司</text>
+          <text class="md-value">{{detailTask.airline || '-'}}</text>
+        </view>
+        <view class="md-row">
+          <text class="md-label">机型</text>
+          <text class="md-value">{{detailTask.aircraftType || '-'}}</text>
+        </view>
+        <view class="md-row" wx:if="{{detailTask.taskWindow}}">
+          <text class="md-label">时间窗</text>
+          <text class="md-value">
+            {{detailTask.taskWindowText}}
+          </text>
+        </view>
+        <view class="md-row" wx:if="{{detailTask.route}}">
+          <text class="md-label">航线</text>
+          <text class="md-value">{{detailTask.route}}</text>
+        </view>
+        <view class="md-section-title"> 保障人员</view>
+        <view class="md-staff-list" wx:if="{{detailTask.staff && detailTask.staff.length > 0}}">
+          <view class="md-staff-item" wx:for="{{detailTask.staff}}" wx:key="staffId" wx:for-item="s">
+            <text class="md-staff-name">{{s.name}}</text>
+            <text class="md-staff-meta">{{s.employeeNo}} · {{s.roleText}}</text>
+          </view>
+        </view>
+        <view class="md-empty" wx:else>暂无分配人员</view>
+        <!-- 实时状态操作 (inline, 单步) -->
+        <view class="md-actions" wx:if="{{detailTask.flightNo && isAdmin}}">
+          <view class="md-action-title"> 航班状态</view>
+          <view class="status-tabs">
+            <view class="status-tab {{detailTask.realtimeStatus === 'ON_TIME' || !detailTask.realtimeStatus ? 'active' : ''}}"
+                  data-status="ON_TIME" bindtap="onSetStatusInline"> 正常</view>
+            <view class="status-tab {{detailTask.realtimeStatus === 'DELAYED' ? 'active' : ''}}"
+                  data-status="DELAYED" bindtap="onSetStatusInline"> 延误</view>
+            <view class="status-tab {{detailTask.realtimeStatus === 'CANCELLED' ? 'active' : ''}}"
+                  data-status="CANCELLED" bindtap="onSetStatusInline"> 取消</view>
+            <view class="status-tab {{detailTask.realtimeStatus === 'ARRIVED' ? 'active' : ''}}"
+                  data-status="ARRIVED" bindtap="onSetStatusInline"> 已到达</view>
+          </view>
+
+          <!-- 延误传播 (快捷预设) -->
+          <view class="md-action-title" style="margin-top: 18rpx;"> 延误传播</view>
+          <view class="delay-presets">
+            <view class="delay-preset" data-minutes="15" bindtap="onPropagateDelayPreset">+15 分</view>
+            <view class="delay-preset" data-minutes="30" bindtap="onPropagateDelayPreset">+30 分</view>
+            <view class="delay-preset" data-minutes="60" bindtap="onPropagateDelayPreset">+1 小时</view>
+            <view class="delay-preset" data-minutes="120" bindtap="onPropagateDelayPreset">+2 小时</view>
+            <view class="delay-preset delay-custom" data-flightno="{{detailTask.flightNo}}" bindtap="onShowDelayInput">自定义…</view>
+          </view>
+
+          <!-- 替班 (统一入口) -->
+          <view class="md-action-title" style="margin-top: 18rpx;" wx:if="{{detailTask.staff && detailTask.staff.length > 0}}"> 替班</view>
+          <view class="md-btn-group" wx:if="{{detailTask.staff && detailTask.staff.length > 0}}">
+            <view class="md-staff-reassign-row" wx:for="{{detailTask.staff}}" wx:key="staffId" wx:for-item="s">
+              <text class="md-staff-reassign-name">{{s.name}}</text>
+              <button class="md-action-btn btn-reassign"
+                      data-flightno="{{detailTask.flightNo}}" data-tasktype="{{detailTask.taskType}}"
+                      data-staffid="{{s.staffId}}"
+                      data-start="{{detailTask.taskWindow ? detailTask.taskWindow.start : ''}}"
+                      data-end="{{detailTask.taskWindow ? detailTask.taskWindow.end : ''}}"
+                      bindtap="onFindReplacement">找替补</button>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：状态更新菜单 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showStatusMenu}}" bindtap="onCloseStatusMenu">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 更新航班状态</text>
+        <text class="modal-close" bindtap="onCloseStatusMenu">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="sms-target">航班：{{statusTargetFlight}}</view>
+        <view class="sms-options">
+          <view class="sms-option sms-on-time" data-status="ON_TIME" bindtap="onUpdateStatus">
+            <view class="sms-icon sms-icon-on-time"></view>
+            <view><text class="sms-label">正常</text><text class="sms-desc">航班准点</text></view>
+          </view>
+          <view class="sms-option sms-delayed" data-status="DELAYED" bindtap="onUpdateStatus">
+            <view class="sms-icon sms-icon-delayed"></view>
+            <view><text class="sms-label">延误</text><text class="sms-desc">航班晚点</text></view>
+          </view>
+          <view class="sms-option sms-cancelled" data-status="CANCELLED" bindtap="onUpdateStatus">
+            <view class="sms-icon sms-icon-cancelled"></view>
+            <view><text class="sms-label">取消</text><text class="sms-desc">航班已取消</text></view>
+          </view>
+          <view class="sms-option sms-arrived" data-status="ARRIVED" bindtap="onUpdateStatus">
+            <view class="sms-icon sms-icon-arrived"></view>
+            <view><text class="sms-label">已到达</text><text class="sms-desc">航班已落地</text></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：延误传播 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showDelayInput}}" bindtap="onCloseDelayInput">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 延误传播</text>
+        <text class="modal-close" bindtap="onCloseDelayInput">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="dp-info">航班 <text class="dp-flight">{{delayTarget}}</text> 延误后，该航班相关人员后续任务时间将自动偏移。</view>
+        <view class="form-group">
+          <text class="form-label">延误时长（分钟）</text>
+          <view class="dp-stepper">
+            <text class="dp-step-btn" bindtap="onDelayStep" data-field="delayMinutes" data-value="{{delayMinusValue}}">-5</text>
+            <text class="dp-step-val">{{delayMinutes}}</text>
+            <text class="dp-step-btn" bindtap="onDelayStep" data-field="delayMinutes" data-value="{{delayPlusValue}}">+5</text>
+          </view>
+        </view>
+        <view class="form-group">
+          <text class="form-label">延误原因（可选）</text>
+          <input class="form-input" value="{{delayReason}}" bindinput="onDelayInput" data-field="delayReason" placeholder="如：天气原因、流量控制"/>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn btn-cancel" bindtap="onCloseDelayInput">取消</button>
+        <button class="modal-btn btn-primary" bindtap="onPropagateDelay"> 确认传播</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 弹窗：可用人员列表（替班） -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showAvailableStaff}}" bindtap="onCloseAvailableStaff">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title"> 可用人员 · 替班</text>
+        <text class="modal-close" bindtap="onCloseAvailableStaff">关闭</text>
+      </view>
+      <view class="modal-body">
+        <view class="as-hint" wx:if="{{reassignTarget}}">
+          替班：<text class="as-flight">{{reassignTarget.flightNo}}</text>
+          <text class="as-tasktype">{{reassignTarget.taskType === 'SERVICE' ? '勤务' : '放行'}}</text>
+        </view>
+        <view class="as-list">
+          <view class="as-item" wx:for="{{availableStaff}}" wx:key="staffId" wx:for-item="s"
+                data-staffid="{{s.staffId}}" bindtap="onReassign">
+            <view class="as-left">
+              <view class="as-avatar">{{s.initial}}</view>
+            </view>
+            <view class="as-info">
+              <view class="as-name">{{s.name}}</view>
+              <view class="as-meta">{{s.employeeNo}} · {{s.groupId}}</view>
+              <view class="as-quals" wx:if="{{s.authorizedAircraftTypes && s.authorizedAircraftTypes.length > 0}}">
+                资质：{{s.qualificationText}}
+              </view>
+            </view>
+            <button class="as-btn">改班</button>
+          </view>
+        </view>
+        <view class="as-empty" wx:if="{{availableStaff.length === 0}}"> 当前时段无可用人员</view>
+      </view>
+    </view>
+  </view>
+  </block>
+</view>

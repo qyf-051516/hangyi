@@ -1,0 +1,322 @@
+
+/* 主题 / 页面 / 卡片基类由 app.wxss 提供(.page / .card / .t-* / .c-*) */
+
+/* ---- 头部 ---- */
+.head .title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.head .sub {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+}
+
+.theme-dark .head .sub {
+  color: #9abde3;
+}
+
+.theme-light .head .sub {
+  color: #3d5270;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-top: 12rpx;
+}
+
+.refresh-btn {
+  min-height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 22rpx;
+  font-size: 22rpx;
+  border-radius: 12rpx;
+  background: rgba(83, 153, 255, 0.12);
+  color: #245090;
+  border: 1rpx solid rgba(83, 153, 255, 0.4);
+}
+
+.theme-dark .refresh-btn {
+  background: rgba(46, 222, 255, 0.22);
+  color: #b8e8ff;
+  border: 1rpx solid rgba(77, 232, 255, 0.5);
+}
+
+.auto-refresh-hint {
+  font-size: 20rpx;
+}
+
+.refresh-failed {
+  color: var(--c-warn);
+}
+
+.theme-dark .auto-refresh-hint {
+  color: #6e9fc9;
+}
+
+.theme-light .auto-refresh-hint {
+  color: #6e88ad;
+}
+
+/* ---- 过滤 ---- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  align-items: center;
+}
+
+.picker-item {
+  min-height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 18rpx;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+}
+
+.theme-dark .picker-item {
+  background: rgba(17, 43, 77, 0.9);
+  border: 1rpx solid rgba(89, 168, 255, 0.35);
+}
+
+.theme-light .picker-item {
+  background: rgba(240, 247, 255, 0.95);
+  border: 1rpx solid rgba(124, 156, 198, 0.42);
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.date-sep {
+  font-size: 26rpx;
+}
+
+.date-picker {
+  min-width: 210rpx;
+}
+
+/* ---- 统计卡片 ---- */
+.stat-row {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16rpx;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 44rpx;
+  font-weight: 800;
+}
+
+.theme-dark .stat-value {
+  color: #7fe9ff;
+}
+
+.theme-light .stat-value {
+  color: #245090;
+}
+
+.completed-stat .stat-value {
+  color: #2ed46a;
+}
+
+.theme-dark .completed-stat .stat-value {
+  color: #3ee0a0;
+}
+
+.pending-stat .stat-value {
+  color: #f0a030;
+}
+
+.stat-label {
+  display: block;
+  font-size: 22rpx;
+  margin-top: 4rpx;
+}
+
+.theme-dark .stat-label {
+  color: #9abde3;
+}
+
+.theme-light .stat-label {
+  color: #3d5270;
+}
+
+/* 进度条 */
+.rate-bar {
+  height: 16rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+  margin: 0 10rpx 6rpx;
+}
+
+.theme-dark .rate-bar {
+  background: rgba(30, 60, 100, 0.6);
+}
+
+.theme-light .rate-bar {
+  background: rgba(160, 185, 215, 0.4);
+}
+
+.rate-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, #2ed46a, #3ee0a0);
+  transition: width 0.3s;
+}
+
+.rate-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 10rpx;
+}
+
+.rate-text {
+  font-size: 22rpx;
+}
+
+.theme-dark .rate-text {
+  color: #9abde3;
+}
+
+.theme-light .rate-text {
+  color: #3d5270;
+}
+
+.compl-rate {
+  color: #2ed46a;
+}
+
+.theme-dark .compl-rate {
+  color: #3ee0a0;
+}
+
+.pend-rate {
+  color: #f0a030;
+}
+
+/* ---- 每日明细 ---- */
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-bottom: 14rpx;
+}
+
+.loading-text {
+  text-align: center;
+  font-size: 28rpx;
+  padding: 40rpx;
+}
+
+.theme-dark .loading-text {
+  color: #9abde3;
+}
+
+.theme-light .loading-text {
+  color: #3d5270;
+}
+
+.daily-header {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 0;
+  font-weight: 700;
+  font-size: 24rpx;
+}
+
+.theme-dark .daily-header {
+  border-bottom: 1rpx solid rgba(84, 170, 255, 0.25);
+  color: #9abde3;
+}
+
+.theme-light .daily-header {
+  border-bottom: 1rpx solid rgba(124, 156, 198, 0.3);
+  color: #3d5270;
+}
+
+.daily-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  font-size: 24rpx;
+}
+
+.theme-dark .daily-row {
+  border-bottom: 1rpx solid rgba(84, 170, 255, 0.12);
+}
+
+.theme-light .daily-row {
+  border-bottom: 1rpx solid rgba(124, 156, 198, 0.15);
+}
+
+.dh-date {
+  flex: 2;
+}
+
+.dh-num {
+  flex: 1;
+  text-align: center;
+}
+
+.dh-rate {
+  flex: 1;
+  text-align: right;
+}
+
+.rate-high {
+  color: #2ed46a;
+}
+
+.theme-dark .rate-high {
+  color: #3ee0a0;
+}
+
+.rate-low {
+  color: #f0a030;
+}
+
+.daily-empty {
+  text-align: center;
+  padding: 40rpx 0;
+}
+
+.empty-text {
+  font-size: 26rpx;
+}
+
+.theme-dark .empty-text {
+  color: #6e9fc9;
+}
+
+.theme-light .empty-text {
+  color: #6e88ad;
+}
+
+.denied-card,
+.error-card { padding: 46rpx 24rpx; text-align: center; }
+.state-title { font-size: 29rpx; font-weight: 750; }
+.state-copy { margin-top: 9rpx; font-size: 21rpx; line-height: 1.5; opacity: 0.65; }
+.state-btn {
+  margin-top: 24rpx;
+  min-height: 70rpx;
+  line-height: 70rpx;
+  border-radius: 14rpx;
+  color: #ffffff;
+  background: #285f96;
+  font-size: 24rpx;
+}
+
+@media (max-width: 360px) {
+  .filters,
+  .date-row { align-items: stretch; flex-direction: column; }
+  .date-sep { display: none; }
+  .date-picker { min-width: 0; }
+}

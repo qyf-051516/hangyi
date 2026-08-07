@@ -1,0 +1,147 @@
+<view class="page {{themeClass}}">
+  <view class="card header-card">
+    <view class="header-row">
+      <view>
+        <view class="eyebrow">申请处理进度</view>
+        <view class="title">通知中心</view>
+        <view class="sub">调班、代班和请假申请的最新处理结果</view>
+      </view>
+      <view class="unread-badge" wx:if="{{unreadCount > 0}}">
+        {{unreadCount > 99 ? '99+' : unreadCount}} 未读
+      </view>
+    </view>
+    <view
+      class="mark-read tap-target"
+      wx:if="{{unreadCount > 0}}"
+      bindtap="onMarkAllRead"
+      hover-class="tap-active"
+    >全部标为已读</view>
+  </view>
+
+  <scroll-view class="filter-scroll" scroll-x="true" show-scrollbar="false">
+    <view class="filter-row">
+      <view
+        class="filter-chip {{activeFilter === 'ALL' ? 'active' : ''}}"
+        data-value="ALL"
+        bindtap="onSelectFilter"
+        hover-class="tap-active"
+      >全部 {{allCount}}</view>
+      <view
+        class="filter-chip {{activeFilter === 'UNREAD' ? 'active' : ''}}"
+        data-value="UNREAD"
+        bindtap="onSelectFilter"
+        hover-class="tap-active"
+      >未读 {{unreadCount}}</view>
+      <view
+        class="filter-chip {{activeFilter === 'SWAP' ? 'active' : ''}}"
+        data-value="SWAP"
+        bindtap="onSelectFilter"
+        hover-class="tap-active"
+      >调班 {{swapCount}}</view>
+      <view
+        class="filter-chip {{activeFilter === 'LEAVE' ? 'active' : ''}}"
+        data-value="LEAVE"
+        bindtap="onSelectFilter"
+        hover-class="tap-active"
+      >请假 {{leaveCount}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="card state-card loading-card" wx:if="{{loading && !loaded}}">
+    <view class="skeleton skeleton-title"></view>
+    <view class="skeleton skeleton-item"></view>
+    <view class="skeleton skeleton-item short"></view>
+  </view>
+
+  <view class="card state-card" wx:elif="{{errorMessage && !loaded}}">
+    <view class="state-title">通知暂时无法加载</view>
+    <view class="state-copy">{{errorMessage}}</view>
+    <button class="btn state-action" bindtap="onRetry" hover-class="button-hover">重新加载</button>
+  </view>
+
+  <block wx:if="{{loaded}}">
+    <view class="inline-error" wx:if="{{errorMessage}}">
+      <text class="inline-error-text">{{errorMessage}}</text>
+      <view class="inline-error-action" bindtap="onRetry" hover-class="tap-active">重试</view>
+    </view>
+
+    <view class="notification-list" wx:if="{{notifications.length}}">
+      <view
+        class="notification-item {{item.unread ? 'unread' : ''}}"
+        wx:for="{{notifications}}"
+        wx:key="notificationKey"
+        data-key="{{item.notificationKey}}"
+        bindtap="onToggleNotification"
+        hover-class="tap-active"
+      >
+        <view class="item-head">
+          <view class="item-tags">
+            <text class="category">{{item.categoryText}}</text>
+            <text class="status status-{{item.status}}">{{item.statusText}}</text>
+          </view>
+          <view class="item-dot" wx:if="{{item.unread}}"></view>
+        </view>
+
+        <view class="message">{{item.message}}</view>
+        <view class="summary">{{item.summaryText}}</view>
+        <view class="item-footer">
+          <text class="notification-time">{{item.updatedAtText}}</text>
+          <text class="detail-toggle">
+            {{expandedKey === item.notificationKey ? '收起详情' : '查看详情'}}
+          </text>
+        </view>
+
+        <view class="detail-panel" wx:if="{{expandedKey === item.notificationKey}}">
+          <view class="detail-row" wx:if="{{item.employeeNo}}">
+            <text class="detail-label">申请人</text>
+            <text class="detail-value">{{item.name}} / {{item.employeeNo}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{item.flightNo}}">
+            <text class="detail-label">航班号</text>
+            <text class="detail-value">{{item.flightNo}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{item.startTime || item.endTime}}">
+            <text class="detail-label">申请时段</text>
+            <text class="detail-value">{{item.startTime || '待定'}} 至 {{item.endTime || '待定'}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{item.category === 'LEAVE'}}">
+            <text class="detail-label">请假类型</text>
+            <text class="detail-value">{{item.leaveTypeText}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{item.category === 'LEAVE'}}">
+            <text class="detail-label">请假日期</text>
+            <text class="detail-value">{{item.startDate}} 至 {{item.endDate}} / {{item.totalDays}} 天</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">申请原因</text>
+            <text class="detail-value">{{item.reason || '无'}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{item.comment}}">
+            <text class="detail-label">审批备注</text>
+            <text class="detail-value">{{item.comment}}</text>
+          </view>
+          <view
+            class="request-link tap-target"
+            data-category="{{item.category}}"
+            catchtap="onGoRequest"
+            hover-class="tap-active"
+          >查看对应申请</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card state-card" wx:else>
+      <view class="empty-mark">{{activeFilter === 'UNREAD' ? '清' : '信'}}</view>
+      <view class="state-title">{{emptyTitle}}</view>
+      <view class="state-copy">{{emptyCopy}}</view>
+      <view class="empty-actions" wx:if="{{activeFilter === 'SWAP' || activeFilter === 'LEAVE'}}">
+        <button
+          class="btn btn-ghost state-action"
+          data-category="{{activeFilter === 'LEAVE' ? 'LEAVE' : 'SWAP'}}"
+          bindtap="onGoRequest"
+          hover-class="button-hover"
+        >去发起申请</button>
+      </view>
+    </view>
+  </block>
+</view>

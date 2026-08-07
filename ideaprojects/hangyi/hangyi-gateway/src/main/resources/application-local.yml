@@ -1,0 +1,10 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+
+internal:
+  api-key: ${INTERNAL_API_KEY:?INTERNAL_API_KEY required in .env}

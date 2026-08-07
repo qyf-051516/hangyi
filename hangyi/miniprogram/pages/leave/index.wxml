@@ -1,0 +1,199 @@
+<view class="page {{themeClass}}">
+  <view class="card denied-card" wx:if="{{isApprovalMode && adminDenied}}">
+    <view class="state-title">需要管理员权限</view>
+    <view class="state-copy">请假审批仅供管理员使用</view>
+    <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
+  </view>
+
+  <block wx:else>
+  <view class="card head">
+    <view class="title">{{isApprovalMode ? '请假审批' : '请假申请'}}</view>
+    <view class="sub" wx:if="{{isApprovalMode}}">处理员工请假申请，可查看不同状态的审批记录</view>
+    <view class="sub" wx:else>提交后由管理员审批，审批结果会同步到通知中心</view>
+  </view>
+
+  <block wx:if="{{!isApprovalMode}}">
+    <view class="card form-card">
+      <view class="form-title">新申请</view>
+      <view class="form-row">
+        <text class="form-label">申请人</text>
+        <view class="form-input readonly">{{form.name || '未绑定员工'}}<text wx:if="{{form.employeeNo}}"> / {{form.employeeNo}}</text></view>
+      </view>
+      <view class="form-row">
+        <text class="form-label">类型</text>
+        <picker mode="selector" range="{{typeOptions}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+          <view class="form-input picker">{{typeOptions[typeIndex].label}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="form-label">开始</text>
+        <picker mode="date" value="{{form.startDate}}" bindchange="onDateChange" data-field="startDate" start="{{todayDate}}">
+          <view class="form-input picker">{{form.startDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="form-label">结束</text>
+        <picker mode="date" value="{{form.endDate}}" bindchange="onDateChange" data-field="endDate" start="{{form.startDate || todayDate}}">
+          <view class="form-input picker">{{form.endDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="form-label">天数</text>
+        <view class="form-input readonly">{{form.totalDays > 0 ? form.totalDays + ' 天' : '-'}}</view>
+      </view>
+      <view class="form-row column">
+        <text class="form-label">原因</text>
+        <text class="reason-help">文字或图片至少填写一种，也可以同时提交</text>
+        <textarea class="form-textarea" value="{{form.reason}}" bindinput="onInputField" data-field="reason" placeholder="可填写文字说明，最多 500 字" maxlength="500" auto-height></textarea>
+        <view class="image-grid">
+          <view class="image-item" wx:for="{{form.reasonImages}}" wx:key="displayUrl">
+            <image
+              class="reason-image"
+              src="{{item.displayUrl}}"
+              mode="aspectFill"
+              data-index="{{index}}"
+              bindtap="onPreviewReasonImage"
+            ></image>
+            <view class="image-remove" data-index="{{index}}" bindtap="onRemoveReasonImage">删除</view>
+          </view>
+          <view
+            class="image-add"
+            wx:if="{{form.reasonImages.length < 6}}"
+            bindtap="onChooseReasonImages"
+            hover-class="tap-active"
+          >
+            <text class="image-add-mark">+</text>
+            <text>图片 {{form.reasonImages.length}}/6</text>
+          </view>
+        </view>
+      </view>
+      <button class="btn btn-primary submit-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="onSubmit" hover-class="button-hover">提交申请</button>
+    </view>
+
+    <view class="card list-card">
+      <view class="list-title">我的请假</view>
+      <view class="loading-text" wx:if="{{loading}}">加载中...</view>
+      <view class="empty-text" wx:elif="{{myList.length === 0}}">暂无请假记录</view>
+      <view class="leave-item" wx:for="{{myList}}" wx:key="_id">
+        <view class="leave-head">
+          <text class="leave-type">{{item.typeText}}</text>
+          <text class="leave-status leave-status-{{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="leave-dates">{{item.startDate}} 至 {{item.endDate}} · {{item.totalDays}} 天</view>
+        <view class="leave-reason" wx:if="{{item.reasonText}}">{{item.reasonText}}</view>
+        <view class="request-images" wx:if="{{item.reasonImages.length}}">
+          <image
+            class="request-image"
+            wx:for="{{item.reasonImages}}"
+            wx:for-item="image"
+            wx:for-index="imageIndex"
+            wx:key="fileID"
+            src="{{image.displayUrl}}"
+            mode="aspectFill"
+            data-id="{{item._id}}"
+            data-index="{{imageIndex}}"
+            bindtap="onPreviewListImage"
+          ></image>
+        </view>
+        <view class="validation-line">{{item.validationText}}</view>
+        <view class="leave-foot">
+          <text class="leave-time">{{item.createdAtText}}</text>
+          <button class="btn-mini btn-ghost withdraw-btn" wx:if="{{item.status === 'PENDING'}}" data-id="{{item._id}}" bindtap="onWithdraw" hover-class="button-hover">撤回</button>
+        </view>
+        <view class="leave-comment" wx:if="{{item.comment}}">管理员备注：{{item.comment}}</view>
+        <view class="audit-block" wx:if="{{item.auditTrail.length}}">
+          <view class="audit-title">操作记录</view>
+          <view class="audit-row" wx:for="{{item.auditTrail}}" wx:for-item="audit" wx:key="atText">
+            <text class="audit-dot"></text>
+            <view>
+              <view>{{audit.operatorName || '系统'}} · {{audit.status}}</view>
+              <view class="audit-meta">{{audit.atText}} {{audit.detail}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="card approval-filter-card">
+      <text class="filter-label">审批状态</text>
+      <picker
+        class="filter-picker"
+        mode="selector"
+        range="{{approvalStatusOptions}}"
+        range-key="label"
+        value="{{approvalStatusIndex}}"
+        bindchange="onApprovalStatusChange"
+      >
+        <view class="filter-value">{{approvalStatusOptions[approvalStatusIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="card list-card">
+      <view class="list-title">申请记录</view>
+      <view class="loading-text" wx:if="{{loading}}">加载中...</view>
+      <view class="approval-error" wx:elif="{{errorMessage}}">
+        <view>{{errorMessage}}</view>
+        <button class="state-btn" bindtap="onRetryApproval" hover-class="button-hover">重新加载</button>
+      </view>
+      <view class="empty-text" wx:elif="{{approvalList.length === 0}}">当前状态下暂无申请</view>
+      <view class="leave-item" wx:for="{{approvalList}}" wx:key="_id">
+        <view class="leave-head">
+          <view>
+            <text class="leave-type">{{item.name}}</text>
+            <text class="employee-no">{{item.employeeNo}}</text>
+          </view>
+          <text class="leave-status leave-status-{{item.status}}">{{item.statusText}}</text>
+        </view>
+        <view class="leave-dates">{{item.typeText}} · {{item.startDate}} 至 {{item.endDate}} · {{item.totalDays}} 天</view>
+        <view class="leave-reason" wx:if="{{item.reasonText}}">原因：{{item.reasonText}}</view>
+        <view class="request-images" wx:if="{{item.reasonImages.length}}">
+          <image
+            class="request-image"
+            wx:for="{{item.reasonImages}}"
+            wx:for-item="image"
+            wx:for-index="imageIndex"
+            wx:key="fileID"
+            src="{{image.displayUrl}}"
+            mode="aspectFill"
+            data-id="{{item._id}}"
+            data-index="{{imageIndex}}"
+            bindtap="onPreviewListImage"
+          ></image>
+        </view>
+        <view class="validation-line">{{item.validationText}}</view>
+        <view class="leave-time approval-time">提交于 {{item.createdAtText}}</view>
+        <view class="leave-comment" wx:if="{{item.comment}}">审批备注：{{item.comment}}</view>
+        <view class="audit-block" wx:if="{{item.auditTrail.length}}">
+          <view class="audit-title">操作记录</view>
+          <view class="audit-row" wx:for="{{item.auditTrail}}" wx:for-item="audit" wx:key="atText">
+            <text class="audit-dot"></text>
+            <view>
+              <view>{{audit.operatorName || '系统'}} · {{audit.status}}</view>
+              <view class="audit-meta">{{audit.atText}} {{audit.detail}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="approval-actions" wx:if="{{item.status === 'PENDING'}}">
+          <button
+            class="approval-btn reject-btn"
+            data-id="{{item._id}}"
+            disabled="{{actioningId !== ''}}"
+            bindtap="onReject"
+            hover-class="button-hover"
+          >驳回</button>
+          <button
+            class="approval-btn approve-btn"
+            data-id="{{item._id}}"
+            loading="{{actioningId === item._id}}"
+            disabled="{{actioningId !== ''}}"
+            bindtap="onApprove"
+            hover-class="button-hover"
+          >批准</button>
+        </view>
+      </view>
+    </view>
+  </block>
+  </block>
+</view>

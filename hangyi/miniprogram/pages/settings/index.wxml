@@ -1,0 +1,74 @@
+<view class="page {{themeClass}}">
+  <view class="card">
+    <view class="section-title">显示设置</view>
+
+    <view class="row">
+      <view class="label">外观颜色</view>
+      <picker mode="selector" range="{{themeOptions}}" value="{{themeIndex}}" bindchange="onPickTheme">
+        <view class="picker">{{themeOptions[themeIndex]}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">个人信息</view>
+
+    <view class="readonly-note">
+      班组与维修资质由管理员统一维护。如信息有误，请联系管理员在人员管理中修改。
+    </view>
+    <view class="readonly-row">
+      <text class="label">当前班组</text>
+      <text class="readonly-value">{{groupId}}</text>
+    </view>
+    <view class="readonly-row">
+      <text class="label">航司授权</text>
+      <text class="readonly-value">{{airlineText}}</text>
+    </view>
+    <view class="readonly-row">
+      <text class="label">维修资质</text>
+      <text class="readonly-value">{{qualificationText}}</text>
+    </view>
+
+    <view class="field">
+      <view class="label">电话号码</view>
+      <input class="input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" bindinput="onInputPhone" />
+    </view>
+
+    <button class="save-btn" loading="{{saving}}" bindtap="onSave">保存设置</button>
+  </view>
+
+  <view class="card">
+    <view class="section-title">排班偏好</view>
+
+    <view class="field">
+      <view class="label">偏好班次</view>
+      <view class="tag-grid">
+        <view class="tag {{preferredShiftState.MORNING ? 'tag-active' : ''}}" data-shift="MORNING" bindtap="onTogglePreferredShift">早班</view>
+        <view class="tag {{preferredShiftState.AFTERNOON ? 'tag-active' : ''}}" data-shift="AFTERNOON" bindtap="onTogglePreferredShift">午班</view>
+        <view class="tag {{preferredShiftState.NIGHT ? 'tag-active' : ''}}" data-shift="NIGHT" bindtap="onTogglePreferredShift">晚班</view>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="label">偏好休息日</view>
+      <view class="tag-grid">
+        <view wx:for="{{restDayChoices}}" wx:key="value" class="tag {{item.selected ? 'tag-active' : ''}}" data-day="{{item.value}}" bindtap="onToggleRestDay">{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="label">月工时上限（小时）</view>
+      <input class="input" type="digit" placeholder="180" value="{{maxMonthlyWorkHours}}" bindinput="onInputMaxHours" />
+    </view>
+  </view>
+
+  <view class="card logout-card">
+    <button
+      class="logout-btn"
+      loading="{{loggingOut}}"
+      disabled="{{loggingOut}}"
+      bindtap="onLogout"
+      hover-class="button-hover"
+    >退出登录</button>
+  </view>
+</view>
