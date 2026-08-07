@@ -69,7 +69,10 @@ Page({
       airlineText: "",
     },
     skeletonRows: [1, 2, 3, 4],
+    dirty: false,
   },
+
+  _loadSeq: 0,
 
   async onShow() {
     applyUiSettings(this);
@@ -118,6 +121,7 @@ Page({
 
   async loadList(reset = true) {
     if (this.data.adminDenied) return;
+    const seq = ++this._loadSeq;
     const page = reset ? 1 : this.data.page + 1;
     this.setData(reset ? {
       loading: true,
@@ -128,13 +132,14 @@ Page({
     });
     try {
       const result = await callBackend("listStaffForAdmin", {
-        query: this.data.query,
+        query: this.data.query.trim(),
         groupId: GROUP_OPTIONS[this.data.groupIndex].value,
         roleType: ROLE_OPTIONS[this.data.roleIndex].value,
         status: STATUS_OPTIONS[this.data.statusIndex].value,
         page,
         pageSize: this.data.pageSize,
       });
+      if (seq !== this._loadSeq) return;
       const nextList = (result.list || []).map((item) => this.formatStaff(item));
       const list = reset ? nextList : [...this.data.list, ...nextList];
       this.setData({
@@ -149,6 +154,7 @@ Page({
         errorMessage: "",
       });
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       const denied = Number(error.code) === 403 || String(error.message || "").includes("管理员");
       this.setData({
         loading: false,
@@ -160,7 +166,8 @@ Page({
   },
 
   onQueryInput(e) {
-    this.setData({ query: e.detail.value });
+    const value = String(e.detail.value || "").trim().slice(0, 50);
+    this.setData({ query: value });
     clearTimeout(this._searchTimer);
     this._searchTimer = setTimeout(() => this.loadList(true), 350);
   },
@@ -190,6 +197,7 @@ Page({
     this.setData({
       showEditor: true,
       selectedStaff,
+      dirty: false,
       editForm: {
         staffId,
         groupId: GROUP_OPTIONS[groupIndex].value,
@@ -206,7 +214,7 @@ Page({
 
   onCloseEditor() {
     if (this.data.saving) return;
-    this.setData({ showEditor: false, selectedStaff: null });
+    this.setData({ showEditor: false, selectedStaff: null, dirty: false });
   },
 
   onEditGroup(e) {
@@ -214,6 +222,7 @@ Page({
     this.setData({
       "editForm.groupIndex": groupIndex,
       "editForm.groupId": GROUP_OPTIONS[groupIndex].value,
+      dirty: true,
     });
   },
 
@@ -222,21 +231,22 @@ Page({
     this.setData({
       "editForm.roleIndex": roleIndex,
       "editForm.roleType": ROLE_OPTIONS[roleIndex].value,
+      dirty: true,
     });
   },
 
   onEditSwitch(e) {
     const field = e.currentTarget.dataset.field;
     if (!["active", "isAdmin"].includes(field)) return;
-    this.setData({ [`editForm.${field}`]: !!e.detail.value });
+    this.setData({ [`editForm.${field}`]: !!e.detail.value, dirty: true });
   },
 
   onEditQualifications(e) {
-    this.setData({ "editForm.qualificationText": e.detail.value });
+    this.setData({ "editForm.qualificationText": e.detail.value, dirty: true });
   },
 
   onEditAirlines(e) {
-    this.setData({ "editForm.airlineText": e.detail.value });
+    this.setData({ "editForm.airlineText": e.detail.value, dirty: true });
   },
 
   async onSaveStaff() {
@@ -307,9 +317,14 @@ Page({
         title: impacted > 0 ? `已标记 ${impacted} 条排班待改派` : "人员资料已更新",
         icon: impacted > 0 ? "none" : "success",
       });
-      this.setData({ showEditor: false, selectedStaff: null });
+      this.setData({ showEditor: false, selectedStaff: null, dirty: false });
       await this.loadList(true);
     } catch (error) {
+      const denied = Number(error.code) === 403 || String(error.message || "").includes("管理员");
+      if (denied) {
+        this.setData({ adminDenied: true, showEditor: false, selectedStaff: null, dirty: false });
+        return;
+      }
       wx.showToast({ title: error.message || "保存失败", icon: "none" });
     } finally {
       this.setData({ saving: false });
@@ -317,6 +332,19 @@ Page({
   },
 
   onRetry() {
+    if (this.data.dirty) {
+      wx.showModal({
+        title: "存在未保存的修改",
+        content: "当前编辑内容尚未保存，重新加载会丢弃这些修改。",
+        confirmText: "丢弃并重新加载",
+        success: (result) => {
+          if (!result.confirm) return;
+          this.setData({ dirty: false, showEditor: false, selectedStaff: null });
+          this.loadList(true);
+        },
+      });
+      return;
+    }
     this.loadList(true);
   },
 

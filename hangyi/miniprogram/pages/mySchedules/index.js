@@ -37,7 +37,9 @@ Page({
           item.scheduleDate <= today &&
           completableStatuses.includes(item.status) &&
           item.recordStatus !== "archived" &&
-          item.needsReassignment !== true,
+          item.needsReassignment !== true &&
+          item.realtimeStatus !== "CANCELLED" &&
+          (!item.realtimeStatus || item.realtimeStatus === "ARRIVED"),
         completionHint:
           item.needsReassignment === true
             ? "请假冲突，等待管理员改派"
@@ -45,6 +47,10 @@ Page({
             ? "执行日期未到"
             : !completableStatuses.includes(item.status)
             ? "当前状态不可确认完成"
+            : item.realtimeStatus === "CANCELLED"
+            ? "航班已取消，无需确认完成"
+            : item.realtimeStatus && item.realtimeStatus !== "ARRIVED"
+            ? "航班尚未到达，暂不能确认完成"
             : "",
       }));
       const staff = data.staff
@@ -69,6 +75,16 @@ Page({
     const scheduleId = e.currentTarget.dataset.scheduleId;
     const item = this.data.schedules.find((schedule) => schedule._id === scheduleId);
     if (!scheduleId || !item || !item.canComplete || this.data.completingId) return;
+
+    // 确认完成前复核航班实时状态: 取消或尚未到达时不允许确认完成
+    if (item.realtimeStatus === "CANCELLED") {
+      wx.showToast({ title: "航班已取消，无需确认完成", icon: "none" });
+      return;
+    }
+    if (item.realtimeStatus && item.realtimeStatus !== "ARRIVED") {
+      wx.showToast({ title: "航班尚未到达，暂不能确认完成", icon: "none" });
+      return;
+    }
 
     const confirm = await new Promise((resolve) => {
       wx.showModal({
@@ -95,9 +111,11 @@ Page({
 
   formatTimeText(value) {
     if (!value) return "-";
-    const str = String(value).trim();
-    if (!str) return "-";
-    return str.replace("T", " ").slice(0, 16);
+    const raw = String(value).trim();
+    if (!raw) return "-";
+    // 统一输出 HH:mm, 与排班总表口径一致
+    const matched = raw.match(/(?:T|\s)?(\d{1,2}):(\d{2})/);
+    return matched ? `${matched[1].padStart(2, "0")}:${matched[2]}` : "-";
   },
 
   async onPullDownRefresh() {

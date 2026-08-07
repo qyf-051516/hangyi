@@ -137,7 +137,7 @@ test("loginByWechatProfile: openid 绑过员工, 刷新 nickName/avatar → 200"
   });
 
   const res = await authRouter.loginByWechatProfile({
-    data: { nickName: "六六六", avatarUrl: "https://example.com/avatar.png" },
+    data: { nickName: "六六六", avatarUrl: "cloud://mock/avatars/TEST004_avatar.png" },
   });
   assert.equal(res.code, 0, `expected 0, got ${res.code}: ${res.message}`);
   assert.equal(res.data.employeeNo, "TEST004");
@@ -145,7 +145,19 @@ test("loginByWechatProfile: openid 绑过员工, 刷新 nickName/avatar → 200"
 
   const updated = state.collections.staff.find((s) => s._id === id);
   assert.equal(updated.wechatNickName, "六六六");
-  assert.equal(updated.wechatAvatarUrl, "https://example.com/avatar.png");
+  assert.equal(updated.wechatAvatarUrl, "cloud://mock/avatars/TEST004_avatar.png");
+});
+
+test("loginByWechatProfile: 非白名单协议 avatarUrl 被忽略 (C5)", async () => {
+  global.resetMockState({ openid: "openid-avatar-scan" });
+  const id = seedStaff({ employeeNo: "TEST007", name: "头像员工", openid: "openid-avatar-scan" });
+  const res = await authRouter.loginByWechatProfile({
+    data: { nickName: "新昵称", avatarUrl: "https://evil.example.com/avatar.png" },
+  });
+  assert.equal(res.code, 0);
+  const updated = state.collections.staff.find((s) => s._id === id);
+  assert.equal(updated.wechatNickName, "新昵称");
+  assert.equal(updated.wechatAvatarUrl, undefined, "非白名单协议的 avatarUrl 不应写入档案");
 });
 
 test("loginByWechatProfile: 绑过, 但 active=false → 403", async () => {

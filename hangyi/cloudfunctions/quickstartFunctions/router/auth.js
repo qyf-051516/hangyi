@@ -111,37 +111,33 @@ const loginOrRegisterStaff = async (event) => {
 
   if (result.data.length) {
     const staff = result.data[0];
-    // 工号、姓名、手机号都属于可被社工或泄露的静态信息，不能承担首次
-    // OPENID 绑定的身份验证职责。生产模式首次绑定必须走 getPhoneNumber
-    // 的一次性微信凭证；此旧表单只保留给已绑定当前微信的兼容登录场景。
-    //
-    // 纯演示模式（settings.demoToolsEnabled === "true"）例外：允许 openid
-    // 为空的预登记档案用静态资料直接完成首次绑定，方便 demo 演示；
-    // 已绑定其他微信的账号在任何模式下都禁止被抢占。
-    if (
-      staff.name !== name ||
-      staff.active === false ||
-      !PHONE_RE.test(String(staff.phone || "").trim()) ||
-      staff.phone !== phone
-    ) {
-      return fail(LOGIN_VERIFICATION_FAILED, 401, {
-        code: "LOGIN_VERIFICATION_FAILED",
-      });
+    // A4 修复: 细分验证失败码。HTTP 401 与通用 message 不变（不泄露细节），
+    // 仅通过 data.code 区分失败原因：
+    //   PHONE_MISMATCH        手机号与档案不匹配
+    //   NAME_MISMATCH         姓名与档案不匹配
+    //   EMPLOYEE_NO_MISMATCH  工号在系统中无对应档案
+    //   BINDING_CONFLICT      档案已被其他微信绑定
+    //   STAFF_NOT_FOUND       档案未绑定微信且当前模式不允许静态资料首次绑定
+    const codeFailure = (code) => fail(LOGIN_VERIFICATION_FAILED, 401, { code });
+    if (!PHONE_RE.test(String(staff.phone || "").trim()) || staff.phone !== phone) {
+      return codeFailure("PHONE_MISMATCH");
+    }
+    if (staff.name !== name) {
+      return codeFailure("NAME_MISMATCH");
+    }
+    if (staff.active === false) {
+      return codeFailure("LOGIN_VERIFICATION_FAILED");
     }
     const staffOpenid = String(staff.openid || "");
     if (staffOpenid && staffOpenid !== openid) {
-      return fail(LOGIN_VERIFICATION_FAILED, 401, {
-        code: "LOGIN_VERIFICATION_FAILED",
-      });
+      return codeFailure("BINDING_CONFLICT");
     }
     if (!staffOpenid) {
       const demoToolsEnabled = String(
         await getSettingValue("demoToolsEnabled", "false")
       ) === "true";
       if (!demoToolsEnabled) {
-        return fail(LOGIN_VERIFICATION_FAILED, 401, {
-          code: "LOGIN_VERIFICATION_FAILED",
-        });
+        return codeFailure("STAFF_NOT_FOUND");
       }
       // demo 模式：允许首次绑定，随后 bindOpenidToStaff 写入当前 openid
     }
@@ -172,8 +168,9 @@ const loginOrRegisterStaff = async (event) => {
 
   // 禁止把 Web 主数据查询结果直接转化为当前 OPENID 的首次绑定。请先通过
   // 定时同步同步员工档案，再使用手机号一键登录完成微信凭证校验。
+  // A4 修复: 工号在系统中无对应档案，返回细分错误码 EMPLOYEE_NO_MISMATCH
   return fail(LOGIN_VERIFICATION_FAILED, 401, {
-    code: "LOGIN_VERIFICATION_FAILED",
+    code: "EMPLOYEE_NO_MISMATCH",
   });
 };
 
@@ -287,6 +284,15 @@ const updateMyAvatar = async (event) => {
   if (!result.data.length) return fail("当前未登录，请先登录", 404);
 
   const staff = result.data[0];
+  const employeeNo = String(staff.employeeNo || "");
+  // C4 修复: 头像必须来自本人专属目录（前端约定 avatars/{employeeNo}_xxx 或 avatars/{employeeNo}/），
+  // 防止把其他员工的头像文件 ID 写到本人档案。
+  if (
+    !avatarFileID.includes(`/avatars/${employeeNo}_`) &&
+    !avatarFileID.includes(`/avatars/${employeeNo}/`)
+  ) {
+    return fail("头像必须来自本人头像云存储目录", 400);
+  }
   await db.collection(COLLECTIONS.STAFF).doc(staff._id).update({
     data: {
       avatarFileID,
@@ -478,12 +484,20 @@ const loginByWechatProfile = async (event) => {
     return fail("账号已停用，请联系管理员", 403);
   }
 
-  // 可选：刷新昵称/头像（员工在微信改头像后能跟过来）
+  // 可选：刷新昵称/头像（员工在微信改头像后能跟过来）。
+  // avatarUrl 仅接受微信临时文件（wxfile://）或云存储文件 ID（cloud://），
+  // 其余协议（如任意 http(s) URL）一律忽略，防止任意字符串被持久化造成 SSRF。
   const updateData = { updatedAt: new Date() };
   const nickName = event.data && event.data.nickName;
   const avatarUrl = event.data && event.data.avatarUrl;
   if (nickName) updateData.wechatNickName = String(nickName).slice(0, 32);
-  if (avatarUrl) updateData.wechatAvatarUrl = String(avatarUrl).slice(0, 512);
+  const avatarUrlStr = typeof avatarUrl === "string" ? avatarUrl.trim() : "";
+  if (
+    avatarUrlStr &&
+    (avatarUrlStr.startsWith("wxfile://") || avatarUrlStr.startsWith("cloud://"))
+  ) {
+    updateData.wechatAvatarUrl = avatarUrlStr.slice(0, 512);
+  }
   if (Object.keys(updateData).length > 1) {
     await db.collection(COLLECTIONS.STAFF).doc(staff._id).update({ data: updateData });
   }

@@ -1,17 +1,17 @@
 const { callBackend } = require("../../utils/api.js");
-const { applyUiSettings } = require("../../utils/ui");
+const { applyUiSettings, loadIsAdmin } = require("../../utils/ui");
 
 const NUMERIC_SPECS = {
-  fatigueMaxContinuousDays: { min: 1, max: 14, label: "连续工作天数" },
+  fatigueMaxContinuousDays: { min: 1, max: 14, label: "连续工作天数", integer: true },
   maxDailyWorkHours: { min: 1, max: 24, label: "单人日工时上限" },
-  maxConsecutiveNightShifts: { min: 1, max: 7, label: "连续夜班上限" },
+  maxConsecutiveNightShifts: { min: 1, max: 7, label: "连续夜班上限", integer: true },
   minRestIntervalMinutes: { min: 0, max: 480, label: "最小休息间隔" },
   servicePrepTimeMinutes: { min: 0, max: 180, label: "勤务提前到位时间" },
   serviceWrapTimeMinutes: { min: 0, max: 180, label: "勤务收尾时间" },
   releasePrepTimeMinutes: { min: 0, max: 180, label: "放行提前到位时间" },
   releaseWrapTimeMinutes: { min: 0, max: 180, label: "放行收尾时间" },
-  serviceRequiredCount: { min: 1, max: 10, label: "每航班勤务人数" },
-  releaseRequiredCount: { min: 1, max: 10, label: "每航班放行人数" },
+  serviceRequiredCount: { min: 1, max: 10, label: "每航班勤务人数", integer: true },
+  releaseRequiredCount: { min: 1, max: 10, label: "每航班放行人数", integer: true },
 };
 
 const defaultForm = () => ({
@@ -42,8 +42,16 @@ Page({
     skeletonRows: [1, 2, 3, 4],
   },
 
-  onShow() {
+  _loadSeq: 0,
+
+  async onShow() {
     applyUiSettings(this);
+    const isAdmin = await loadIsAdmin(true);
+    if (!isAdmin) {
+      this.setData({ loading: false, adminDenied: true, errorMessage: "" });
+      return;
+    }
+    this.setData({ adminDenied: false });
     if (!this.data.loaded) this.loadConfig();
   },
 
@@ -57,12 +65,14 @@ Page({
   },
 
   async loadConfig() {
+    const seq = ++this._loadSeq;
     this.setData({ loading: true, errorMessage: "" });
     try {
       const [result] = await Promise.all([
         callBackend("getSchedulingConfig"),
         callBackend("getAdminDashboard"),
       ]);
+      if (seq !== this._loadSeq) return;
       const form = defaultForm();
       Object.keys(NUMERIC_SPECS).forEach((field) => {
         if (result[field] !== undefined) form[field] = String(result[field]);
@@ -77,11 +87,16 @@ Page({
         adminDenied: false,
       });
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       const denied = Number(error.code) === 403 || String(error.message || "").includes("管理员");
       this.setData({
         loading: false,
         adminDenied: denied,
         errorMessage: denied ? "" : (error.message || "排班参数加载失败"),
+      });
+      wx.showToast({
+        title: denied ? "需要管理员权限" : (error.message || "排班参数加载失败"),
+        icon: "none",
       });
     }
   },
@@ -110,6 +125,9 @@ Page({
         return {
           error: `${spec.label}需在 ${spec.min} 到 ${spec.max} 之间`,
         };
+      }
+      if (spec.integer && !Number.isInteger(value)) {
+        return { error: `${spec.label}必须是整数` };
       }
       payload[field] = value;
     }

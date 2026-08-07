@@ -1,5 +1,6 @@
 const { callBackend } = require("../../utils/api.js");
 const { applyUiSettings, loadIsAdmin } = require("../../utils/ui");
+const { removeCache } = require("../../utils/cache");
 const {
   chooseReasonImages,
   uploadReasonImages,
@@ -249,7 +250,7 @@ Page({
         reasonImages: uploadedImages.map((item) => item.fileID),
       });
       wx.showToast({ title: "提交成功", icon: "success" });
-      wx.removeStorageSync("data_cache_mine_profile");
+      removeCache("mine_profile");
       this.setData({
         "form.startDate": "",
         "form.endDate": "",
@@ -288,7 +289,7 @@ Page({
     try {
       await callBackend("withdrawLeaveRequest", { requestId: id });
       wx.showToast({ title: "已撤回", icon: "success" });
-      wx.removeStorageSync("data_cache_mine_profile");
+      removeCache("mine_profile");
       await this.loadMyLeaves();
     } catch (e) {
       wx.showToast({ title: e.message || "撤回失败", icon: "none" });
@@ -313,7 +314,7 @@ Page({
         title: decision === "APPROVED" ? "已批准" : "已驳回",
         icon: "success",
       });
-      wx.removeStorageSync("data_cache_mine_profile");
+      removeCache("mine_profile");
       await this.loadApprovalLeaves();
     } catch (e) {
       wx.showToast({ title: e.message || "审批失败", icon: "none" });

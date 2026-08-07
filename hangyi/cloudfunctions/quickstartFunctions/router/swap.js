@@ -94,8 +94,8 @@ const createSwapRequest = async (event) => {
   if (
     !sourceSchedule.scheduleDate ||
     !targetSchedule.scheduleDate ||
-    sourceSchedule.scheduleDate < today ||
-    targetSchedule.scheduleDate < today
+    sourceSchedule.scheduleDate <= today ||
+    targetSchedule.scheduleDate <= today
   ) {
     return fail("历史排班不能申请互换", 409);
   }
@@ -232,7 +232,7 @@ const createSwapApplication = async (event) => {
     return fail("只能为自己的排班发起调班申请", 403);
   }
   if (schedule.status === "COMPLETED") return fail("已完成的排班不能申请调班", 409);
-  if (!schedule.scheduleDate || schedule.scheduleDate < formatDate(new Date())) {
+  if (!schedule.scheduleDate || schedule.scheduleDate <= formatDate(new Date())) {
     return fail("历史排班不能申请调班", 409);
   }
 

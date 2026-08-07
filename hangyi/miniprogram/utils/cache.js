@@ -33,6 +33,18 @@ const writeCache = (key, data) => {
 };
 
 /**
+ * 删除单个页面缓存。
+ * @param {string} key 不带前缀的裸名（如 "mine_profile"），内部自动拼接 data_cache_ 前缀
+ */
+const removeCache = (key) => {
+  try {
+    wx.removeStorageSync(STORAGE_PREFIX + key);
+  } catch {
+    // 单项删除失败忽略
+  }
+};
+
+/**
  * 清除全部页面数据缓存。
  * 退出登录时必须调用，避免前一个账号的资料、管理员状态或助手记录继续显示。
  * 外观等非账号配置不使用此前缀，因此不会被误删。
@@ -57,4 +69,4 @@ const clearAllCache = () => {
   return removed;
 };
 
-module.exports = { readCache, writeCache, clearAllCache };
+module.exports = { readCache, writeCache, clearAllCache, removeCache };

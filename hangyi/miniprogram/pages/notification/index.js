@@ -1,5 +1,6 @@
 const { callBackend } = require("../../utils/api.js");
 const { applyUiSettings } = require("../../utils/ui");
+const { removeCache } = require("../../utils/cache");
 
 const formatTime = (value) => {
   if (!value) return "";
@@ -140,7 +141,7 @@ Page({
         allNotifications,
       });
       this.applyFilter();
-      wx.removeStorageSync("data_cache_mine_profile");
+      removeCache("mine_profile");
       wx.showToast({ title: "已全部标为已读", icon: "success" });
     } catch (error) {
       wx.showToast({ title: error.message || "操作失败", icon: "none" });

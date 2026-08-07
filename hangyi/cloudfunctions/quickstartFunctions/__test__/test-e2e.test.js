@@ -344,6 +344,48 @@ test("e2e/auth: 未绑定微信不能通过工号表单覆盖预登记手机号"
   assert.equal(state.collections.staff[0].openid || "", "");
 });
 
+test("e2e/auth: loginOrRegisterStaff 细分验证失败码 (A4)", async () => {
+  global.resetMockState({ openid: "openid-code-1" });
+  seedStaff({ employeeNo: "GH900C", name: "正确姓名", phone: "13800000230", openid: "openid-code-1" });
+  // 手机号不匹配 → PHONE_MISMATCH
+  let r = await authRouter.loginOrRegisterStaff({
+    data: { employeeNo: "GH900C", name: "正确姓名", phone: "13800000231" },
+  });
+  assert.equal(r.code, 401);
+  assert.equal(r.data && r.data.code, "PHONE_MISMATCH");
+  // 姓名不匹配 → NAME_MISMATCH
+  r = await authRouter.loginOrRegisterStaff({
+    data: { employeeNo: "GH900C", name: "错误姓名", phone: "13800000230" },
+  });
+  assert.equal(r.code, 401);
+  assert.equal(r.data && r.data.code, "NAME_MISMATCH");
+  // 工号查无档案 → EMPLOYEE_NO_MISMATCH
+  r = await authRouter.loginOrRegisterStaff({
+    data: { employeeNo: "NO_SUCH_999", name: "正确姓名", phone: "13800000230" },
+  });
+  assert.equal(r.code, 401);
+  assert.equal(r.data && r.data.code, "EMPLOYEE_NO_MISMATCH");
+
+  // 档案已被其他微信绑定 → BINDING_CONFLICT
+  global.resetMockState({ openid: "openid-code-attacker" });
+  seedStaff({ employeeNo: "GH900D", name: "绑定员工", phone: "13800000232", openid: "openid-code-owner" });
+  r = await authRouter.loginOrRegisterStaff({
+    data: { employeeNo: "GH900D", name: "绑定员工", phone: "13800000232" },
+  });
+  assert.equal(r.code, 401);
+  assert.equal(r.data && r.data.code, "BINDING_CONFLICT");
+
+  // 档案未绑定微信且非 demo 模式 → STAFF_NOT_FOUND，message 不泄露细节
+  global.resetMockState({ openid: "openid-code-unbound" });
+  seedStaff({ employeeNo: "GH900E", name: "未绑定员工", phone: "13800000233" });
+  r = await authRouter.loginOrRegisterStaff({
+    data: { employeeNo: "GH900E", name: "未绑定员工", phone: "13800000233" },
+  });
+  assert.equal(r.code, 401);
+  assert.equal(r.data && r.data.code, "STAFF_NOT_FOUND");
+  assert.match(r.message, /员工验证失败/);
+});
+
 test("e2e/auth: 缺少预登记手机号的档案不能被未绑定微信登录占用", async () => {
   global.resetMockState({ openid: "openid-missing-phone" });
   seedStaff({ employeeNo: "GH202M", name: "缺手机号员工", phone: "" });
@@ -520,10 +562,19 @@ test("e2e/auth: updateMyProfile 手机号格式错 → 400", async () => {
 test("e2e/auth: updateMyAvatar 正常流程", async () => {
   global.resetMockState({ openid: "openid-avatar" });
   seedStaff({ employeeNo: "GH206", name: "test", openid: "openid-avatar" });
-  const r = await authRouter.updateMyAvatar({ data: { avatarFileID: "cloud://mock/avatars/test.jpg" } });
+  const r = await authRouter.updateMyAvatar({ data: { avatarFileID: "cloud://mock/avatars/GH206_test.jpg" } });
   assert.equal(r.code, 0);
   const p = state.collections.staff.find(s => s.employeeNo === "GH206");
-  assert.equal(p.avatarFileID, "cloud://mock/avatars/test.jpg");
+  assert.equal(p.avatarFileID, "cloud://mock/avatars/GH206_test.jpg");
+});
+
+test("e2e/auth: updateMyAvatar 拒绝非本人头像目录 → 400 (C4)", async () => {
+  global.resetMockState({ openid: "openid-avatar-other" });
+  seedStaff({ employeeNo: "GH206B", name: "test", openid: "openid-avatar-other" });
+  const r = await authRouter.updateMyAvatar({ data: { avatarFileID: "cloud://mock/avatars/OTHER_staff.jpg" } });
+  assert.equal(r.code, 400);
+  const p = state.collections.staff.find(s => s.employeeNo === "GH206B");
+  assert.equal(p.avatarFileID || "", "", "非本人目录的头像不应写入档案");
 });
 
 test("e2e/auth: logoutStaff 清除 openid", async () => {
@@ -1702,6 +1753,69 @@ test("e2e/swap: createSwapApplication 只能选择本人排班", async () => {
     data: { sourceScheduleId: { $regex: ".*" }, reason: "r" },
   });
   assert.equal(r.code, 400);
+});
+
+test("e2e/swap: 当日排班不能提交调班/互换申请 (C2)", async () => {
+  global.resetMockState({ openid: "openid-swap-today" });
+  const staffId = seedStaff({
+    employeeNo: "GH925",
+    name: "当日员工",
+    openid: "openid-swap-today",
+    authorizedAirlines: ["中国南方航空"],
+    authorizedAircraftTypes: ["A320"],
+  });
+  const todayScheduleId = seedSchedule({
+    staffId,
+    staffName: "当日员工",
+    staffEmployeeNo: "GH925",
+    flightNo: "TODAY1",
+    scheduleDate: dateOffset(0),
+    status: "ASSIGNED",
+    recordStatus: "active",
+    airline: "中国南方航空",
+    aircraftType: "A320",
+  });
+  // 单人调班申请: 当天 → 409
+  const r = await swapRouter.createSwapApplication({
+    data: { sourceScheduleId: todayScheduleId, reason: "体检" },
+  });
+  assert.equal(r.code, 409, "当天排班不能提交调班申请");
+
+  // 双人互换: 任一天为当天 → 409
+  const otherId = seedStaff({
+    employeeNo: "GH926",
+    name: "对方",
+    authorizedAirlines: ["中国南方航空"],
+    authorizedAircraftTypes: ["A320"],
+  });
+  const otherScheduleId = seedSchedule({
+    staffId: otherId,
+    flightNo: "TODAY2",
+    scheduleDate: dateOffset(1),
+    status: "ASSIGNED",
+    recordStatus: "active",
+    airline: "中国南方航空",
+    aircraftType: "A320",
+  });
+  const r2 = await swapRouter.createSwapRequest({
+    data: { sourceScheduleId: todayScheduleId, targetScheduleId: otherScheduleId, reason: "互换" },
+  });
+  assert.equal(r2.code, 409, "包含当日排班的互换申请应被拒绝");
+
+  // 双人互换: 目标排班为当天 → 409
+  const futureOwnScheduleId = seedSchedule({
+    staffId,
+    flightNo: "FUTURE1",
+    scheduleDate: dateOffset(1),
+    status: "ASSIGNED",
+    recordStatus: "active",
+    airline: "中国南方航空",
+    aircraftType: "A320",
+  });
+  const r3 = await swapRouter.createSwapRequest({
+    data: { sourceScheduleId: futureOwnScheduleId, targetScheduleId: todayScheduleId, reason: "互换" },
+  });
+  assert.equal(r3.code, 409, "目标排班为当日时互换申请应被拒绝");
 });
 
 test("e2e/swap: listSwapRequests 按 status 筛选", async () => {
@@ -3115,6 +3229,89 @@ test("e2e/leave: approveLeaveRequest 重复审批 → 409", async () => {
   assert.equal(r.code, 409);
 });
 
+test("e2e/leave: cancelLeaveRequest 非 admin → 403", async () => {
+  global.resetMockState({ openid: "openid-not-admin-leave-2" });
+  seedStaff({ employeeNo: "GH803", name: "普通员工", openid: "openid-not-admin-leave-2" });
+  const id = seedLeave({ openid: "openid-other", employeeNo: "GH701", type: "SICK", startDate: FUTURE_DATE(1), endDate: FUTURE_DATE(2), totalDays: 2, reason: "x", status: "APPROVED" });
+  const r = await leaveRouter.cancelLeaveRequest({ data: { requestId: id } });
+  assert.equal(r.code, 403);
+});
+
+test("e2e/leave: cancelLeaveRequest 撤销 APPROVED → 200 并恢复排班", async () => {
+  global.resetMockState({ openid: "openid-admin-leave-cancel" });
+  seedStaff({ employeeNo: "ADMIN905", name: "撤销人", isAdmin: true, openid: "openid-admin-leave-cancel" });
+  const staffId = seedStaff({
+    employeeNo: "GH705",
+    name: "请假员工",
+    openid: "openid-staff-leave-cancel",
+  });
+  const leaveDate = FUTURE_DATE(2);
+  const id = seedLeave({
+    openid: "openid-staff-leave-cancel",
+    employeeNo: "GH705",
+    name: "请假员工",
+    type: "ANNUAL",
+    startDate: leaveDate,
+    endDate: leaveDate,
+    totalDays: 1,
+    reason: "休假",
+    status: "APPROVED",
+  });
+  const scheduleId = seedSchedule({
+    staffId,
+    staffName: "请假员工",
+    staffEmployeeNo: "GH705",
+    scheduleDate: leaveDate,
+    status: "ASSIGNED",
+    recordStatus: "active",
+    needsReassignment: true,
+    leaveRequestId: id,
+    reassignmentReason: "LEAVE_APPROVED",
+  });
+  const r = await leaveRouter.cancelLeaveRequest({ data: { requestId: id } });
+  assert.equal(r.code, 0);
+  assert.equal(r.data.status, "CANCELLED");
+  assert.equal(r.data.restoredScheduleCount, 1);
+  const leave = state.collections.leave_requests.find((item) => item._id === id);
+  assert.equal(leave.status, "CANCELLED");
+  const schedule = state.collections.schedules.find((item) => item._id === scheduleId);
+  assert.equal(schedule.needsReassignment, false);
+  assert.equal(schedule.leaveRequestId, "");
+  assert.equal(schedule.reassignmentReason, "");
+  assert.ok(
+    state.collections.operation_logs.some((item) => item.action === "CANCEL_LEAVE"),
+    "撤销应写审计日志"
+  );
+});
+
+test("e2e/leave: cancelLeaveRequest 已 CANCELLED 幂等 → 200", async () => {
+  global.resetMockState({ openid: "openid-admin-leave-idem" });
+  seedStaff({ employeeNo: "ADMIN906", name: "撤销人", isAdmin: true, openid: "openid-admin-leave-idem" });
+  const id = seedLeave({ openid: "openid-other", employeeNo: "GH701", name: "a", type: "SICK", startDate: FUTURE_DATE(1), endDate: FUTURE_DATE(2), totalDays: 2, reason: "x", status: "CANCELLED" });
+  const r = await leaveRouter.cancelLeaveRequest({ data: { requestId: id } });
+  assert.equal(r.code, 0);
+  assert.equal(r.data.status, "CANCELLED");
+});
+
+test("e2e/leave: cancelLeaveRequest 撤销 PENDING → 409", async () => {
+  global.resetMockState({ openid: "openid-admin-leave-pending" });
+  seedStaff({ employeeNo: "ADMIN907", name: "撤销人", isAdmin: true, openid: "openid-admin-leave-pending" });
+  const id = seedLeave({ openid: "openid-other", employeeNo: "GH701", name: "a", type: "SICK", startDate: FUTURE_DATE(1), endDate: FUTURE_DATE(2), totalDays: 2, reason: "x", status: "PENDING" });
+  const r = await leaveRouter.cancelLeaveRequest({ data: { requestId: id } });
+  assert.equal(r.code, 409);
+});
+
+test("e2e/leave: cancelLeaveRequest 非法 requestId → 400", async () => {
+  global.resetMockState({ openid: "openid-admin-leave-bad" });
+  seedStaff({ employeeNo: "ADMIN908", name: "撤销人", isAdmin: true, openid: "openid-admin-leave-bad" });
+  let r = await leaveRouter.cancelLeaveRequest({ data: { requestId: "x".repeat(65) } });
+  assert.equal(r.code, 400);
+  r = await leaveRouter.cancelLeaveRequest({ data: {} });
+  assert.equal(r.code, 400);
+  r = await leaveRouter.cancelLeaveRequest({ data: { requestId: { $regex: ".*" } } });
+  assert.equal(r.code, 400);
+});
+
 test("e2e/swap: withdrawSwapRequest 撤回自己 PENDING → 200", async () => {
   global.resetMockState({ openid: "openid-swap-1" });
   const id = seedSwap({ requesterOpenid: "openid-swap-1", status: "PENDING" });
@@ -3650,7 +3847,6 @@ test("e2e/source: 管理员全功能有统一工作台、移动排班与参数�
   );
   [
     "/pages/adminSchedule/index",
-    "/pages/serviceSchedule/index",
     "/pages/warnings/index",
     "/pages/leave/index?mode=approval",
     "/pages/staffManagement/index",
@@ -3661,8 +3857,11 @@ test("e2e/source: 管理员全功能有统一工作台、移动排班与参数�
     "/pages/auditLogs/index",
     "/pages/adminSettings/index",
   ].forEach((route) => assert.ok(adminCenterView.includes(route)));
+  // 勤务放行已并入排班编制页(更多操作菜单),不再作为管理中心独立模块
+  assert.ok(!adminCenterView.includes("/pages/serviceSchedule/index"));
+  assert.ok(adminScheduleView.includes("勤务放行"));
   assert.ok(!adminCenterView.includes('<text class="module-code'));
-  assert.ok(adminCenterPage.includes('callBackend("getAdminDashboard"'));
+  assert.ok(adminCenterPage.includes("getAdminDashboard"));
   assert.ok(adminSchedulePage.includes("dataset.staffid"));
   assert.ok(adminSchedulePage.includes("onBatchAssign"));
   assert.ok(adminScheduleView.includes("schedule-card"));

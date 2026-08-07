@@ -1,5 +1,5 @@
 const { callBackend } = require("../../utils/api.js");
-const { applyUiSettings, groupLabel, loadIsAdmin } = require("../../utils/ui");
+const { applyUiIfThemeChanged, groupLabel, loadIsAdmin } = require("../../utils/ui");
 const { readCache, writeCache } = require("../../utils/cache");
 
 const CACHE_KEY = "warnings_workload";
@@ -17,6 +17,7 @@ Page({
     rankingRows: [],
     fatigueResults: [],
     isAdmin: false,
+    accessDenied: false,
     // 批量审批
     selectedSwapIds: [],
     // 驳回 modal
@@ -59,21 +60,23 @@ Page({
   },
 
   async onShow() {
-    applyUiSettings(this);
+    applyUiIfThemeChanged(this);
     const isAdmin = await loadIsAdmin(true);
     if (!isAdmin) {
+      // 非管理员且非审批场景: 显示引导文案, 不隐藏整页
       this.setData({
         isAdmin: false,
+        accessDenied: true,
         loading: false,
         loaded: false,
         pendingSwaps: [],
         rankingRows: [],
         fatigueResults: [],
-        errorMessage: "当前账号没有查看全员负荷与审批队列的权限",
+        errorMessage: "",
       });
       return;
     }
-    this.setData({ isAdmin: true });
+    this.setData({ isAdmin: true, accessDenied: false });
     this.loadData();
   },
 

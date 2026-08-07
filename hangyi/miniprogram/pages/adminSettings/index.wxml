@@ -31,7 +31,7 @@
             <view class="setting-copy">超过后进入疲劳优化与合规提示</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.fatigueMaxContinuousDays}}" data-field="fatigueMaxContinuousDays" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.fatigueMaxContinuousDays}}" data-field="fatigueMaxContinuousDays" bindinput="onNumberInput" />
             <text>天</text>
           </view>
         </view>
@@ -41,7 +41,7 @@
             <view class="setting-copy">合规预检使用的当日工时阈值</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.maxDailyWorkHours}}" data-field="maxDailyWorkHours" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.maxDailyWorkHours}}" data-field="maxDailyWorkHours" bindinput="onNumberInput" />
             <text>小时</text>
           </view>
         </view>
@@ -51,7 +51,7 @@
             <view class="setting-copy">控制夜班连续分配次数</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.maxConsecutiveNightShifts}}" data-field="maxConsecutiveNightShifts" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.maxConsecutiveNightShifts}}" data-field="maxConsecutiveNightShifts" bindinput="onNumberInput" />
             <text>次</text>
           </view>
         </view>
@@ -61,7 +61,7 @@
             <view class="setting-copy">同一人员相邻任务之间的最短空档</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.minRestIntervalMinutes}}" data-field="minRestIntervalMinutes" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.minRestIntervalMinutes}}" data-field="minRestIntervalMinutes" bindinput="onNumberInput" />
             <text>分钟</text>
           </view>
         </view>
@@ -75,7 +75,7 @@
             <view class="setting-copy">自动排班时的最低勤务配置</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.serviceRequiredCount}}" data-field="serviceRequiredCount" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.serviceRequiredCount}}" data-field="serviceRequiredCount" bindinput="onNumberInput" />
             <text>人</text>
           </view>
         </view>
@@ -85,7 +85,7 @@
             <view class="setting-copy">航班任务开始前预留的准备时间</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.servicePrepTimeMinutes}}" data-field="servicePrepTimeMinutes" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.servicePrepTimeMinutes}}" data-field="servicePrepTimeMinutes" bindinput="onNumberInput" />
             <text>分钟</text>
           </view>
         </view>
@@ -95,7 +95,7 @@
             <view class="setting-copy">航班任务结束后预留的返回时间</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.serviceWrapTimeMinutes}}" data-field="serviceWrapTimeMinutes" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.serviceWrapTimeMinutes}}" data-field="serviceWrapTimeMinutes" bindinput="onNumberInput" />
             <text>分钟</text>
           </view>
         </view>
@@ -109,7 +109,7 @@
             <view class="setting-copy">自动排班时的最低放行配置</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.releaseRequiredCount}}" data-field="releaseRequiredCount" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.releaseRequiredCount}}" data-field="releaseRequiredCount" bindinput="onNumberInput" />
             <text>人</text>
           </view>
         </view>
@@ -119,7 +119,7 @@
             <view class="setting-copy">放行任务开始前的准备时间</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.releasePrepTimeMinutes}}" data-field="releasePrepTimeMinutes" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.releasePrepTimeMinutes}}" data-field="releasePrepTimeMinutes" bindinput="onNumberInput" />
             <text>分钟</text>
           </view>
         </view>
@@ -129,7 +129,7 @@
             <view class="setting-copy">放行任务完成后的返回时间</view>
           </view>
           <view class="number-control">
-            <input type="number" value="{{form.releaseWrapTimeMinutes}}" data-field="releaseWrapTimeMinutes" bindinput="onNumberInput" />
+            <input type="digit" value="{{form.releaseWrapTimeMinutes}}" data-field="releaseWrapTimeMinutes" bindinput="onNumberInput" />
             <text>分钟</text>
           </view>
         </view>

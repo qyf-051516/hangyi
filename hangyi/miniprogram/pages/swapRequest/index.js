@@ -1,5 +1,6 @@
 const { callBackend } = require("../../utils/api.js");
 const { applyUiSettings } = require("../../utils/ui");
+const { removeCache } = require("../../utils/cache");
 const {
   chooseReasonImages,
   uploadReasonImages,
@@ -123,7 +124,8 @@ Page({
       const myRequests = (res.list || []).map(decorateRequest);
       this.setData({ myRequests });
     } catch (error) {
-      this.setData({ myRequests: [] });
+      // 刷新失败: 保留旧列表, 仅提示, 不置空
+      wx.showToast({ title: error.message || "申请列表加载失败，已保留旧数据", icon: "none" });
     } finally {
       this.setData({ listLoading: false });
     }
@@ -201,7 +203,7 @@ Page({
         reasonImages: uploadedImages.map((item) => item.fileID),
       });
       wx.showToast({ title: "申请已提交", icon: "success" });
-      wx.removeStorageSync("data_cache_mine_profile");
+      removeCache("mine_profile");
       this.setData({ reason: "", reasonImages: [] });
       await this.loadMyRequests();
       if (result.validationSnapshot && result.validationSnapshot.passed === false) {
@@ -238,7 +240,7 @@ Page({
     try {
       await callBackend("withdrawSwapRequest", { requestId });
       wx.showToast({ title: "已撤回", icon: "success" });
-      wx.removeStorageSync("data_cache_mine_profile");
+      removeCache("mine_profile");
       await this.loadMyRequests();
     } catch (error) {
       wx.showToast({ title: error.message || "撤回失败", icon: "none" });

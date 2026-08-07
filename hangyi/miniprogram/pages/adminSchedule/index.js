@@ -7,10 +7,14 @@ Page({
     loading: false,
     publishing: false,
     isOffline: false,
+    showToolMenu: false,
     showSmartForm: false,
     showRecommendation: false,
     analyzing: false,
     committing: false,
+    batchAssigning: false,
+    reassignSubmitting: false,
+    statusUpdating: false,
     smartForm: {
       flightNo: "",
       airline: "",
@@ -122,7 +126,9 @@ Page({
         const off = !res.isConnected;
         this.setData({ isOffline: off });
         if (!off) {
-          this.loadTable();
+          this.loadTable().catch((error) => {
+            wx.showToast({ title: error.message || "刷新失败", icon: "none" });
+          });
           wx.showToast({ title: "网络已恢复", icon: "none", duration: 1500 });
         }
       };
@@ -139,12 +145,16 @@ Page({
   },
 
   async loadTable() {
+    // 请求序号：切换日期或放弃修改时递增，过期响应直接丢弃
+    this._loadSeq = (this._loadSeq || 0) + 1;
+    const seq = this._loadSeq;
     const scheduleDate = this.data.scheduleDate || this.formatDate(new Date());
     const cacheKey = "adminSchedule_" + scheduleDate;
 
     // 先尝试缓存
     const cached = readCache(cacheKey, this.data.isOffline ? 86400000 : 30000);
     if (cached && cached.rows) {
+      if (seq !== this._loadSeq) return;
       const rows = cached.rows.map((item) => {
         const codeToLabel = { MORNING: "早班", AFTERNOON: "午班", NIGHT: "晚班" };
         const label = codeToLabel[item.shiftCode] || item.shiftCode || "未排班";
@@ -159,6 +169,7 @@ Page({
     if (this.data.isOffline && cached) return;
 
     const data = await callBackend("getStaffScheduleTable", { scheduleDate });
+    if (seq !== this._loadSeq) return; // 过期响应，丢弃
     const rows = (data.rows || []).map((item) => {
       const codeToLabel = { MORNING: "早班", AFTERNOON: "午班", NIGHT: "晚班" };
       const label = codeToLabel[item.shiftCode] || item.shiftCode || "未排班";
@@ -292,6 +303,8 @@ Page({
   },
 
   async onBatchAssign() {
+    // 操作锁，防止重复触发
+    if (this.data.batchAssigning) return;
     const candidates = this.data.displayRows.filter((row) =>
       !["ON_LEAVE", "LEAVE_CONFLICT"].includes(row.status) &&
       row.needsReassignment !== true
@@ -300,45 +313,50 @@ Page({
       wx.showToast({ title: "当前筛选没有可调整人员", icon: "none" });
       return;
     }
-    const sheetResult = await new Promise((resolve) => {
-      wx.showActionSheet({
-        itemList: ["设为早班", "设为午班", "设为晚班", "清空班次"],
-        success: (result) => resolve(result.tapIndex),
-        fail: () => resolve(-1),
+    this.setData({ batchAssigning: true });
+    try {
+      const sheetResult = await new Promise((resolve) => {
+        wx.showActionSheet({
+          itemList: ["设为早班", "设为午班", "设为晚班", "清空班次"],
+          success: (result) => resolve(result.tapIndex),
+          fail: () => resolve(-1),
+        });
       });
-    });
-    if (sheetResult < 0) return;
-    const codes = ["MORNING", "AFTERNOON", "NIGHT", ""];
-    const labels = ["早班", "午班", "晚班", "未排班"];
-    const shiftCode = codes[sheetResult];
-    const confirmed = await new Promise((resolve) => {
-      wx.showModal({
-        title: "批量调整班次",
-        content: `将当前筛选中的 ${candidates.length} 人统一设为${labels[sheetResult]}？`,
-        confirmText: "确认调整",
-        success: (result) => resolve(result.confirm),
-        fail: () => resolve(false),
+      if (sheetResult < 0) return;
+      const codes = ["MORNING", "AFTERNOON", "NIGHT", ""];
+      const labels = ["早班", "午班", "晚班", "未排班"];
+      const shiftCode = codes[sheetResult];
+      const confirmed = await new Promise((resolve) => {
+        wx.showModal({
+          title: "批量调整班次",
+          content: `将当前筛选中的 ${candidates.length} 人统一设为${labels[sheetResult]}？`,
+          confirmText: "确认调整",
+          success: (result) => resolve(result.confirm),
+          fail: () => resolve(false),
+        });
       });
-    });
-    if (!confirmed) return;
+      if (!confirmed) return;
 
-    const candidateIds = new Set(candidates.map((row) => row.staffId));
-    const shiftIndex = codes.indexOf(shiftCode) + 1;
-    const normalizedShiftIndex = shiftCode ? shiftIndex : 0;
-    const editedMap = { ...this.data.editedMap };
-    const rows = this.data.rows.map((row) => {
-      if (!candidateIds.has(row.staffId)) return row;
-      editedMap[row.staffId] = shiftCode;
-      return {
-        ...row,
-        shiftCode,
-        shiftIndex: normalizedShiftIndex,
-        status: shiftCode ? "ASSIGNED" : "UNASSIGNED",
-        statusText: shiftCode ? "已排班" : "未排班",
-      };
-    });
-    this.setData({ rows, editedMap });
-    this.computeDisplay();
+      const candidateIds = new Set(candidates.map((row) => row.staffId));
+      const shiftIndex = codes.indexOf(shiftCode) + 1;
+      const normalizedShiftIndex = shiftCode ? shiftIndex : 0;
+      const editedMap = { ...this.data.editedMap };
+      const rows = this.data.rows.map((row) => {
+        if (!candidateIds.has(row.staffId)) return row;
+        editedMap[row.staffId] = shiftCode;
+        return {
+          ...row,
+          shiftCode,
+          shiftIndex: normalizedShiftIndex,
+          status: shiftCode ? "ASSIGNED" : "UNASSIGNED",
+          statusText: shiftCode ? "已排班" : "未排班",
+        };
+      });
+      this.setData({ rows, editedMap });
+      this.computeDisplay();
+    } finally {
+      this.setData({ batchAssigning: false });
+    }
   },
 
   async onDiscardEdits() {
@@ -359,7 +377,9 @@ Page({
   },
 
   async onPublish() {
+    // 入口立即置锁，防止合规预检期间重复点击
     if (this.data.publishing) return;
+    this.setData({ publishing: true });
 
     const editedItems = Object.keys(this.data.editedMap).map((staffId) => {
       const row = this.data.rows.find(r => r.staffId === staffId) || {};
@@ -371,13 +391,13 @@ Page({
     });
 
     if (!editedItems.length) {
+      this.setData({ publishing: false });
       wx.showToast({ title: "暂无编辑内容", icon: "none" });
       return;
     }
 
     // 排班合规预检
     wx.showLoading({ title: "合规检查中" });
-    let skipCheck = false;
     try {
       const checkResult = await callBackend("preflightComplianceCheck", {
         scheduleDate: this.data.scheduleDate,
@@ -393,6 +413,7 @@ Page({
         return; // 等待用户确认或取消
       }
     } catch (error) {
+      this.setData({ publishing: false });
       wx.hideLoading();
       wx.showToast({ title: error.message || "合规检查失败，请重试", icon: "none" });
       return;
@@ -425,7 +446,8 @@ Page({
   },
 
   onCloseComplianceModal() {
-    this.setData({ showComplianceModal: false });
+    // 关闭合规弹窗后解锁发布，允许修改后重新发布
+    this.setData({ showComplianceModal: false, publishing: false });
   },
 
   async onIgnoreAndPublish() {
@@ -570,11 +592,21 @@ Page({
 
   async onAnalyzeSchedule() {
     const { smartForm } = this.data;
-    const requiredCount = Number(smartForm.requiredCount) || 1;
-    const stayHours = Number(smartForm.stayHours) || 0;
 
     if (!smartForm.airline || !smartForm.aircraftType || !smartForm.departureTime) {
       wx.showToast({ title: "请填写航司、机型、起飞时间", icon: "none" });
+      return;
+    }
+
+    // 输入校验：人数 1-20 整数，停留 0-48 小时
+    const requiredCount = Number(smartForm.requiredCount);
+    const stayHours = Number(smartForm.stayHours);
+    if (!Number.isInteger(requiredCount) || requiredCount < 1 || requiredCount > 20) {
+      wx.showToast({ title: "人数需为 1-20 的整数", icon: "none" });
+      return;
+    }
+    if (!Number.isFinite(stayHours) || stayHours < 0 || stayHours > 48) {
+      wx.showToast({ title: "停留时间需为 0-48 小时", icon: "none" });
       return;
     }
 
@@ -582,6 +614,7 @@ Page({
     wx.showLoading({ title: "分析中..." });
     try {
       const result = await callBackend("smartSchedule", {
+        scheduleDate: this.data.scheduleDate,
         flightNo: smartForm.flightNo || "",
         airline: smartForm.airline,
         aircraftType: smartForm.aircraftType,
@@ -607,6 +640,7 @@ Page({
         recommendation: result.recommendation || [],
         recFlightId: (result.flight || {}).flightId || "",
         pendingCommitPayload: {
+          scheduleDate: this.data.scheduleDate,
           flightNo: smartForm.flightNo || "",
           airline: smartForm.airline,
           aircraftType: smartForm.aircraftType,
@@ -639,6 +673,19 @@ Page({
       wx.showToast({ title: "参数丢失，请重新分析", icon: "none" });
       return;
     }
+
+    // 二次确认
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: "确认排班",
+        content: `确认按推荐方案为航班 ${this.data.recFlightNo || payload.flightNo} 排班？`,
+        confirmText: "确认排班",
+        cancelText: "取消",
+        success: (result) => resolve(result.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
 
     this.setData({ committing: true });
     wx.showLoading({ title: "排班确认中..." });
@@ -707,6 +754,14 @@ Page({
       success: (res) => {
         if (res.tempFiles && res.tempFiles.length > 0) {
           const tempFile = res.tempFiles[0];
+          if (tempFile.size > 5 * 1024 * 1024) {
+            wx.showModal({
+              title: "文件过大",
+              content: "文件超过 5MB，请拆分后重试",
+              showCancel: false,
+            });
+            return;
+          }
           this.setData({
             selectedFileName: tempFile.name || "未命名文件",
             selectedFileContent: "",
@@ -806,8 +861,14 @@ Page({
    */
   airlineFromFlightNo(flightNo) {
     if (!flightNo) return "未知航司";
-    const code = String(flightNo).trim().slice(0, 2).toUpperCase();
-    return this.AIRLINE_CODE_MAP[code] || ("航空公司(" + code + ")");
+    const trimmed = String(flightNo).trim();
+    // 缩写或航班号样式（如 "CA"、"MU5688"、"9C8501"）才按前两字查表
+    if (/^[A-Za-z0-9]{2,}$/.test(trimmed)) {
+      const code = trimmed.slice(0, 2).toUpperCase();
+      return this.AIRLINE_CODE_MAP[code] || ("航空公司(" + code + ")");
+    }
+    // 已是完整航司名称（如 "中国东方航空"、"东方航空"），跳过查表
+    return trimmed;
   },
 
   /**
@@ -969,10 +1030,15 @@ Page({
         }
       }
 
-      // 若未提供起飞时间，使用默认时间 08:00
-      let finalDepartureTime = departureTime;
-      if (!finalDepartureTime) {
-        finalDepartureTime = `${scheduleDate}T08:00:00`;
+      // 起飞时间缺失：标记为解析问题，不再静默默认 08:00
+      if (!departureTime) {
+        errors.push(`第${i + 1}行：缺少起飞时间（计起）`);
+        continue;
+      }
+      // 机型缺失：标记为解析问题，不再静默默认 A320
+      if (!aircraftTypeRaw) {
+        errors.push(`第${i + 1}行：缺少机型`);
+        continue;
       }
 
       flights.push({
@@ -985,7 +1051,7 @@ Page({
         aircraftReg: aircraftReg,
         aircraftRegistration: aircraftReg,
         engineModel,
-        departureTime: finalDepartureTime,
+        departureTime: departureTime,
         landingTime: landingTime,
         estimatedArrivalTime,
         stayHours: stayHours,
@@ -1010,6 +1076,12 @@ Page({
 
     try {
       const fs = wx.getFileSystemManager();
+      // 读取前先检查文件大小，避免同步读取超大文件
+      const stat = fs.statSync(this._tsvFilePath);
+      if (stat && stat.size > 5 * 1024 * 1024) {
+        wx.showToast({ title: "文件超过 5MB，请拆分后重试", icon: "none" });
+        return;
+      }
       const content = fs.readFileSync(this._tsvFilePath, "utf-8");
 
       if (!content || content.trim().length === 0) {
@@ -1022,21 +1094,40 @@ Page({
       if (result.flights.length === 0) {
         wx.showToast({ title: "未能解析出航班信息", icon: "none" });
         this.setData({ tsvErrors: result.errors, tsvFlights: [] });
-      } else {
-        // 预览前10条
-        const previewFlights = result.flights.map((f, idx) => ({
-          index: idx + 1,
-          ...f,
-          // 格式化显示时间
-          departureDisplay: f.departureTime ? f.departureTime.replace("T", " ") : "",
-          landingDisplay: f.landingTime ? f.landingTime.replace("T", " ") : "",
-          estimatedArrivalDisplay: f.estimatedArrivalTime
-            ? f.estimatedArrivalTime.replace("T", " ")
-            : "",
-        }));
-        this.setData({ tsvFlights: previewFlights, tsvErrors: result.errors });
-        wx.showToast({ title: `解析到 ${result.flights.length} 条航班信息`, icon: "success" });
+        return;
       }
+
+      // 行数过多时二次确认，防止误导入超大文件
+      if (result.flights.length > 500) {
+        const confirmed = await new Promise((resolve) => {
+          wx.showModal({
+            title: "航班数量较多",
+            content: `共解析到 ${result.flights.length} 条航班，超过 500 条。是否继续？`,
+            confirmText: "继续",
+            cancelText: "取消",
+            success: (confirmRes) => resolve(confirmRes.confirm),
+            fail: () => resolve(false),
+          });
+        });
+        if (!confirmed) {
+          this.setData({ tsvErrors: result.errors, tsvFlights: [] });
+          return;
+        }
+      }
+
+      // 预览前10条
+      const previewFlights = result.flights.map((f, idx) => ({
+        index: idx + 1,
+        ...f,
+        // 格式化显示时间
+        departureDisplay: f.departureTime ? f.departureTime.replace("T", " ") : "",
+        landingDisplay: f.landingTime ? f.landingTime.replace("T", " ") : "",
+        estimatedArrivalDisplay: f.estimatedArrivalTime
+          ? f.estimatedArrivalTime.replace("T", " ")
+          : "",
+      }));
+      this.setData({ tsvFlights: previewFlights, tsvErrors: result.errors });
+      wx.showToast({ title: `解析到 ${result.flights.length} 条航班信息`, icon: "success" });
     } catch (error) {
       console.error("TSV 解析失败:", error);
       wx.showToast({ title: "文件读取失败: " + (error.message || "未知错误"), icon: "none" });
@@ -1084,21 +1175,23 @@ Page({
       const count = (result && result.importedCount) || 0;
       const errors = (result && result.errors) || [];
 
+      if (errors.length > 0) {
+        // 有失败行：全量展示失败明细，不关闭导入弹窗、不弹成功提示
+        wx.hideLoading();
+        wx.showModal({
+          title: `导入完成，${errors.length} 条失败`,
+          content: errors.join("\n") || "存在失败记录",
+          showCancel: false,
+          confirmText: "知道了",
+        });
+        return;
+      }
+
       wx.showToast({
         title: `完成 ${count} 条排班`,
         icon: "success",
         duration: 2000,
       });
-
-      if (errors.length > 0) {
-        setTimeout(() => {
-          wx.showModal({
-            title: "部分航班排班失败",
-            content: errors.slice(0, 5).join("\n") + (errors.length > 5 ? `\n...还有 ${errors.length - 5} 条` : ""),
-            showCancel: false,
-          });
-        }, 2100);
-      }
 
       const importedDate = flightsPayload[0] && flightsPayload[0].scheduleDate;
       this.setData({
@@ -1125,6 +1218,33 @@ Page({
 
   onOpenServiceSchedule() {
     wx.navigateTo({ url: "/pages/serviceSchedule/index" });
+  },
+
+  // ═══════════════════════════════════════
+  // 更多操作菜单
+  // ═══════════════════════════════════════
+
+  onShowToolMenu() {
+    this.setData({ showToolMenu: true });
+  },
+
+  onCloseToolMenu() {
+    this.setData({ showToolMenu: false });
+  },
+
+  onToolMenuAction(e) {
+    const action = e.currentTarget.dataset.action;
+    this.setData({ showToolMenu: false });
+    if (this.data.isOffline && ["aiOptimize", "batch", "tsv"].includes(action)) {
+      wx.showToast({ title: "网络已断开，该操作不可用", icon: "none" });
+      return;
+    }
+    if (action === "aiOptimize") this.onAiOptimizeSchedule();
+    else if (action === "batch") this.onBatchAssign();
+    else if (action === "tsv") this.onShowTSVImport();
+    else if (action === "export") this.onExportMenu();
+    else if (action === "stats") this.onOpenCompletionStats();
+    else if (action === "service") this.onOpenServiceSchedule();
   },
 
   // ═══════════════════════════════════════
@@ -1196,6 +1316,7 @@ Page({
     try {
       const rows = this.data.rows;
       if (!rows.length) {
+        wx.hideLoading();
         wx.showToast({ title: "暂无数据可导出", icon: "none" });
         return;
       }
@@ -1404,7 +1525,24 @@ Page({
     const newStaffId = e.currentTarget.dataset.staffid;
     const target = this.data.reassignTarget;
     if (!newStaffId || !target) return;
+    if (this.data.reassignSubmitting) return;
 
+    // 二次确认
+    const candidate = (this.data.reassignCandidates || []).find((c) => c.staffId === newStaffId);
+    const candidateName = (candidate && candidate.name) || newStaffId;
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: "确认改班",
+        content: `确认将 ${target.row.name}（${target.row.employeeNo || ""}）的班次改派给 ${candidateName}？`,
+        confirmText: "确认改派",
+        cancelText: "取消",
+        success: (result) => resolve(result.confirm),
+        fail: () => resolve(false),
+      });
+    });
+    if (!confirmed) return;
+
+    this.setData({ reassignSubmitting: true });
     wx.showLoading({ title: "改班中…" });
     try {
       await callBackend("reassignStaffTask", {
@@ -1421,6 +1559,7 @@ Page({
     } catch (error) {
       wx.showToast({ title: error.message || "改班失败", icon: "none" });
     } finally {
+      this.setData({ reassignSubmitting: false });
       wx.hideLoading();
     }
   },
@@ -1473,6 +1612,28 @@ Page({
     if (this.data.flightEditSaving || !this.data.flightEditTarget) return;
     const target = this.data.flightEditTarget;
     const form = this.data.flightEditForm;
+
+    // 必填与长度校验
+    const aircraftType = String(form.aircraftType || "").trim();
+    const engineModel = String(form.engineModel || "").trim();
+    const aircraftRegistration = String(form.aircraftRegistration || "").trim();
+    if (!aircraftType) {
+      wx.showToast({ title: "机型必填", icon: "none" });
+      return;
+    }
+    if (aircraftType.length > 20) {
+      wx.showToast({ title: "机型不能超过20个字符", icon: "none" });
+      return;
+    }
+    if (engineModel.length > 50) {
+      wx.showToast({ title: "发动机型号不能超过50个字符", icon: "none" });
+      return;
+    }
+    if (aircraftRegistration.length > 20) {
+      wx.showToast({ title: "机号不能超过20个字符", icon: "none" });
+      return;
+    }
+
     const estimatedArrivalTime = form.estimatedArrivalClock
       ? `${this.data.scheduleDate}T${form.estimatedArrivalClock}`
       : "";
@@ -1482,9 +1643,9 @@ Page({
         flightId: target.flightId || "",
         flightNo: target.flightNo,
         scheduleDate: this.data.scheduleDate,
-        aircraftType: String(form.aircraftType || "").trim(),
-        engineModel: String(form.engineModel || "").trim(),
-        aircraftRegistration: String(form.aircraftRegistration || "").trim(),
+        aircraftType,
+        engineModel,
+        aircraftRegistration,
         estimatedArrivalTime,
       });
       wx.removeStorageSync("data_cache_adminSchedule_" + this.data.scheduleDate);
@@ -1513,6 +1674,8 @@ Page({
         const statusMap = ["ON_TIME", "DELAYED", "CANCELLED", "ARRIVED"];
         const status = statusMap[res.tapIndex];
         if (!status) return;
+        if (this.data.statusUpdating) return;
+        this.setData({ statusUpdating: true });
         wx.showLoading({ title: "更新中…" });
         try {
           await callBackend("updateFlightRealtimeStatus", {
@@ -1525,6 +1688,7 @@ Page({
         } catch (error) {
           wx.showToast({ title: error.message || "更新失败", icon: "none" });
         } finally {
+          this.setData({ statusUpdating: false });
           wx.hideLoading();
         }
       },

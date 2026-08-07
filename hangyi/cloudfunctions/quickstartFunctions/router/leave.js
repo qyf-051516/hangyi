@@ -459,10 +459,101 @@ const approveLeaveRequest = async (event) => {
   }, decision === "APPROVED" ? "已批准" : "已驳回");
 };
 
+// ──────────────────────────────────────────────
+// admin 撤销已批准的请假申请（恢复受影响排班）
+// 与 withdrawLeaveRequest（员工撤回，仅 PENDING）语义区分：
+// 仅 APPROVED 状态可被管理员撤销，同时恢复排班的改派标记。
+// ──────────────────────────────────────────────
+const cancelLeaveRequest = async (event) => {
+  await ensureCollection(COLLECTIONS.LEAVE_REQUESTS);
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
+  const payload = event.data || {};
+  const requestId = typeof payload.requestId === "string" ? payload.requestId.trim() : "";
+  if (!requestId) return fail("缺少 requestId", 400);
+  if (requestId.length > 64) return fail("requestId 长度不合法", 400);
+
+  const res = await db.collection(COLLECTIONS.LEAVE_REQUESTS).doc(requestId).get();
+  const req = res.data;
+  if (!req) return fail("请假申请不存在", 404);
+
+  // 幂等: 已撤销的申请重复撤销直接返回成功
+  if (req.status === "CANCELLED") {
+    return ok({ requestId, status: "CANCELLED", restoredScheduleCount: 0 }, "该请假申请已撤销");
+  }
+  if (req.status !== "APPROVED") {
+    return fail(`仅已批准的请假申请可撤销（当前状态：${req.status}）`, 409);
+  }
+
+  const now = new Date();
+
+  // 恢复受该请假影响的排班: 按 leaveRequestId 精确关联，清除改派标记。
+  // 已被调班/互换重新分配的排班其 leaveRequestId 已被清空，不会误恢复。
+  const scheduleRes = await db.collection(COLLECTIONS.SCHEDULES)
+    .where({ leaveRequestId: requestId })
+    .limit(500)
+    .get();
+  const affectedSchedules = scheduleRes.data || [];
+  let restoredCount = 0;
+  for (const item of affectedSchedules) {
+    if (item.recordStatus === "archived" || item.status === "COMPLETED") continue;
+    await db.collection(COLLECTIONS.SCHEDULES).doc(item._id).update({
+      data: {
+        needsReassignment: false,
+        leaveRequestId: "",
+        reassignmentReason: "",
+        updatedAt: now,
+      },
+    });
+    restoredCount += 1;
+  }
+  if (restoredCount) cache.invalidate("SCHEDULE_TABLE");
+
+  await db.collection(COLLECTIONS.LEAVE_REQUESTS).doc(requestId).update({
+    data: {
+      status: "CANCELLED",
+      cancelledAt: now,
+      cancelledBy: `${guard.staff.name}（${guard.staff.employeeNo}）`,
+      auditTrail: [
+        ...(Array.isArray(req.auditTrail) ? req.auditTrail : []),
+        makeAuditEntry(
+          "CANCELLED",
+          guard.staff,
+          "CANCELLED",
+          `管理员撤销已批准请假，恢复 ${restoredCount} 条排班`
+        ),
+      ].slice(-20),
+      updatedAt: now,
+    },
+  });
+
+  await refreshStaffLeaveSnapshot(req.employeeNo);
+
+  await logOperation(
+    "CANCEL_LEAVE",
+    `${guard.staff.name}（${guard.staff.employeeNo}）撤销了已批准的请假 ${requestId}：${req.name}（${req.employeeNo}）`,
+    {
+      type: "leave",
+      requestId,
+      employeeNo: req.employeeNo,
+      before: { status: "APPROVED" },
+      after: { status: "CANCELLED", restoredScheduleCount: restoredCount },
+    }
+  );
+
+  return ok({
+    requestId,
+    status: "CANCELLED",
+    restoredScheduleCount: restoredCount,
+  }, "已撤销请假并恢复受影响排班");
+};
+
 module.exports = {
   createLeaveRequest,
   withdrawLeaveRequest,
   listMyLeaveRequests,
   listPendingLeaveRequests,
   approveLeaveRequest,
+  cancelLeaveRequest,
 };

@@ -136,6 +136,7 @@ Page({
   },
 
   async loadData() {
+    const seq = (this._loadSeq = (this._loadSeq || 0) + 1);
     this.setData({ loading: true, errorMessage: "" });
     const cacheKey = "serviceSchedule_" + this.data.scheduleDate;
 
@@ -170,6 +171,8 @@ Page({
       if (staffChains.length) {
         ganttData = this.computeGanttData(staffChains);
       }
+      // 丢弃过期请求的响应，避免旧数据覆盖新数据
+      if (seq !== this._loadSeq) return;
       this.setData({
         tasks,
         total: tasks.length,
@@ -187,11 +190,18 @@ Page({
         ganttData,
       });
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       if (!cached) {
         this.setData({ errorMessage: error.message || "加载失败" });
+      } else {
+        // 缓存命中但云端请求失败，提示当前展示的是缓存数据
+        this.setData({
+          errorMessage: `网络异常，当前为缓存数据${error.message ? `（${error.message}）` : ""}`,
+        });
       }
       this.setData({ loading: false });
     }
+    if (seq !== this._loadSeq) return;
     // 加载实时状态
     this.loadRealtimeStatuses();
   },
@@ -222,14 +232,27 @@ Page({
         this.setData({ ganttData });
       }
     } catch (e) {
-      // 静默失败
+      // D5: 实时状态异常不再静默，将已知航班标为状态未知并告警
+      console.warn("getFlightRealtimeStatuses 失败:", e);
+      const existing = this.data.realtimeStatuses || [];
+      const realtimeStatuses = existing.map((item) => ({
+        ...item,
+        isAlert: false,
+        realtimeStatus: "UNKNOWN",
+        statusText: "状态未知",
+      }));
+      this.setData({ realtimeStatuses });
+      if (this.data.staffChains && this.data.staffChains.length) {
+        const ganttData = this.computeGanttData(this.data.staffChains);
+        this.setData({ ganttData });
+      }
     }
   },
 
   /** 获取某个航班的状态 */
   getFlightStatus(flightNo) {
     const found = (this.data.realtimeStatuses || []).find(s => s.flightNo === flightNo);
-    return found ? found.realtimeStatus : "ON_TIME";
+    return found ? found.realtimeStatus : "UNKNOWN";
   },
 
   /** 打开状态更新菜单 */
@@ -252,6 +275,7 @@ Page({
     const status = e.currentTarget.dataset.status;
     const flightNo = this.data.statusTargetFlight;
     if (!flightNo || !status) return;
+    if (!this._checkOnline()) return;
     wx.showLoading({ title: "更新中..." });
     try {
       await callBackend("updateFlightRealtimeStatus", {
@@ -279,6 +303,7 @@ Page({
       wx.showToast({ title: "请先选中航班", icon: "none" });
       return;
     }
+    if (!this._checkOnline()) return;
     wx.showLoading({ title: "更新中..." });
     try {
       await callBackend("updateFlightRealtimeStatus", {
@@ -302,7 +327,7 @@ Page({
   },
 
   statusLabel(status) {
-    return { ON_TIME: "正常", DELAYED: "延误", CANCELLED: "取消", ARRIVED: "已到达" }[status] || status;
+    return { ON_TIME: "正常", DELAYED: "延误", CANCELLED: "取消", ARRIVED: "已到达", UNKNOWN: "状态未知" }[status] || status;
   },
 
   // 优化 2: 延误传播快捷预设 (一键, 不再手输分钟)
@@ -313,11 +338,13 @@ Page({
       wx.showToast({ title: "请先选中航班", icon: "none" });
       return;
     }
+    if (!this._checkOnline()) return;
     const res = await new Promise((resolve) => {
       wx.showModal({
         title: `延误 ${minutes} 分钟`,
         content: `航班 ${flightNo} 延误 ${minutes} 分, 自动调整后续任务. 确认?`,
         success: resolve,
+        fail: () => resolve({ confirm: false }),
       });
     });
     if (!res.confirm) return;
@@ -369,6 +396,12 @@ Page({
       });
       return;
     }
+    if (field === "delayReason") {
+      // 延误原因去首尾空白并限长 200 字
+      const reason = String(value || "").trim().slice(0, 200);
+      this.setData({ delayReason: reason });
+      return;
+    }
     this.setData({ [field]: value });
   },
 
@@ -392,6 +425,7 @@ Page({
       wx.showToast({ title: "请输入有效延误时长", icon: "none" });
       return;
     }
+    if (!this._checkOnline()) return;
 
     wx.showLoading({ title: "传播中..." });
     try {
@@ -399,7 +433,7 @@ Page({
         flightNo,
         scheduleDate: this.data.scheduleDate,
         delayMinutes,
-        reason: this.data.delayReason || "",
+        reason: String(this.data.delayReason || "").trim().slice(0, 200),
       });
       wx.showToast({ title: result.message || "处理完成", icon: "success" });
       this.setData({ showDelayInput: false, delayTarget: null });
@@ -425,6 +459,7 @@ Page({
     const task = (this.data.tasks || []).find(t => t.flightNo === flightNo && t.taskType === taskType);
     const airline = task ? task.airline : "";
     const aircraftType = task ? task.aircraftType : "";
+    if (!this._checkOnline()) return;
 
     wx.showLoading({ title: "查询可用人员…" });
     try {
@@ -470,10 +505,13 @@ Page({
 
   /** 执行改班 */
   async onReassign(e) {
+    if (this._reassignBusy) return;
     const newStaffId = e.currentTarget.dataset.staffid;
     const target = this.data.reassignTarget;
     if (!newStaffId || !target) return;
+    if (!this._checkOnline()) return;
 
+    this._reassignBusy = true;
     wx.showLoading({ title: "改班中…" });
     try {
       const result = await callBackend("reassignStaffTask", {
@@ -497,6 +535,7 @@ Page({
     } catch (error) {
       wx.showToast({ title: error.message || "改班失败", icon: "none" });
     } finally {
+      this._reassignBusy = false;
       wx.hideLoading();
     }
   },
@@ -595,7 +634,7 @@ Page({
           const e = rawEnd <= s ? rawEnd + 1440 : rawEnd;
           // 查找实时状态
           const rtStatus = this.getFlightStatus(t.flightNo);
-          const statusLabel = { ON_TIME: "正常", DELAYED: "延误", CANCELLED: "取消", ARRIVED: "已到" }[rtStatus] || "";
+          const statusLabel = { ON_TIME: "正常", DELAYED: "延误", CANCELLED: "取消", ARRIVED: "已到", UNKNOWN: "状态未知" }[rtStatus] || "";
           return {
             flightNo: t.flightNo || "",
             airline: t.airline || "",
@@ -681,74 +720,97 @@ Page({
   // ═══════════════════════════════════════════
 
   async onAutoSchedule() {
-    wx.showLoading({ title: "自动排班中…" });
+    if (this._autoScheduling) return;
+    this._autoScheduling = true;
     try {
-      const result = await callBackend("smartScheduleWithRoles", {
-        scheduleDate: this.data.scheduleDate,
+      const confirmed = await new Promise((resolve) => {
+        wx.showModal({
+          title: "自动排班",
+          content: `将为 ${this.data.scheduleDate} 生成新的排班预览，会覆盖当前排班内容，是否继续？`,
+          confirmText: "开始排班",
+          confirmColor: "#b24b57",
+          success: (result) => resolve(result.confirm),
+          fail: () => resolve(false),
+        });
       });
-      const s = result.stats || {};
-      const tasks = this.decorateTasks(result.assignments || []);
-      const chains = this.decorateChains(result.staffChains || []);
-      const ganttData = this.computeGanttData(chains);
-      this.setData({
-        tasks,
-        staffChains: chains,
-        stats: s,
-        ganttData: ganttData,
-        tabIndex: 0,
-        isPreview: true,
-      });
-      wx.showToast({
-        title: s.unfilledTaskCount
-          ? `有 ${s.unfilledTaskCount} 个任务人员不足`
-          : `已生成 ${s.totalFlights || 0} 个航班预览`,
-        icon: s.unfilledTaskCount ? "none" : "success",
-      });
+      if (!confirmed) return;
+      wx.showLoading({ title: "自动排班中…" });
+      try {
+        const result = await callBackend("smartScheduleWithRoles", {
+          scheduleDate: this.data.scheduleDate,
+        });
+        const s = result.stats || {};
+        const tasks = this.decorateTasks(result.assignments || []);
+        const chains = this.decorateChains(result.staffChains || []);
+        const ganttData = this.computeGanttData(chains);
+        this.setData({
+          tasks,
+          staffChains: chains,
+          stats: s,
+          ganttData: ganttData,
+          tabIndex: 0,
+          isPreview: true,
+        });
+        wx.showToast({
+          title: s.unfilledTaskCount
+            ? `有 ${s.unfilledTaskCount} 个任务人员不足`
+            : `已生成 ${s.totalFlights || 0} 个航班预览`,
+          icon: s.unfilledTaskCount ? "none" : "success",
+        });
+      } finally {
+        wx.hideLoading();
+      }
     } catch (error) {
       wx.showToast({ title: error.message || "自动排班失败", icon: "none" });
     } finally {
-      wx.hideLoading();
+      this._autoScheduling = false;
     }
   },
 
   async onPublish() {
-    if (!this.data.isPreview) {
-      wx.showToast({ title: "请先生成新的排班预览", icon: "none" });
-      return;
-    }
-    if (!this.data.tasks.length) {
-      wx.showToast({ title: "请先生成或加载排班内容", icon: "none" });
-      return;
-    }
-    if (Number(this.data.stats.unfilledTaskCount || 0) > 0) {
-      wx.showToast({ title: "仍有任务人员不足，不能发布", icon: "none" });
-      return;
-    }
-    const confirmed = await new Promise((resolve) => {
-      wx.showModal({
-        title: "发布勤务与放行排班",
-        content: `发布后将归档 ${this.data.scheduleDate} 的旧版本，并写入当前 ${this.data.tasks.length} 个任务。`,
-        confirmText: "确认发布",
-        success: (result) => resolve(result.confirm),
-        fail: () => resolve(false),
-      });
-    });
-    if (!confirmed) return;
-
-    wx.showLoading({ title: "发布中…" });
+    if (this._publishing) return;
+    this._publishing = true;
     try {
-      await callBackend("publishServiceSchedule", {
-        scheduleDate: this.data.scheduleDate,
-        assignments: this.data.tasks,
+      if (!this.data.isPreview) {
+        wx.showToast({ title: "请先生成新的排班预览", icon: "none" });
+        return;
+      }
+      if (!this.data.tasks.length) {
+        wx.showToast({ title: "请先生成或加载排班内容", icon: "none" });
+        return;
+      }
+      if (Number(this.data.stats.unfilledTaskCount || 0) > 0) {
+        wx.showToast({ title: "仍有任务人员不足，不能发布", icon: "none" });
+        return;
+      }
+      const confirmed = await new Promise((resolve) => {
+        wx.showModal({
+          title: "发布勤务与放行排班",
+          content: `发布后将归档 ${this.data.scheduleDate} 的旧版本，并写入当前 ${this.data.tasks.length} 个任务。`,
+          confirmText: "确认发布",
+          success: (result) => resolve(result.confirm),
+          fail: () => resolve(false),
+        });
       });
-      wx.showToast({ title: "发布成功", icon: "success" });
-      this.setData({ isPreview: false });
-      wx.removeStorageSync("data_cache_serviceSchedule_" + this.data.scheduleDate);
-      await this.loadData();
+      if (!confirmed) return;
+
+      wx.showLoading({ title: "发布中…" });
+      try {
+        await callBackend("publishServiceSchedule", {
+          scheduleDate: this.data.scheduleDate,
+          assignments: this.data.tasks,
+        });
+        wx.showToast({ title: "发布成功", icon: "success" });
+        this.setData({ isPreview: false });
+        wx.removeStorageSync("data_cache_serviceSchedule_" + this.data.scheduleDate);
+        await this.loadData();
+      } finally {
+        wx.hideLoading();
+      }
     } catch (error) {
       wx.showToast({ title: error.message || "发布失败", icon: "none" });
     } finally {
-      wx.hideLoading();
+      this._publishing = false;
     }
   },
 
@@ -813,6 +875,16 @@ Page({
       dutyStartLabel: this.formatTime(chain.dutyStart),
       dutyEndLabel: this.formatTime(chain.dutyEnd),
     }));
+  },
+
+  /** 离线时拦截写操作 */
+  _checkOnline() {
+    const app = getApp();
+    if (!app.globalData.isConnected) {
+      wx.showToast({ title: "网络已断开，该操作不可用", icon: "none" });
+      return false;
+    }
+    return true;
   },
 
   noop() {},

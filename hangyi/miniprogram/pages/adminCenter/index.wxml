@@ -155,7 +155,7 @@
       <view class="section-head">
         <view>
           <view class="section-title">管理模块</view>
-          <view class="section-copy">11 项管理工具集中在这里</view>
+          <view class="section-copy">10 项管理工具集中在这里</view>
         </view>
       </view>
 
@@ -165,14 +165,7 @@
             <image class="module-icon" src="/images/menu/calendar.svg" mode="aspectFit"></image>
           </view>
           <view class="module-title">排班编制</view>
-          <view class="module-copy">编辑、智能排班、导入与发布</view>
-        </view>
-        <view class="module-card" bindtap="onNavigate" data-url="/pages/serviceSchedule/index" hover-class="tap-active">
-          <view class="module-code">
-            <image class="module-icon" src="/images/menu/service.svg" mode="aspectFit"></image>
-          </view>
-          <view class="module-title">勤务放行</view>
-          <view class="module-copy">人务链与实时改班</view>
+          <view class="module-copy">编辑、智能排班、勤务放行与发布</view>
         </view>
         <view class="module-card" bindtap="onNavigate" data-url="/pages/warnings/index" data-mode="tab" hover-class="tap-active">
           <view class="module-code">

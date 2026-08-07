@@ -188,9 +188,10 @@ Page({
         fail: () => wx.showToast({ title: "已退出，请重新进入", icon: "none" }),
       });
     } catch (error) {
-      wx.showToast({ title: error.message || "退出失败", icon: "none" });
+      // 退出失败: 仅提示, 不清理缓存也不跳转, 避免二次调用把 alreadyLoggedOut 误当成功
+      wx.showToast({ title: error.message || "退出失败，请稍后重试", icon: "none" });
     } finally {
-      this.setData({ loggingOut: false });
+      // 防重入: 失败后保持 loggingOut(按钮保持禁用), 防止重复点击触发二次 logoutStaff
       wx.hideLoading();
     }
   },

@@ -177,7 +177,7 @@
       <view class="admin-hub-copy">排班、审批、人员、分析、参数与审计统一管理</view>
     </view>
     <view class="admin-hub-side">
-      <view class="admin-hub-count">11</view>
+      <view class="admin-hub-count">10</view>
       <view class="admin-hub-unit">项工具</view>
       <image class="admin-hub-arrow" src="/images/menu/chevron-right-white.svg" mode="aspectFit"></image>
     </view>

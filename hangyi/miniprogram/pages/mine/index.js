@@ -1,6 +1,9 @@
 const { callBackend } = require("../../utils/api.js");
-const { applyUiSettings, groupLabel } = require("../../utils/ui");
+const { applyUiIfThemeChanged, groupLabel } = require("../../utils/ui");
 const { readCache, writeCache, clearAllCache } = require("../../utils/cache");
+
+// 资质红点阈值: 30 天内到期的资质触发提示, 与后端口径一致(资质页紧急预警同用 30 天)。
+const QUALIFICATION_EXPIRY_WARNING_DAYS = 30;
 
 const decorateProfile = (profile) => ({
   ...profile,
@@ -58,7 +61,7 @@ Page({
   },
 
   loadUiSettings() {
-    applyUiSettings(this);
+    applyUiIfThemeChanged(this);
   },
 
   async loadData() {
@@ -82,8 +85,10 @@ Page({
       if (qualRes && qualRes.list) {
         const me = qualRes.list.find(s => s.employeeNo === profile.employeeNo);
         if (me) {
-          // 红点只提示已过期或 30 天内到期，与资质页的紧急预警口径一致。
-          expiredQualCount = me.qualifications.filter(q => Number(q.daysLeft) <= 30).length;
+          // 红点只提示已过期或阈值天内到期，与资质页的紧急预警口径一致。
+          expiredQualCount = me.qualifications.filter(
+            (q) => Number(q.daysLeft) <= QUALIFICATION_EXPIRY_WARNING_DAYS
+          ).length;
         }
       }
       let profileQrDataUrl = "";
@@ -242,6 +247,7 @@ Page({
         content: "退出登录后将清除当前账号绑定",
         confirmColor: "#ff4d5a",
         success: resolve,
+        fail: () => resolve({ confirm: false }),
       });
     });
 
@@ -259,9 +265,10 @@ Page({
         fail: () => wx.showToast({ title: "已退出，请重新进入", icon: "none" }),
       });
     } catch (error) {
-      wx.showToast({ title: error.message || "退出失败", icon: "none" });
+      // 退出失败: 仅提示, 不清理缓存也不跳转, 避免二次调用把 alreadyLoggedOut 误当成功
+      wx.showToast({ title: error.message || "退出失败，请稍后重试", icon: "none" });
     } finally {
-      this.setData({ loggingOut: false });
+      // 防重入: 失败后保持 loggingOut, 防止重复点击触发二次 logoutStaff
       wx.hideLoading();
     }
   },

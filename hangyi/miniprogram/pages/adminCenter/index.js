@@ -66,6 +66,8 @@ Page({
     healthIcon: "/images/menu/check-circle.svg",
   },
 
+  _loadSeq: 0,
+
   onLoad() {
     this.setData({ scheduleDate: todayISO() });
   },
@@ -93,6 +95,7 @@ Page({
 
   async loadDashboard(forceRefresh = false) {
     if (!this.data.scheduleDate) return;
+    const seq = ++this._loadSeq;
     const cacheKey = `admin_dashboard_${this.data.scheduleDate}`;
     this.setData({
       loading: !this.data.loaded,
@@ -109,9 +112,12 @@ Page({
     }
 
     try {
-      const result = await callBackend("getAdminDashboard", {
-        scheduleDate: this.data.scheduleDate,
-      });
+      const result = await callBackend(
+        "getAdminDashboard",
+        { scheduleDate: this.data.scheduleDate },
+        { silent: true }
+      );
+      if (seq !== this._loadSeq) return;
       writeCache(cacheKey, result);
       this.applyDashboard(result);
       this.setData({
@@ -122,12 +128,27 @@ Page({
         errorMessage: "",
       });
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       const denied = Number(error.code) === 403 || String(error.message || "").includes("管理员");
+      if (denied) {
+        this.setData({
+          loading: false,
+          refreshing: false,
+          adminDenied: true,
+          errorMessage: "",
+        });
+        return;
+      }
+      const isNetwork = error && typeof error.code === "undefined";
+      wx.showToast({
+        title: isNetwork ? "网络异常，请稍后重试" : (error.message || "管理工作台加载失败"),
+        icon: "none",
+      });
       this.setData({
         loading: false,
         refreshing: false,
-        adminDenied: denied,
-        errorMessage: denied ? "" : (error.message || "管理工作台加载失败"),
+        adminDenied: false,
+        errorMessage: error.message || "管理工作台加载失败",
       });
     }
   },
@@ -187,10 +208,16 @@ Page({
     const mode = e.currentTarget.dataset.mode;
     if (!url) return;
     if (mode === "tab") {
-      wx.switchTab({ url });
+      wx.switchTab({
+        url,
+        fail: () => wx.showToast({ title: "页面跳转失败，请重试", icon: "none" }),
+      });
       return;
     }
-    wx.navigateTo({ url });
+    wx.navigateTo({
+      url,
+      fail: () => wx.showToast({ title: "页面跳转失败，请重试", icon: "none" }),
+    });
   },
 
   onBackMine() {

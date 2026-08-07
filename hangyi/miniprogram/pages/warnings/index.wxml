@@ -5,6 +5,11 @@
     <view class="skeleton skeleton-block short"></view>
   </view>
 
+  <view class="card state-card" wx:elif="{{accessDenied}}">
+    <view class="state-title">仅管理员可查看全员预警</view>
+    <view class="state-copy">请使用管理员账号查看全员预警与审批队列</view>
+  </view>
+
   <view class="card state-card" wx:elif="{{errorMessage && !loaded}}">
     <view class="state-title">预警数据暂时无法加载</view>
     <view class="state-copy">{{errorMessage}}</view>

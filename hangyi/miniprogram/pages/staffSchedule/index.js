@@ -1,5 +1,5 @@
 const { callBackend } = require("../../utils/api.js");
-const { applyUiSettings, groupLabel } = require("../../utils/ui");
+const { applyUiIfThemeChanged, groupLabel } = require("../../utils/ui");
 const { readCache, writeCache } = require("../../utils/cache");
 
 const SHIFT_TEXT = {
@@ -18,6 +18,9 @@ const STATUS_TONE = {
 };
 
 Page({
+  // 加载序号: 防止 init / 切换日期 / 下拉刷新等并发请求的旧响应覆盖新数据
+  _loadSeq: 0,
+
   data: {
     loading: false,
     loaded: false,
@@ -46,30 +49,34 @@ Page({
   },
 
   onShow() {
-    applyUiSettings(this);
+    applyUiIfThemeChanged(this);
     this.init();
   },
 
   async init() {
+    const seq = ++this._loadSeq;
     const todayDate = this.formatDate(new Date());
     const scheduleDate = this.data.scheduleDate || todayDate;
     this.setData({ loading: true, errorMessage: "", todayDate, scheduleDate });
     try {
-      await this.loadTable(false, scheduleDate);
+      await this.loadTable(false, scheduleDate, seq);
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       this.setData({ errorMessage: error.message || "排班加载失败，请稍后重试" });
     } finally {
+      if (seq !== this._loadSeq) return;
       this.setData({ loading: false });
     }
   },
 
-  async loadTable(forceRefresh = false, requestedDate = "") {
+  async loadTable(forceRefresh = false, requestedDate = "", seq = 0) {
     const targetDate = requestedDate || this.data.scheduleDate || this.formatDate(new Date());
     const cacheKey = `schedule_mobile_v2_${targetDate}`;
 
     if (!forceRefresh) {
       const cached = readCache(cacheKey, 30000);
       if (cached) {
+        if (seq && seq !== this._loadSeq) return;
         this.setData({ ...cached, loading: false, loaded: true, errorMessage: "" });
         this.applyFilters();
         return;
@@ -77,6 +84,7 @@ Page({
     }
 
     const data = await callBackend("getStaffScheduleTable", { scheduleDate: targetDate });
+    if (seq && seq !== this._loadSeq) return;
     const rows = (data.rows || []).map((item) => ({
       ...item,
       shiftText: SHIFT_TEXT[item.shiftCode] || item.shiftCode || "未排班",
@@ -230,6 +238,7 @@ Page({
   async onPickDate(e) {
     const scheduleDate = String(e.detail.value || "");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduleDate) || scheduleDate === this.data.scheduleDate) return;
+    const seq = ++this._loadSeq;
     this.setData({
       scheduleDate,
       loading: true,
@@ -244,10 +253,12 @@ Page({
       conflictCount: 0,
     });
     try {
-      await this.loadTable(false, scheduleDate);
+      await this.loadTable(false, scheduleDate, seq);
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       this.setData({ errorMessage: error.message || "排班加载失败，请稍后重试" });
     } finally {
+      if (seq !== this._loadSeq) return;
       this.setData({ loading: false });
     }
   },
@@ -259,17 +270,21 @@ Page({
 
   async onRefresh() {
     if (this.data.loading) return;
+    const seq = ++this._loadSeq;
     this.setData({ loading: true, errorMessage: "" });
     try {
       const targetDate = this.data.scheduleDate || this.formatDate(new Date());
       wx.removeStorageSync("data_cache_schedule_mobile_v2_" + targetDate);
-      await this.loadTable(true, targetDate);
+      await this.loadTable(true, targetDate, seq);
+      if (seq !== this._loadSeq) return;
       wx.showToast({ title: "已刷新", icon: "success" });
     } catch (error) {
+      if (seq !== this._loadSeq) return;
       const errorMessage = error.message || "刷新失败，请稍后重试";
       this.setData({ errorMessage });
       wx.showToast({ title: errorMessage, icon: "none" });
     } finally {
+      if (seq !== this._loadSeq) return;
       this.setData({ loading: false });
     }
   },

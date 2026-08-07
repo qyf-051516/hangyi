@@ -154,7 +154,12 @@ Page({
         });
         nickName = (profileRes.userInfo && profileRes.userInfo.nickName) || "";
       } catch (_) {
-        // 用户拒绝给昵称也允许继续，只是不更新昵称
+        // 用户拒绝给昵称: 提示仅验证身份, 仍允许继续登录(不更新昵称)
+        wx.showToast({
+          title: "未获取到微信昵称/头像，仅验证身份，不更新个人资料",
+          icon: "none",
+          duration: 2000,
+        });
         nickName = "";
       }
     }
@@ -170,7 +175,7 @@ Page({
     } catch (err) {
       wx.hideLoading();
       this.setData({ profileLoading: false });
-      if (err.message && err.message.indexOf("未绑定") >= 0) {
+      if (err.data && err.data.code === "NOT_REGISTERED") {
         wx.showModal({
           title: "当前微信未绑定员工",
           content: "首次使用请通过本机手机号一键完成绑定；之后可一键微信登录。",
@@ -199,8 +204,6 @@ Page({
   _onLoginSuccess(_data, _via) {
     wx.showToast({ title: "登录成功", icon: "success" });
     clearAllCache();
-    setTimeout(() => {
-      wx.switchTab({ url: "/pages/mine/index" });
-    }, 300);
+    wx.switchTab({ url: "/pages/mine/index" });
   },
 });

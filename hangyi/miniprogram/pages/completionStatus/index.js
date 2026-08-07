@@ -84,6 +84,8 @@ Page({
 
   async loadData(silent = false, isAutoRefresh = false) {
     if (!this.data.isAdmin) return false;
+    if (this._inflight) return false; // 已有请求进行中，跳过本次刷新
+    this._inflight = true;
     if (!silent) this.setData({ loading: true });
     if (!isAutoRefresh) this.setData({ errorMessage: "" });
     try {
@@ -121,16 +123,20 @@ Page({
       }
       return false;
     } finally {
+      this._inflight = false;
       this.setData({ loading: false });
     }
   },
 
   async onManualRefresh() {
+    if (this._refreshing) return;
+    this._refreshing = true;
     wx.showLoading({ title: "刷新中" });
     try {
       const success = await this.loadData(true);
       wx.showToast({ title: success ? "已刷新" : "刷新失败", icon: success ? "success" : "none" });
     } finally {
+      this._refreshing = false;
       wx.hideLoading();
     }
   },

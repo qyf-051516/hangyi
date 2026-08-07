@@ -47,12 +47,7 @@
     <scroll-view class="tool-scroll" scroll-x enable-flex>
       <view class="tool-row">
         <button class="tool-btn primary" bindtap="onSmartSchedule" disabled="{{isOffline}}">智能排班</button>
-        <button class="tool-btn" loading="{{analyzing}}" bindtap="onAiOptimizeSchedule" disabled="{{isOffline}}">疲劳优化</button>
-        <button class="tool-btn" bindtap="onBatchAssign" disabled="{{isOffline}}">批量班次</button>
-        <button class="tool-btn" bindtap="onShowTSVImport" disabled="{{isOffline}}">导入航班</button>
-        <button class="tool-btn" bindtap="onExportMenu">导出</button>
-        <button class="tool-btn" bindtap="onOpenCompletionStats">完成统计</button>
-        <button class="tool-btn" bindtap="onOpenServiceSchedule">勤务放行</button>
+        <button class="tool-btn" bindtap="onShowToolMenu">更多</button>
       </view>
     </scroll-view>
   </view>
@@ -150,6 +145,59 @@
   <!-- 空状态 -->
   <view class="card empty-wrap" wx:if="{{!loading && displayRows.length === 0}}">
     <text class="empty-text">{{searchKeyword || statusFilter !== 'ALL' ? '没有符合筛选条件的人员' : '暂无人员数据'}}</text>
+  </view>
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- 更多操作菜单 -->
+  <!-- ════════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showToolMenu}}" bindtap="onCloseToolMenu">
+    <view class="export-sheet" catchtap="noop">
+      <view class="export-sheet-title"> 更多操作</view>
+      <view class="export-sheet-sub">{{scheduleDate}} · 排班编制工具</view>
+      <view class="export-option" data-action="aiOptimize" bindtap="onToolMenuAction" hover-class="tap-active">
+        <text class="export-icon">优</text>
+        <view class="export-info">
+          <text class="export-label">疲劳优化</text>
+          <text class="export-desc">基于工时负荷自动优化班次</text>
+        </view>
+      </view>
+      <view class="export-option" data-action="batch" bindtap="onToolMenuAction" hover-class="tap-active">
+        <text class="export-icon">批</text>
+        <view class="export-info">
+          <text class="export-label">批量班次</text>
+          <text class="export-desc">为多人一次性设置班次</text>
+        </view>
+      </view>
+      <view class="export-option" data-action="tsv" bindtap="onToolMenuAction" hover-class="tap-active">
+        <text class="export-icon">导</text>
+        <view class="export-info">
+          <text class="export-label">导入航班</text>
+          <text class="export-desc">从 TSV/TXT 文件导入排班</text>
+        </view>
+      </view>
+      <view class="export-option" data-action="export" bindtap="onToolMenuAction" hover-class="tap-active">
+        <text class="export-icon">出</text>
+        <view class="export-info">
+          <text class="export-label">导出</text>
+          <text class="export-desc">Excel / 打印总表 / 图片</text>
+        </view>
+      </view>
+      <view class="export-option" data-action="stats" bindtap="onToolMenuAction" hover-class="tap-active">
+        <text class="export-icon">统</text>
+        <view class="export-info">
+          <text class="export-label">完成统计</text>
+          <text class="export-desc">排班执行完成率统计</text>
+        </view>
+      </view>
+      <view class="export-option" data-action="service" bindtap="onToolMenuAction" hover-class="tap-active">
+        <text class="export-icon">勤</text>
+        <view class="export-info">
+          <text class="export-label">勤务放行</text>
+          <text class="export-desc">人务链与实时改班</text>
+        </view>
+      </view>
+      <button class="export-cancel" bindtap="onCloseToolMenu">取消</button>
+    </view>
   </view>
 
   <!-- ════════════════════════════════════════════ -->
@@ -459,7 +507,7 @@
                 {{c.qualificationText}}
               </text>
             </view>
-            <button class="rs-btn">改至此人</button>
+            <button class="rs-btn" loading="{{reassignSubmitting}}" disabled="{{reassignSubmitting}}">改至此人</button>
           </view>
           <view class="rs-empty" wx:if="{{!reassignLoading && reassignCandidates.length === 0}}">
              当前无可用人员

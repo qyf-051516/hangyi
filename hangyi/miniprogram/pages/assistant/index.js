@@ -112,7 +112,8 @@ Page({
       this.setData({ messages: visibleMessages }, () => this.scrollToBottom());
       writeCache(CACHE_KEY, { messages: visibleMessages });
     } catch (error) {
-      // 服务端历史失败不阻断本地缓存和本次问答。
+      // 服务端历史失败不阻断本地缓存和本次问答, 提示已恢复本地缓存
+      wx.showToast({ title: "网络异常，已恢复本地缓存", icon: "none" });
     }
   },
 

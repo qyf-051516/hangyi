@@ -59,7 +59,9 @@ const applySystemTheme = (theme) => {
         duration: 180,
         timingFunc: "easeIn",
       },
-      fail: () => {},
+      fail: (err) => {
+        console.warn("[ui] setNavigationBarColor failed:", (err && (err.errMsg || err.message)) || err);
+      },
     });
   }
 
@@ -68,7 +70,9 @@ const applySystemTheme = (theme) => {
       backgroundColor: style.backgroundColor,
       backgroundColorTop: style.backgroundColor,
       backgroundColorBottom: style.backgroundColor,
-      fail: () => {},
+      fail: (err) => {
+        console.warn("[ui] setBackgroundColor failed:", (err && (err.errMsg || err.message)) || err);
+      },
     });
   }
 
@@ -78,7 +82,9 @@ const applySystemTheme = (theme) => {
       selectedColor: style.tabBarSelectedColor,
       backgroundColor: style.tabBarBackgroundColor,
       borderStyle: style.tabBarBorderStyle,
-      fail: () => {},
+      fail: (err) => {
+        console.warn("[ui] setTabBarStyle failed:", (err && (err.errMsg || err.message)) || err);
+      },
     });
   }
 };
@@ -92,9 +98,41 @@ const applyUiSettings = (ctx) => {
   return ui;
 };
 
+// 读取当前主题版本号(由 setUiTheme 每次切换时 +1)。
+// tabBar 页在 onShow 中检测版本变化, 主题在设置页切换后已打开页面也会重新应用。
+const getThemeVersion = () => {
+  try {
+    const app = getApp();
+    return (app && app.globalData && Number(app.globalData.themeVersion)) || 0;
+  } catch {
+    return 0;
+  }
+};
+
+// tabBar 页 onShow 专用: 仅当主题版本发生变化时才重新应用 UI 配置,
+// 避免已打开页面在设置页切换主题后仍然停留在旧主题。
+const applyUiIfThemeChanged = (ctx) => {
+  const version = getThemeVersion();
+  if (ctx._themeVersionInitialized !== true || version !== ctx._lastThemeVersion) {
+    ctx._themeVersionInitialized = true;
+    ctx._lastThemeVersion = version;
+    return applyUiSettings(ctx);
+  }
+  return getUiSettings();
+};
+
 const setUiTheme = (theme, ctx) => {
   const nextTheme = normalizeTheme(theme);
   wx.setStorageSync("ui_theme", nextTheme);
+  // 主题版本号 +1, 已打开的 tabBar 页在 onShow 时据此检测并重新应用
+  try {
+    const app = getApp();
+    if (app && app.globalData) {
+      app.globalData.themeVersion = (Number(app.globalData.themeVersion) || 0) + 1;
+    }
+  } catch (e) {
+    console.warn("[ui] setUiTheme bump themeVersion failed:", e && e.message);
+  }
   const ui = {
     theme: nextTheme,
     themeClass: nextTheme === "light" ? "theme-light" : "theme-dark",
@@ -145,6 +183,7 @@ const clearIsAdminCache = () => {
 module.exports = {
   getUiSettings,
   applyUiSettings,
+  applyUiIfThemeChanged,
   setUiTheme,
   groupLabel,
   loadIsAdmin,
