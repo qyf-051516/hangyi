@@ -1,6 +1,6 @@
 /**
  * swap.js - 代班 / 调班申请与审批
- * 涵盖：createSwapRequest、createSwapApplication、listMySwapRequests、
+ * 涵盖：createSwapApplication、listMySwapRequests、
  *       listSwapRequests、approveSwapRequest、withdrawSwapRequest
  */
 const {
@@ -49,166 +49,6 @@ const findActiveScheduleConflict = async (staffId, scheduleDate, excludedIds = [
   ) || null;
 };
 
-// ──────────────────────────────────────────────
-// 创建代班申请（双人互换）
-// ──────────────────────────────────────────────
-const createSwapRequest = async (event) => {
-  const guard = await requireActiveStaff();
-  if (!guard.ok) return guard.response;
-
-  const payload = event.data || {};
-  const sourceScheduleId = typeof payload.sourceScheduleId === "string"
-    ? payload.sourceScheduleId.trim() : "";
-  const targetScheduleId = typeof payload.targetScheduleId === "string"
-    ? payload.targetScheduleId.trim() : "";
-  const reasonEvidence = normalizeReasonEvidence(payload);
-  if (!sourceScheduleId || !targetScheduleId) return fail("请提供双方排班记录ID", 400);
-  if (sourceScheduleId === targetScheduleId) return fail("原排班和目标排班不能相同", 400);
-  if (!reasonEvidence.ok) return fail(reasonEvidence.message, 400);
-
-  const pending = await db
-    .collection(COLLECTIONS.SWAP_REQUESTS)
-    .where({ sourceScheduleId, targetScheduleId, status: "PENDING" })
-    .limit(1)
-    .get();
-  if (pending.data.length) return fail("该代班申请已在审批中", 409);
-
-  const sourceScheduleRes = await db.collection(COLLECTIONS.SCHEDULES).doc(sourceScheduleId).get();
-  const targetScheduleRes = await db.collection(COLLECTIONS.SCHEDULES).doc(targetScheduleId).get();
-  const sourceSchedule = sourceScheduleRes.data;
-  const targetSchedule = targetScheduleRes.data;
-
-  if (!sourceSchedule || !targetSchedule) return fail("排班记录不存在", 404);
-  if (sourceSchedule.staffId !== guard.staff._id) {
-    return fail("只能为自己的排班发起代班申请", 403);
-  }
-  if (
-    sourceSchedule.status === "COMPLETED" ||
-    targetSchedule.status === "COMPLETED" ||
-    sourceSchedule.recordStatus === "archived" ||
-    targetSchedule.recordStatus === "archived"
-  ) {
-    return fail("已完成的排班不能申请互换", 409);
-  }
-  const today = formatDate(new Date());
-  if (
-    !sourceSchedule.scheduleDate ||
-    !targetSchedule.scheduleDate ||
-    sourceSchedule.scheduleDate <= today ||
-    targetSchedule.scheduleDate <= today
-  ) {
-    return fail("历史排班不能申请互换", 409);
-  }
-  if (sourceSchedule.staffId === targetSchedule.staffId) {
-    return fail("不能与自己的另一条排班互换", 409);
-  }
-
-  const sourceStaffRes = await db.collection(COLLECTIONS.STAFF).doc(sourceSchedule.staffId).get();
-  const targetStaffRes = await db.collection(COLLECTIONS.STAFF).doc(targetSchedule.staffId).get();
-  const sourceStaff = sourceStaffRes.data;
-  const targetStaff = targetStaffRes.data;
-  if (!sourceStaff || !targetStaff || targetStaff.active === false) {
-    return fail("代班人员不存在或已停用", 404);
-  }
-
-  const targetCanTakeSource = hasQualification(targetStaff, sourceSchedule.airline, sourceSchedule.aircraftType);
-  const sourceCanTakeTarget = hasQualification(sourceStaff, targetSchedule.airline, targetSchedule.aircraftType);
-
-  if (!sourceCanTakeTarget || !targetCanTakeSource) {
-    return fail("代班失败：存在航司授权或机型资质不匹配", 409, {
-      sourceCanTakeTarget,
-      targetCanTakeSource,
-    });
-  }
-
-  const [sourceValidation, targetValidation] = await Promise.all([
-    validateStaffScheduleAssignment({
-      staff: sourceStaff,
-      targetSchedule,
-      excludeScheduleIds: [sourceScheduleId, targetScheduleId],
-    }),
-    validateStaffScheduleAssignment({
-      staff: targetStaff,
-      targetSchedule: sourceSchedule,
-      excludeScheduleIds: [sourceScheduleId, targetScheduleId],
-    }),
-  ]);
-  if (!sourceValidation.passed || !targetValidation.passed) {
-    return fail("代班失败：系统检测到资质、请假或工时冲突", 409, {
-      sourceValidation,
-      targetValidation,
-    });
-  }
-
-  const { openid } = getOpenContext();
-  const now = new Date();
-  const swapData = {
-    requestType: "SWAP",
-    sourceScheduleId,
-    targetScheduleId,
-    sourceStaffId: sourceSchedule.staffId,
-    targetStaffId: targetSchedule.staffId,
-    reason: reasonEvidence.reason,
-    reasonText: reasonEvidence.reasonText,
-    reasonImages: reasonEvidence.reasonImages,
-    reasonMode: reasonEvidence.reasonMode,
-    status: "PENDING_TARGET_CONFIRMATION",
-    targetConsent: "PENDING",
-    verifier: "AUTO_COMPLIANCE",
-    validationSnapshot: {
-      passed: true,
-      sourceValidation,
-      targetValidation,
-    },
-    validatedAt: now,
-    requesterOpenid: openid,
-    employeeNo: guard.staff.employeeNo,
-    name: guard.staff.name,
-    scheduleDate: sourceSchedule.scheduleDate || "",
-    flightNo: sourceSchedule.flightNo || "",
-    auditTrail: [
-      makeAuditEntry("SUBMITTED", guard.staff, "PENDING_TARGET_CONFIRMATION", "系统已完成资质与工时校验，等待对方确认"),
-    ],
-    createdAt: now,
-    updatedAt: now,
-  };
-  const requestRes = await db.collection(COLLECTIONS.SWAP_REQUESTS).add({ data: swapData });
-
-  await logOperation(
-    "CREATE_SWAP",
-    `${guard.staff.name}（${guard.staff.employeeNo}）提交排班互换申请`,
-    {
-      type: "swapRequest",
-      requestId: requestRes._id,
-      sourceScheduleId,
-      targetScheduleId,
-      reasonMode: reasonEvidence.reasonMode,
-      imageCount: reasonEvidence.reasonImages.length,
-      validationPassed: true,
-      before: null,
-      after: { status: "PENDING" },
-    }
-  );
-
-  // 实时同步到 Hangyi
-  const syncEnabled = String(await getSettingValue(SETTINGS_KEYS.HANGYI_SYNC_ENABLED, "false")) === "true";
-  if (syncEnabled) {
-    callHangyiServiceChecked("/api/sync/swap-requests", [{ _id: requestRes._id, ...swapData }])
-      .catch((error) => console.error("Hangyi同步失败:", error.message || "unknown"));
-  }
-
-  return ok(
-    {
-      requestId: requestRes._id,
-      sourceScheduleId,
-      targetScheduleId,
-      sourceStaff: sourceStaff.name,
-      targetStaff: targetStaff.name,
-      validationSnapshot: swapData.validationSnapshot,
-    },
-    "代班申请已提交，等待对方确认"
-  );
-};
 
 // ──────────────────────────────────────────────
 // 创建调班申请（单人申请）
@@ -395,42 +235,6 @@ const listMySwapRequests = async (event) => {
   return ok({ list, total: list.length });
 };
 
-// 对方员工必须先明确同意，管理员才可以批准互换。单人调班申请不经过该环节。
-const respondToSwapRequest = async (event) => {
-  const guard = await requireActiveStaff();
-  if (!guard.ok) return guard.response;
-  const payload = event.data || {};
-  const requestId = typeof payload.requestId === "string" ? payload.requestId.trim() : "";
-  const decision = typeof payload.decision === "string" ? payload.decision.trim().toUpperCase() : "";
-  const comment = typeof payload.comment === "string" ? payload.comment.trim().slice(0, 200) : "";
-  if (!requestId) return fail("缺少申请ID", 400);
-  if (!["ACCEPT", "REJECT"].includes(decision)) return fail("确认动作无效", 400);
-  const result = await db.collection(COLLECTIONS.SWAP_REQUESTS).doc(requestId).get();
-  const request = result.data;
-  if (!request) return fail("申请不存在", 404);
-  if (request.requestType !== "SWAP") return fail("该申请不需要对方确认", 409);
-  if (request.targetStaffId !== guard.staff._id) return fail("只能确认发给自己的互换申请", 403);
-  if (request.status !== "PENDING_TARGET_CONFIRMATION") return fail("该申请不在待确认状态", 409);
-  const now = new Date();
-  const accepted = decision === "ACCEPT";
-  await db.collection(COLLECTIONS.SWAP_REQUESTS).doc(requestId).update({
-    data: {
-      status: accepted ? "PENDING" : "REJECTED",
-      targetConsent: accepted ? "ACCEPTED" : "REJECTED",
-      targetConfirmedAt: now,
-      targetConfirmationComment: comment,
-      updatedAt: now,
-      auditTrail: [
-        ...(Array.isArray(request.auditTrail) ? request.auditTrail : []),
-        makeAuditEntry("TARGET_CONFIRMATION", guard.staff, accepted ? "PENDING" : "REJECTED", comment || (accepted ? "对方已同意互换" : "对方拒绝互换")),
-      ].slice(-20),
-    },
-  });
-  await logOperation("RESPOND_SWAP_REQUEST", `${guard.staff.name || guard.staff.employeeNo}${accepted ? "同意" : "拒绝"}排班互换申请`, {
-    type: "swapRequest", requestId, decision, comment,
-  });
-  return ok({ requestId, status: accepted ? "PENDING" : "REJECTED", targetConsent: accepted ? "ACCEPTED" : "REJECTED" }, accepted ? "已同意，等待管理员审批" : "已拒绝互换申请");
-};
 
 // ──────────────────────────────────────────────
 // 列出待审批/已审批申请
@@ -851,11 +655,9 @@ const withdrawSwapRequest = async (event) => {
 // 路由表
 // ──────────────────────────────────────────────
 module.exports = {
-  createSwapRequest,
   createSwapApplication,
   listMySwapRequests,
   listSwapRequests,
   approveSwapRequest,
-  respondToSwapRequest,
   withdrawSwapRequest,
 };

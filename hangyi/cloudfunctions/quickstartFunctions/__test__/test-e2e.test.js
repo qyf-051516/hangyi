@@ -1623,28 +1623,6 @@ test("e2e/realtime: propagateScheduleDelay 拒绝负数与 0 延误 (P1-C2)", as
 // 模块 8: swap (6 端点)
 // ══════════════════════════════════════════════════════════════
 
-test("e2e/swap: createSwapRequest 资质不匹配 → 409", async () => {
-  global.resetMockState({ openid: "openid-csr" });
-  // 源 staff 有 CZ 资质, 目标有 MU 资质
-  const sourceId = seedStaff({ employeeNo: "GH900", name: "源", openid: "openid-csr", authorizedAirlines: ["中国南方航空"], authorizedAircraftTypes: ["A320"] });
-  const targetId = seedStaff({ employeeNo: "GH901", name: "目标", authorizedAirlines: ["中国东方航空"], authorizedAircraftTypes: ["A320"] });
-  const sourceSchedId = seedSchedule({ staffId: sourceId, flightNo: "S1", scheduleDate: dateOffset(2), airline: "中国南方航空", aircraftType: "A320" });
-  const targetSchedId = seedSchedule({ staffId: targetId, flightNo: "T1", scheduleDate: dateOffset(2), airline: "中国东方航空", aircraftType: "A320" });
-  const r = await swapRouter.createSwapRequest({ data: { sourceScheduleId: sourceSchedId, targetScheduleId: targetSchedId, reason: "测试" } });
-  assert.equal(r.code, 409, "资质不匹配应被拒");
-});
-
-test("e2e/swap: createSwapRequest 资质匹配 → 200", async () => {
-  global.resetMockState({ openid: "openid-csr2" });
-  const sourceId = seedStaff({ employeeNo: "GH910", name: "源", openid: "openid-csr2", authorizedAirlines: ["中国南方航空"], authorizedAircraftTypes: ["A320"] });
-  const targetId = seedStaff({ employeeNo: "GH911", name: "目标", authorizedAirlines: ["中国南方航空"], authorizedAircraftTypes: ["A320"] });
-  const sourceSchedId = seedSchedule({ staffId: sourceId, flightNo: "S2", scheduleDate: dateOffset(2), airline: "中国南方航空", aircraftType: "A320" });
-  const targetSchedId = seedSchedule({ staffId: targetId, flightNo: "T2", scheduleDate: dateOffset(2), airline: "中国南方航空", aircraftType: "A320" });
-  const r = await swapRouter.createSwapRequest({ data: { sourceScheduleId: sourceSchedId, targetScheduleId: targetSchedId, reason: "测试" } });
-  assert.equal(r.code, 0);
-  assert.equal((state.collections.swap_requests || []).length, 1);
-});
-
 test("e2e/swap: createSwapApplication 调班申请", async () => {
   global.resetMockState({ openid: "openid-csa" });
   const staffId = seedStaff({
@@ -1780,42 +1758,6 @@ test("e2e/swap: 当日排班不能提交调班/互换申请 (C2)", async () => {
     data: { sourceScheduleId: todayScheduleId, reason: "体检" },
   });
   assert.equal(r.code, 409, "当天排班不能提交调班申请");
-
-  // 双人互换: 任一天为当天 → 409
-  const otherId = seedStaff({
-    employeeNo: "GH926",
-    name: "对方",
-    authorizedAirlines: ["中国南方航空"],
-    authorizedAircraftTypes: ["A320"],
-  });
-  const otherScheduleId = seedSchedule({
-    staffId: otherId,
-    flightNo: "TODAY2",
-    scheduleDate: dateOffset(1),
-    status: "ASSIGNED",
-    recordStatus: "active",
-    airline: "中国南方航空",
-    aircraftType: "A320",
-  });
-  const r2 = await swapRouter.createSwapRequest({
-    data: { sourceScheduleId: todayScheduleId, targetScheduleId: otherScheduleId, reason: "互换" },
-  });
-  assert.equal(r2.code, 409, "包含当日排班的互换申请应被拒绝");
-
-  // 双人互换: 目标排班为当天 → 409
-  const futureOwnScheduleId = seedSchedule({
-    staffId,
-    flightNo: "FUTURE1",
-    scheduleDate: dateOffset(1),
-    status: "ASSIGNED",
-    recordStatus: "active",
-    airline: "中国南方航空",
-    aircraftType: "A320",
-  });
-  const r3 = await swapRouter.createSwapRequest({
-    data: { sourceScheduleId: futureOwnScheduleId, targetScheduleId: todayScheduleId, reason: "互换" },
-  });
-  assert.equal(r3.code, 409, "目标排班为当日时互换申请应被拒绝");
 });
 
 test("e2e/swap: listSwapRequests 按 status 筛选", async () => {
