@@ -157,4 +157,3 @@ JUnit 分布在 `ideaprojects/hangyi/hangyi-*/src/test/java/` 下,覆盖 control
 
 - **项目**:航翼排班系统 · 大创项目
 - **远端账号**:Gitee `qyf0905`(主用)/ GitHub `qyf-051516` / 微信代码托管 `wx_wxa2187338fc140cac`
-- **工作流**:Claude Code / Codex 辅助,经验沉淀在各子项目 AGENTS.md
