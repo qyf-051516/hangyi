@@ -97,13 +97,21 @@
         {{item.validationText}}
       </view>
       <view class="request-comment" wx:if="{{item.comment}}">审批备注：{{item.comment}}</view>
-      <view class="audit-block" wx:if="{{item.auditTrail.length}}">
-        <view class="audit-title">操作记录</view>
-        <view class="audit-row" wx:for="{{item.auditTrail}}" wx:for-item="audit" wx:key="atText">
-          <text class="audit-dot"></text>
-          <view class="audit-main">
-            <view>{{audit.operatorName || '系统'}} · {{audit.status}}</view>
-            <view class="audit-meta">{{audit.atText}} {{audit.detail}}</view>
+      <view class="progress-block" wx:if="{{item.auditTrail.length}}">
+        <view class="progress-title">处理进度</view>
+        <view class="progress-track">
+          <view class="progress-step {{step.state}}" wx:for="{{item.steps}}" wx:for-item="step" wx:key="key">
+            <view class="progress-dot"></view>
+            <view class="progress-label">{{step.label}}</view>
+            <view class="progress-result" wx:if="{{step.resultText}}">{{step.resultText}}</view>
+          </view>
+        </view>
+        <view class="progress-audit" wx:for="{{item.steps}}" wx:for-item="step" wx:key="key" wx:if="{{step.entries.length}}">
+          <view class="progress-audit-step">{{step.label}}</view>
+          <view class="progress-audit-row" wx:for="{{step.entries}}" wx:for-item="audit" wx:key="atText">
+            <text class="pa-op">{{audit.operatorName || '系统'}}</text>
+            <text class="pa-detail">{{audit.detail || audit.status}}</text>
+            <text class="pa-time">{{audit.atText}}</text>
           </view>
         </view>
       </view>

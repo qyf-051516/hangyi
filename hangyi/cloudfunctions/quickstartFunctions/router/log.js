@@ -5,16 +5,44 @@
 const cloud = require("wx-server-sdk");
 const {
   db, _, COLLECTIONS,
-  ok, fail, requireAdmin,
+  ok, fail,
   formatDate,
   ensureCollection,
 } = require("../utils");
+const { getOpenContext } = require("../utils");
+
+/**
+ * 守卫: 仅管理员或领导可只读审计日志。
+ * 与 utils.requireAdmin 同构（按 openid 查 staff），仅放行条件扩展为
+ * staff.isAdmin === true || staff.isBoss === true。
+ * 说明: 实际 utils.js 位于 quickstartFunctions/utils.js，不在本次可写路径内，
+ * 故在此按相同约定实现；后续可平移至 utils.js 统一管理。
+ */
+const requireBossOrAdmin = async () => {
+  const { openid } = getOpenContext();
+  if (!openid) {
+    return { ok: false, response: fail("当前未登录", 401) };
+  }
+  const res = await db
+    .collection(COLLECTIONS.STAFF)
+    .where({ openid })
+    .limit(1)
+    .get();
+  const staff = res.data && res.data[0];
+  if (!staff) {
+    return { ok: false, response: fail("当前未登录，请先登录", 401) };
+  }
+  if (staff.isAdmin !== true && staff.isBoss !== true) {
+    return { ok: false, response: fail("权限不够，仅管理员或领导可操作", 403) };
+  }
+  return { ok: true, staff };
+};
 
 // ──────────────────────────────────────────────
 // 分页查询操作日志
 // ──────────────────────────────────────────────
 const queryOperationLogs = async (event) => {
-  const guard = await requireAdmin();
+  const guard = await requireBossOrAdmin();
   if (!guard.ok) return guard.response;
 
   const payload = event.data || {};
@@ -64,7 +92,7 @@ const queryOperationLogs = async (event) => {
 // 导出操作日志为 CSV 上传至云存储
 // ──────────────────────────────────────────────
 const exportOperationLogs = async (event) => {
-  const guard = await requireAdmin();
+  const guard = await requireBossOrAdmin();
   if (!guard.ok) return guard.response;
 
   const payload = event.data || {};

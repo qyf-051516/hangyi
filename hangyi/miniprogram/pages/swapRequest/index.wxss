@@ -302,46 +302,135 @@
   background: rgba(235, 155, 44, 0.12);
 }
 
-.audit-block {
+/* 处理进度可视化 */
+.progress-block {
   margin-top: 14rpx;
-  padding: 14rpx;
+  padding: 16rpx 14rpx;
   background: var(--c-surface-solid);
   border: 1rpx solid var(--c-border);
   border-radius: var(--r-chip);
 }
 
-.audit-title {
-  margin-bottom: 8rpx;
+.progress-title {
+  margin-bottom: 16rpx;
   color: var(--c-text);
   font-size: 23rpx;
   font-weight: 600;
 }
 
-.audit-row {
+.progress-track {
   display: flex;
-  gap: 10rpx;
-  padding: 6rpx 0;
-  color: var(--c-text-meta);
+  align-items: flex-start;
+}
+
+.progress-step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 连接线：从当前圆点右缘到下一个圆点，最后一步不画 */
+.progress-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 13rpx;
+  left: calc(50% + 16rpx);
+  width: calc(50% - 26rpx);
+  height: 4rpx;
+  border-radius: 2rpx;
+  background: var(--c-border-strong);
+  z-index: 0;
+}
+
+.progress-step.done:not(:last-child)::after,
+.progress-step.current:not(:last-child)::after {
+  background: var(--c-primary);
+}
+
+.progress-dot {
+  position: relative;
+  z-index: 1;
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 999rpx;
+  background: var(--c-surface-solid);
+  border: 4rpx solid var(--c-border-strong);
+}
+
+.progress-step.done .progress-dot,
+.progress-step.current .progress-dot {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+}
+
+.progress-step.fail .progress-dot {
+  background: var(--c-danger);
+  border-color: var(--c-danger);
+}
+
+.progress-label {
+  margin-top: 10rpx;
+  color: var(--c-text-muted);
   font-size: 22rpx;
 }
 
-.audit-dot {
-  width: 10rpx;
-  height: 10rpx;
-  margin-top: 11rpx;
-  background: var(--c-primary);
-  border-radius: 999rpx;
-  flex: 0 0 auto;
+.progress-step.current .progress-label {
+  color: var(--c-text);
+  font-weight: 600;
 }
 
-.audit-main {
-  min-width: 0;
+.progress-step.fail .progress-label {
+  color: var(--c-danger);
 }
 
-.audit-meta {
+.progress-result {
   margin-top: 2rpx;
-  color: var(--c-text-muted);
+  color: var(--c-danger);
+  font-size: 20rpx;
+}
+
+.progress-step.done .progress-result {
+  color: var(--c-success);
+}
+
+.progress-audit {
+  margin-top: 12rpx;
+  padding-top: 10rpx;
+  border-top: 1rpx dashed var(--c-border);
+}
+
+.progress-audit-step {
+  margin-bottom: 4rpx;
+  color: var(--c-text-meta);
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.progress-audit-row {
+  display: flex;
+  gap: 10rpx;
+  padding: 3rpx 0;
+  font-size: 20rpx;
   line-height: 1.45;
+}
+
+.pa-op {
+  flex: 0 0 auto;
+  color: var(--c-text-meta);
+}
+
+.pa-detail {
+  flex: 1;
+  min-width: 0;
+  color: var(--c-text-meta);
+}
+
+.pa-time {
+  flex: 0 0 auto;
+  color: var(--c-text-muted);
 }
 
 .request-foot {

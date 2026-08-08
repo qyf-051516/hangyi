@@ -2,6 +2,8 @@ const { callBackend } = require("../../utils/api.js");
 const { applyUiSettings, loadIsAdmin } = require("../../utils/ui");
 const { readCache, writeCache } = require("../../utils/cache");
 
+const SHIFT_TEXT = { MORNING: "早班", AFTERNOON: "午班", NIGHT: "晚班" };
+
 Page({
   data: {
     loading: false,
@@ -30,13 +32,56 @@ Page({
     fontSize: 14,
     theme: "light",
     themeClass: "theme-light",
+    upcomingDays: [],
+    upcomingLoaded: false,
   },
 
   _lastLoadKey: "",
+  _pendingTimer: null,
 
   onShow() {
     applyUiSettings(this);
     this.loadOverview();
+    this.loadUpcoming();
+    this.startPendingPolling();
+  },
+
+  onHide() {
+    this.stopPendingPolling();
+  },
+
+  onUnload() {
+    this.stopPendingPolling();
+  },
+
+  // admin 视角 30 秒轮询待审批数（复用管理入口 badge 字段），失败静默不影响首页。
+  startPendingPolling() {
+    this.stopPendingPolling();
+    this._pendingTimer = setInterval(() => this.pollPendingCounts(), 30000);
+  },
+
+  stopPendingPolling() {
+    if (this._pendingTimer) {
+      clearInterval(this._pendingTimer);
+      this._pendingTimer = null;
+    }
+  },
+
+  async pollPendingCounts() {
+    if (!this.data.isAdmin) return;
+    try {
+      const [swapRes, leaveRes] = await Promise.all([
+        callBackend("listSwapRequests", { status: "PENDING" }, { silent: true }),
+        callBackend("listPendingLeaveRequests", { status: "PENDING" }, { silent: true }),
+      ]);
+      const pendingSwapCount = (swapRes.requests || swapRes.list || []).length;
+      const pendingLeaveCount = (leaveRes.list || []).length;
+      this.setData({
+        pendingSwapCount,
+        pendingLeaveCount,
+        pendingCount: pendingSwapCount + pendingLeaveCount,
+      });
+    } catch (_) { /* 轮询失败静默 */ }
   },
 
   formatDate(date) {
@@ -184,6 +229,54 @@ Page({
         demoToolsEnabled: false,
       };
     }
+  },
+
+  // 员工视角：未来 3 天班次预览。逐日调 getStaffScheduleTable（员工返回本人一行），
+  // 任一失败静默降级（只跳过该天），整体失败时区块不展示，不阻塞页面加载。
+  async loadUpcoming() {
+    const isAdmin = await loadIsAdmin();
+    if (isAdmin) return;
+    const days = [];
+    for (let offset = 1; offset <= 3; offset += 1) {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      const scheduleDate = this.formatDate(date);
+      try {
+        const res = await callBackend("getStaffScheduleTable", { scheduleDate }, { silent: true });
+        days.push(this.buildUpcomingDay(scheduleDate, res));
+      } catch (error) {
+        console.warn("[index] 未来班次预览加载失败", error && error.message);
+      }
+    }
+    this.setData({ upcomingDays: days, upcomingLoaded: true });
+  },
+
+  buildUpcomingDay(scheduleDate, res) {
+    const row = (res.rows || [])[0];
+    const parsed = this.parseDate(scheduleDate);
+    const dateText = `${parsed.getMonth() + 1}/${parsed.getDate()}`;
+    let shiftText = "未排班";
+    let shiftMeta = "";
+    if (row) {
+      if (row.status === "ON_LEAVE") {
+        shiftText = "休假";
+      } else if (row.status === "LEAVE_CONFLICT") {
+        shiftText = "休假冲突";
+      } else if (row.status === "UNASSIGNED") {
+        shiftText = "未排班";
+      } else {
+        shiftText = SHIFT_TEXT[row.shiftCode] || row.shiftCode || row.statusText || "已排班";
+        const timeText = [row.departureTime, row.arrivalTime].filter(Boolean).join(" / ");
+        shiftMeta = [row.flightNo, timeText].filter(Boolean).join(" · ");
+      }
+    }
+    return {
+      scheduleDate,
+      dateText,
+      weekday: this.formatWeekday(parsed),
+      shiftText,
+      shiftMeta,
+    };
   },
 
   onForceRefresh() {

@@ -162,6 +162,7 @@ const loginOrRegisterStaff = async (event) => {
       authorizedAircraftTypes: nextAircraftTypes,
       roleType: finalRoleType, isNew: false,
       isAdmin: staff.isAdmin === true,
+      isBoss: staff.isBoss === true,
       isTestAdmin: staff.isTestAdmin === true,
     }, "登录成功");
   }
@@ -251,6 +252,7 @@ const updateMyProfile = async (event) => {
       phone,
       authorizedAircraftTypes: currentAircraftTypes,
       isAdmin: staff.isAdmin === true,
+      isBoss: staff.isBoss === true,
     },
     "个人信息已更新"
   );
@@ -331,6 +333,7 @@ const getMyProfile = async () => {
     authorizedAircraftTypes: staff.authorizedAircraftTypes || [],
     tags: staff.tags || [],
     isAdmin: staff.isAdmin === true,
+    isBoss: staff.isBoss === true,
     roleType: staff.roleType || hashToRole(staff.employeeNo || staff._id),
     groupOptions: staff.groupOptions || [],
     preferences: {
@@ -450,6 +453,7 @@ const loginByPhone = async (event) => {
     authorizedAircraftTypes: staff.authorizedAircraftTypes || [],
     roleType: staff.roleType || hashToRole(staff.employeeNo || staff._id),
     isAdmin: staff.isAdmin === true,
+    isBoss: staff.isBoss === true,
     isTestAdmin: staff.isTestAdmin === true,
     isNew: false,
   }, "登录成功");
@@ -516,6 +520,7 @@ const loginByWechatProfile = async (event) => {
     authorizedAircraftTypes: staff.authorizedAircraftTypes || [],
     roleType: staff.roleType || hashToRole(staff.employeeNo || staff._id),
     isAdmin: staff.isAdmin === true,
+    isBoss: staff.isBoss === true,
     isTestAdmin: staff.isTestAdmin === true,
     wechatNickName: staff.wechatNickName || (event.data && event.data.nickName) || "",
     isNew: false,

@@ -230,6 +230,30 @@
 .module-card:active,
 .priority-row:active { transform: scale(0.985); opacity: 0.84; }
 
+.module-code { position: relative; }
+
+.module-badge {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  color: #ffffff;
+  background: #9aa8bc;
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-badge-alert { background: var(--c-danger); }
+
 .operation-list { padding: 6rpx 20rpx; }
 .operation-row {
   display: flex;

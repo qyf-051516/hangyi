@@ -56,6 +56,21 @@
 .qual-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .qual-expiry { font-size: 12px; color: #888; }
 
+/* 申请培训假按钮（30 天内即将到期） */
+.qual-train-btn {
+  min-height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 24rpx;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--c-primary);
+  background: var(--c-surface-solid);
+  border: 1rpx solid var(--c-primary);
+  border-radius: var(--r-chip);
+  text-align: center;
+  white-space: nowrap;
+}
+
 .loading-wrap, .empty-wrap, .error-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
 .loading-text, .empty-text { color: #999; font-size: 14px; }
 .retry-btn {

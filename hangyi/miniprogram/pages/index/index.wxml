@@ -162,6 +162,23 @@
       </view>
     </view>
 
+    <view class="card upcoming-card" wx:if="{{!isAdmin && upcomingLoaded && upcomingDays.length}}">
+      <view class="section-head">
+        <view>
+          <view class="section-title">未来班次</view>
+          <view class="section-copy">未来 3 天班次预览</view>
+        </view>
+      </view>
+      <view class="upcoming-grid">
+        <view class="upcoming-day" wx:for="{{upcomingDays}}" wx:key="scheduleDate">
+          <view class="upcoming-date">{{item.dateText}}</view>
+          <view class="upcoming-weekday">{{item.weekday}}</view>
+          <view class="upcoming-shift">{{item.shiftText}}</view>
+          <view class="upcoming-meta" wx:if="{{item.shiftMeta}}">{{item.shiftMeta}}</view>
+        </view>
+      </view>
+    </view>
+
     <view class="card metric-panel">
       <view class="section-head">
         <view>

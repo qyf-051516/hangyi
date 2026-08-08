@@ -168,6 +168,40 @@ const loadIsAdmin = async (forceRefresh = false) => {
   }
 };
 
+// 拉一次角色 (含缓存): 返回 { isAdmin, isBoss }, 复用与 loadIsAdmin 相同的
+// getMyProfile 缓存机制。admin 权限是 isAdmin 缓存真子集, 同步回写保持兼容。
+const loadRole = async (forceRefresh = false) => {
+  const { readCache, writeCache } = require("./cache");
+  const cached = readCache("role", ADMIN_TTL_MS);
+  if (!forceRefresh && cached !== null) return cached;
+  try {
+    const profile = await callBackend("getMyProfile", {
+      forceRefresh: forceRefresh === true,
+    });
+    const role = {
+      isAdmin: !!(profile && profile.isAdmin),
+      isBoss: !!(profile && profile.isBoss),
+    };
+    writeCache("role", role);
+    writeCache("isAdmin", role.isAdmin);
+    return role;
+  } catch {
+    return { isAdmin: false, isBoss: false };
+  }
+};
+
+// 同步版本: 读已加载的角色缓存 (未命中或异常时返回兜底, 调用方要 fallback 异步)
+const getCachedRole = () => {
+  const { readCache } = require("./cache");
+  const role = readCache("role", ADMIN_TTL_MS);
+  if (role && typeof role === "object" && typeof role.isAdmin === "boolean") {
+    return { isAdmin: role.isAdmin, isBoss: role.isBoss === true };
+  }
+  const isAdmin = readCache("isAdmin", ADMIN_TTL_MS);
+  if (isAdmin !== null) return { isAdmin: isAdmin === true, isBoss: false };
+  return { isAdmin: false, isBoss: false };
+};
+
 // 同步版本: 读已加载的缓存 (可能返回 false, 调用方要 fallback 异步)
 const readIsAdminCache = () => {
   const { readCache } = require("./cache");
@@ -187,6 +221,8 @@ module.exports = {
   setUiTheme,
   groupLabel,
   loadIsAdmin,
+  loadRole,
+  getCachedRole,
   readIsAdminCache,
   clearIsAdminCache,
 };

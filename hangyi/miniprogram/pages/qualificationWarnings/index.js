@@ -74,4 +74,17 @@ Page({
   onRetry() {
     this.loadData();
   },
+
+  // 一键申请培训假：跳转请假页并预填 TRAINING 类型与资质信息
+  onApplyTrainingLeave(e) {
+    const dataset = e.currentTarget.dataset || {};
+    const qualAircraft = String(dataset.aircraft || "").trim();
+    const expireDate = String(dataset.expireDate || "").trim();
+    if (!qualAircraft) {
+      wx.showToast({ title: "缺少机型信息", icon: "none" });
+      return;
+    }
+    const url = `/pages/leave/index?type=TRAINING&qualAircraft=${encodeURIComponent(qualAircraft)}&expireDate=${encodeURIComponent(expireDate)}`;
+    wx.navigateTo({ url });
+  },
 });

@@ -170,6 +170,7 @@
         <view class="module-card" bindtap="onNavigate" data-url="/pages/warnings/index" data-mode="tab" hover-class="tap-active">
           <view class="module-code">
             <image class="module-icon" src="/images/menu/swap.svg" mode="aspectFit"></image>
+            <view class="module-badge {{pendingSwapCount > 0 ? 'module-badge-alert' : ''}}" wx:if="{{pendingSwapCount > 0}}">{{pendingSwapCount}}</view>
           </view>
           <view class="module-title">调班审批</view>
           <view class="module-copy">申请复核与替班选择</view>
@@ -177,6 +178,7 @@
         <view class="module-card" bindtap="onNavigate" data-url="/pages/leave/index?mode=approval" hover-class="tap-active">
           <view class="module-code">
             <image class="module-icon" src="/images/menu/leave.svg" mode="aspectFit"></image>
+            <view class="module-badge {{pendingLeaveCount > 0 ? 'module-badge-alert' : ''}}" wx:if="{{pendingLeaveCount > 0}}">{{pendingLeaveCount}}</view>
           </view>
           <view class="module-title">请假审批</view>
           <view class="module-copy">申请审批与冲突改派</view>

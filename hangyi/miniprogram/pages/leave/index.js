@@ -104,7 +104,25 @@ Page({
 
   onLoad(options = {}) {
     const isApprovalMode = options.mode === "approval";
-    this.setData({ isApprovalMode });
+    const updates = { isApprovalMode };
+    if (!isApprovalMode) {
+      // 从资质预警页进入：预选请假类别并预填培训原因
+      const requestedType = String(options.type || "").trim();
+      if (requestedType) {
+        const typeIndex = TYPE_OPTIONS.findIndex((o) => o.value === requestedType);
+        if (typeIndex >= 0) {
+          updates.typeIndex = typeIndex;
+          updates["form.type"] = requestedType;
+        }
+      }
+      const qualAircraft = String(options.qualAircraft || "").trim();
+      const expireDate = String(options.expireDate || "").trim();
+      if (qualAircraft) {
+        const base = `因${qualAircraft}资质到期需培训`;
+        updates["form.reason"] = expireDate ? `${base}（到期日 ${expireDate}）` : base;
+      }
+    }
+    this.setData(updates);
     wx.setNavigationBarTitle({
       title: isApprovalMode ? "请假审批" : "请假申请",
     });

@@ -1,8 +1,8 @@
 <view class="page {{themeClass}}">
   <view class="card denied-card" wx:if="{{adminDenied}}">
     <view class="denied-icon">!</view>
-    <view class="denied-title">需要管理员权限</view>
-    <view class="denied-sub">此页面仅供管理员访问</view>
+    <view class="denied-title">仅管理员或领导可查看</view>
+    <view class="denied-sub">此页面仅供管理员或领导访问</view>
     <button class="state-btn" bindtap="onBackMine" hover-class="button-hover">返回我的</button>
   </view>
   <block wx:else>

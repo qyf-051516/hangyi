@@ -3,6 +3,12 @@
     <view class="title">我的排班</view>
     <view class="sub" wx:if="{{staff}}">{{staff.name}} · {{staff.employeeNo}} · {{staff.groupId}}</view>
     <view class="sub" wx:else>未绑定工号</view>
+    <button
+      class="export-ics-btn"
+      bindtap="onExportICS"
+      disabled="{{loading || schedules.length === 0}}"
+      hover-class="button-hover"
+    >导出日历(ICS)</button>
   </view>
 
   <view class="card" wx:if="{{loading}}">

@@ -60,6 +60,9 @@ Page({
     adminDenied: false,
     errorMessage: "",
     dashboard: emptyDashboard(),
+    pendingSwapCount: 0,
+    pendingLeaveCount: 0,
+    pendingTotal: 0,
     healthTitle: "运行正常",
     healthCopy: "当前没有需要立即处理的事项",
     healthClass: "healthy",
@@ -87,6 +90,27 @@ Page({
       return;
     }
     this.loadDashboard();
+    this.loadPendingApprovals();
+  },
+
+  // 统一收件箱：并行拉取调班与请假待审批数，供管理模块入口卡 badge 展示。
+  // 失败静默降级（不影响其他模块加载），仅 console.warn 留痕。
+  async loadPendingApprovals() {
+    try {
+      const [swapRes, leaveRes] = await Promise.all([
+        callBackend("listSwapRequests", { status: "PENDING" }, { silent: true }),
+        callBackend("listPendingLeaveRequests", { status: "PENDING" }, { silent: true }),
+      ]);
+      const pendingSwapCount = (swapRes.requests || swapRes.list || []).length;
+      const pendingLeaveCount = (leaveRes.list || []).length;
+      this.setData({
+        pendingSwapCount,
+        pendingLeaveCount,
+        pendingTotal: pendingSwapCount + pendingLeaveCount,
+      });
+    } catch (error) {
+      console.warn("[adminCenter] 待审批数拉取失败", error && error.message);
+    }
   },
 
   onPullDownRefresh() {

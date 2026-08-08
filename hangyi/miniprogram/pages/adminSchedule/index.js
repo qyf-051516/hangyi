@@ -687,9 +687,52 @@ Page({
     });
     if (!confirmed) return;
 
+    // 提交锁：在合规预检期间同样生效，防止重复点击
     this.setData({ committing: true });
-    wx.showLoading({ title: "排班确认中..." });
+
+    // 应用前合规预检：将推荐结果转换为排班结构
+    const recommendation = this.data.recommendation || [];
+    const recFlightNo = this.data.recFlightNo || payload.flightNo || "";
+    const recShiftCode = this.data.recShiftCode || "";
+    const scheduleDate =
+      String(payload.departureTime || "").slice(0, 10) || this.data.scheduleDate;
+    const edits = recommendation
+      .filter((person) => person && person.staffId && person.employeeNo)
+      .map((person) => ({
+        staffId: person.staffId,
+        employeeNo: person.employeeNo,
+        flightNo: recFlightNo,
+        shiftCode: recShiftCode,
+      }));
+
     try {
+      if (edits.length > 0) {
+        wx.showLoading({ title: "合规检查中" });
+        let checkResult;
+        try {
+          checkResult = await callBackend("preflightComplianceCheck", {
+            scheduleDate,
+            edits,
+          });
+        } catch (error) {
+          wx.hideLoading();
+          wx.showToast({ title: error.message || "合规检查失败，已取消排班", icon: "none" });
+          this.setData({ committing: false });
+          return;
+        }
+        wx.hideLoading();
+
+        const violations = (checkResult && checkResult.violations) || [];
+        if (checkResult && !checkResult.passed && violations.length > 0) {
+          const proceed = await this.confirmComplianceRisk(checkResult, payload);
+          if (!proceed) {
+            this.setData({ committing: false });
+            return;
+          }
+        }
+      }
+
+      wx.showLoading({ title: "排班确认中..." });
       await callBackend("smartSchedule", {
         ...payload,
         commit: true,
@@ -707,6 +750,41 @@ Page({
       this.setData({ committing: false });
       wx.hideLoading();
     }
+  },
+
+  // 合规预检发现违规时的风险确认（用户确认后仍继续，与发布时一致）
+  confirmComplianceRisk(checkResult, payload) {
+    const violations = checkResult.violations || [];
+    const summary = checkResult.summary || {};
+    const typeTextMap = {
+      CONCURRENT_SCHEDULE: "重复排班",
+      EXCEED_CONTINUOUS: "连续工作超限",
+      EXCEED_WORK_HOURS: "当日工时超限",
+      SAME_GROUP_CONCENTRATION: "同班组集中",
+    };
+    const severityMap = { HIGH: "高危", MEDIUM: "中危", LOW: "提示" };
+    const counts = {};
+    for (const v of violations) {
+      const label = `${typeTextMap[v.type] || v.type}（${severityMap[v.severity] || v.severity}）`;
+      counts[label] = (counts[label] || 0) + 1;
+    }
+    const lines = Object.keys(counts).map((key) => `· ${key} ${counts[key]} 项`);
+    const content = [
+      `发现 ${summary.totalViolations || violations.length} 项潜在违规`,
+      ...lines,
+      `确认已人工复核并按推荐方案继续为航班 ${this.data.recFlightNo || payload.flightNo} 排班？`,
+    ].join("\n");
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: "合规检查提示",
+        content,
+        confirmText: "继续排班",
+        cancelText: "返回修改",
+        confirmColor: "#b26a20",
+        success: (result) => resolve(result.confirm),
+        fail: () => resolve(false),
+      });
+    });
   },
 
   scrollToRecommendation() {

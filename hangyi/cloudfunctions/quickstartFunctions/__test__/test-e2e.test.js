@@ -2152,6 +2152,40 @@ test("e2e/log: 日志查询拒绝非管理员并校验日期范围", async () =>
   assert.equal(r.code, 400);
 });
 
+test("e2e/log: BOSS 领导可只读查询与导出操作日志", async () => {
+  global.resetMockState({ openid: "openid-log-boss" });
+  seedStaff({
+    employeeNo: "GHBOSS1",
+    name: "领导",
+    openid: "openid-log-boss",
+    isBoss: true,
+  });
+  seedOperationLog({ action: "LOGIN", detail: "user 登录" });
+  let r = await logRouter.queryOperationLogs({ data: {} });
+  assert.equal(r.code, 0, "领导应可查询操作日志");
+  assert.equal(r.data.total, 1);
+
+  r = await logRouter.exportOperationLogs({ data: {} });
+  assert.equal(r.code, 0, "领导应可导出操作日志");
+  assert.ok(r.data.fileID, "领导导出应返回 fileID");
+});
+
+test("e2e/log: 普通员工不能查询或导出操作日志", async () => {
+  global.resetMockState({ openid: "openid-log-staff" });
+  seedStaff({
+    employeeNo: "GHSTAFF1",
+    name: "普通员工",
+    openid: "openid-log-staff",
+  });
+  seedOperationLog({ action: "LOGIN", detail: "private" });
+  let r = await logRouter.queryOperationLogs({ data: {} });
+  assert.equal(r.code, 403);
+  assert.match(r.message, /管理员或领导/);
+
+  r = await logRouter.exportOperationLogs({ data: {} });
+  assert.equal(r.code, 403);
+});
+
 // ══════════════════════════════════════════════════════════════
 // 模块 10: 集成场景 (端到端流程)
 // ══════════════════════════════════════════════════════════════

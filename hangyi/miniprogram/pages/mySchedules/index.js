@@ -126,4 +126,93 @@ Page({
     }
   },
 
+  // ═══════════════════════════════════════
+  // 导出日历(ICS)
+  // ═══════════════════════════════════════
+
+  onExportICS() {
+    const schedules = this.data.schedules || [];
+    const withDate = schedules.filter((item) => item && item.scheduleDate);
+    if (!withDate.length) {
+      wx.showToast({ title: "暂无可导出的排班", icon: "none" });
+      return;
+    }
+    const ics = this.buildICS(withDate);
+    wx.setClipboardData({
+      data: ics,
+      success: () => {
+        wx.showToast({ title: "ICS 已复制，可粘贴保存为 .ics 导入日历", icon: "none" });
+      },
+    });
+  },
+
+  buildICS(schedules) {
+    const pad = (n) => String(n).padStart(2, "0");
+    const shiftTimes = {
+      MORNING: ["08:00", "12:00"],
+      AFTERNOON: ["13:00", "18:00"],
+      NIGHT: ["19:00", "23:00"],
+    };
+    const toMinutes = (clock) => {
+      const m = String(clock || "").match(/(\d{1,2}):(\d{2})/);
+      return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
+    };
+    const parseDatetime = (value) => {
+      const m = String(value || "").match(/(\d{4}-\d{2}-\d{2})[T ](\d{1,2}):(\d{2})/);
+      if (!m) return null;
+      return { date: m[1], clock: `${pad(m[2])}:${m[3]}` };
+    };
+    const asDate = (date, clock) => {
+      const minutes = toMinutes(clock);
+      const d = new Date(date + "T00:00:00");
+      d.setMinutes(minutes >= 0 ? minutes : 0);
+      return d;
+    };
+    const icsDateTime = (d) =>
+      `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+
+    const now = new Date();
+    const stamp = icsDateTime(now) + "Z";
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Hangyi//MySchedule//CN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+    ];
+
+    schedules.forEach((item, index) => {
+      const date = String(item.scheduleDate || "").slice(0, 10);
+      const parsed = parseDatetime(item.departureTime);
+      const startClock = parsed ? parsed.clock : (shiftTimes[item.shiftCode] || ["09:00", "13:00"])[0];
+      const shiftEnd = shiftTimes[item.shiftCode] ? toMinutes(shiftTimes[item.shiftCode][1]) : -1;
+      const startMinutes = toMinutes(startClock);
+      const startDateObj = asDate(date, startClock);
+      // 结束时间：优先班次结束；晚于班次结束或班次未知时按 8 小时顺延，自动跨天进位
+      const endDateObj =
+        shiftEnd > startMinutes
+          ? asDate(date, `${pad(Math.floor(shiftEnd / 60))}:${pad(shiftEnd % 60)}`)
+          : new Date(startDateObj.getTime() + 8 * 60 * 60 * 1000);
+      const dtStart = icsDateTime(startDateObj);
+      const dtEnd = icsDateTime(endDateObj);
+      const shiftLabel = item.shiftLabelText || "";
+      const summary = `${item.flightNo || "待定"}${shiftLabel ? " " + shiftLabel : ""} 勤务`.trim();
+      const description = `航司 ${item.airline || "-"}，机型 ${item.aircraftType || "-"}`;
+      const uid = `mysched-${item._id || `${date}-${index}`}@hangyi`;
+      lines.push(
+        "BEGIN:VEVENT",
+        `UID:${uid}`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:${summary}`,
+        `DESCRIPTION:${description}`,
+        "END:VEVENT"
+      );
+    });
+
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n");
+  },
+
 });

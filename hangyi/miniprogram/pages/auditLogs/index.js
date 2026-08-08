@@ -1,5 +1,5 @@
 const { callBackend } = require("../../utils/api.js");
-const { applyUiSettings, loadIsAdmin } = require("../../utils/ui");
+const { applyUiSettings, loadRole } = require("../../utils/ui");
 
 const ACTION_LABELS = {
   PUBLISH_SCHEDULE: "发布排班",
@@ -49,22 +49,23 @@ Page({
     errorMessage: "",
     themeClass: "theme-light",
     isAdmin: false,
+    isBoss: false,
     adminDenied: false,
   },
 
   async onShow() {
     applyUiSettings(this);
-    const isAdmin = await loadIsAdmin(true);
-    if (!isAdmin) {
-      this.setData({ isAdmin: false, adminDenied: true, loading: false });
+    const role = await loadRole(true);
+    if (!role.isAdmin && !role.isBoss) {
+      this.setData({ isAdmin: false, isBoss: false, adminDenied: true, loading: false });
       return;
     }
-    this.setData({ isAdmin: true, adminDenied: false, page: 1, logs: [] });
+    this.setData({ isAdmin: role.isAdmin, isBoss: role.isBoss, adminDenied: false, page: 1, logs: [] });
     await this.loadData();
   },
 
   onPullDownRefresh() {
-    if (!this.data.isAdmin) {
+    if (!this.data.isAdmin && !this.data.isBoss) {
       wx.stopPullDownRefresh();
       return;
     }
@@ -73,7 +74,7 @@ Page({
   },
 
   async loadData() {
-    if (!this.data.isAdmin) return;
+    if (!this.data.isAdmin && !this.data.isBoss) return;
     if (this.data.page === 1) this.setData({ loading: true });
     else this.setData({ loadingMore: true });
     this.setData({ errorMessage: "" });

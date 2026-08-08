@@ -510,3 +510,51 @@
   color: var(--c-text-meta);
   font-size: 21rpx;
 }
+
+.upcoming-card {
+  padding-bottom: 24rpx;
+}
+
+.upcoming-grid {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.upcoming-day {
+  flex: 1;
+  min-width: 0;
+  min-height: 150rpx;
+  padding: 18rpx 16rpx;
+  box-sizing: border-box;
+  background: var(--c-surface-solid);
+  border: 1rpx solid var(--c-border);
+  border-radius: 14rpx;
+}
+
+.upcoming-date {
+  font-size: 27rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.upcoming-weekday {
+  margin-top: 3rpx;
+  color: var(--c-text-meta);
+  font-size: 20rpx;
+}
+
+.upcoming-shift {
+  margin-top: 14rpx;
+  color: var(--c-primary);
+  font-size: 25rpx;
+  font-weight: 650;
+}
+
+.upcoming-meta {
+  margin-top: 6rpx;
+  color: var(--c-text-meta);
+  font-size: 19rpx;
+  line-height: 1.4;
+  overflow-wrap: break-word;
+}

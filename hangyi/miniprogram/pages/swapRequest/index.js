@@ -38,23 +38,60 @@ const decorateSchedule = (item) => {
   };
 };
 
-const decorateRequest = (item) => ({
-  ...item,
-  createdAtText: formatTime(item.createdAt),
-  reasonImages: (item.reasonImages || []).map((fileID) => ({
-    fileID,
-    displayUrl: fileID,
-  })),
-  validationText: item.validationSnapshot
-    ? item.validationSnapshot.passed === false
-      ? "系统校验发现待处理项"
-      : "资质与工时校验通过"
-    : "历史申请未记录自动校验结果",
-  auditTrail: (item.auditTrail || []).map((entry) => ({
-    ...entry,
-    atText: formatTime(entry.at),
-  })),
-});
+const AUDIT_STEP_NAMES = ["提交", "审批", "结果"];
+
+// 审计条目归入步骤：0=提交, 1=审批, 2=结果
+const auditStepOf = (entry) => {
+  const s = String(entry.status || entry.action || "");
+  if (s === "CANCELLED" || s === "WITHDRAWN") return 2;
+  if (s === "APPROVED" || s === "REJECTED") return 1;
+  return 0;
+};
+
+// 根据申请状态构建三步进度：done=已完成, current=进行中, todo=未开始, fail=失败
+const buildProgressSteps = (status, auditTrail) => {
+  const stateMap = {
+    PENDING: ["done", "current", "todo"],
+    PENDING_TARGET_CONFIRMATION: ["done", "current", "todo"],
+    APPROVED: ["done", "done", "done"],
+    REJECTED: ["done", "done", "fail"],
+    CANCELLED: ["done", "todo", "fail"],
+  };
+  const stateArr = stateMap[status] || ["done", "current", "todo"];
+  const resultTextMap = { APPROVED: "已批准", REJECTED: "已驳回", CANCELLED: "已撤回" };
+  return AUDIT_STEP_NAMES.map((label, i) => ({
+    key: label,
+    label,
+    state: stateArr[i] || "todo",
+    resultText: i === 2 ? (resultTextMap[status] || "") : "",
+    entries: auditTrail.filter((entry) => auditStepOf(entry) === i),
+  }));
+};
+
+const decorateRequest = (item) => {
+  const auditTrail = (item.auditTrail || [])
+    .slice()
+    .sort((a, b) => new Date(a.at) - new Date(b.at))
+    .map((entry) => ({
+      ...entry,
+      atText: formatTime(entry.at),
+    }));
+  return {
+    ...item,
+    createdAtText: formatTime(item.createdAt),
+    reasonImages: (item.reasonImages || []).map((fileID) => ({
+      fileID,
+      displayUrl: fileID,
+    })),
+    validationText: item.validationSnapshot
+      ? item.validationSnapshot.passed === false
+        ? "系统校验发现待处理项"
+        : "资质与工时校验通过"
+      : "历史申请未记录自动校验结果",
+    auditTrail,
+    steps: buildProgressSteps(item.status, auditTrail),
+  };
+};
 
 Page({
   data: {
