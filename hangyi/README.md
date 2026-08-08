@@ -339,11 +339,7 @@ npm test
 ### swap_requests（调班/代班申请）
 ```js
 {
-  requestType,                         // SWAP（双人代班互换） | SHIFT_APPLY（单人调班）
-  // SWAP 字段
-  sourceScheduleId, targetScheduleId,  // 双方排班记录 ID
-  sourceStaffId, targetStaffId,        // 双方人员 ID
-  verifier,                            // AUTO_COMPLIANCE（自动合规校验）
+  requestType,                         // SHIFT_APPLY（单人调班）；SWAP 仅兼容历史遗留数据
   // SHIFT_APPLY 字段
   sourceScheduleId, sourceStaffId,      // 只能关联申请人本人的真实排班
   employeeNo, name, flightNo,          // 服务端从 OPENID 绑定员工和排班生成
@@ -475,7 +471,6 @@ npm test
 
 | type  | 说明 | 需登录 |
 | ------ | ------|--------|
-| `createSwapRequest`  | 提交代班互换申请；原因可用文字或图片，自动校验双方资质与工时冲突 | (登录员工) |
 | `createSwapApplication`  | 从本人未完成真实排班提交调班申请；原因可用文字或图片 | (登录员工) |
 | `listMySwapRequests`  | 查询本人调班/代班申请（可按状态筛选） | |
 | `withdrawSwapRequest`  | 撤回本人待审批调班/代班申请 | |

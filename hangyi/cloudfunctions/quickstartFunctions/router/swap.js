@@ -2,6 +2,10 @@
  * swap.js - 代班 / 调班申请与审批
  * 涵盖：createSwapApplication、listMySwapRequests、
  *       listSwapRequests、approveSwapRequest、withdrawSwapRequest
+ *
+ * 注意：SWAP（代班互换）类型仅用于兼容历史遗留数据，新申请一律
+ *       创建为 SHIFT_APPLY（单人调班）；审批/撤回分支保留 SWAP 处理能力。
+ *       审批/列表仅 ADMIN，不支持 BOSS 只读。
  */
 const {
   db, COLLECTIONS, SETTINGS_KEYS,
@@ -145,7 +149,14 @@ const createSwapApplication = async (event) => {
   const syncEnabled = String(await getSettingValue(SETTINGS_KEYS.HANGYI_SYNC_ENABLED, "false")) === "true";
   if (syncEnabled) {
     callHangyiServiceChecked("/api/sync/swap-requests", [{ _id: requestRes._id, ...applyData }])
-      .catch((error) => console.error("Hangyi同步失败:", error.message || "unknown"));
+      .catch((error) => {
+        console.error("Hangyi同步失败:", error.message || "unknown");
+        logOperation("HANGYI_SYNC_FAILED", `Hangyi同步调班申请失败: ${requestRes._id}`, {
+          type: "swapRequest",
+          requestId: requestRes._id,
+          detail: String(error.message || "unknown").slice(0, 200),
+        }).catch(() => {});
+      });
   }
 
   return ok(
@@ -284,6 +295,7 @@ const approveSwapRequest = async (event) => {
   const comment = String(payload.comment || "").trim().slice(0, 200);
   const replacementStaffId = String(payload.replacementStaffId || "").trim();
   if (!requestId) return fail("缺少申请ID", 400);
+  if (requestId.length > 64) return fail("申请ID格式错误", 400);
   if (!["APPROVE", "REJECT"].includes(decision)) return fail("审批动作无效", 400);
 
   const reqRes = await db.collection(COLLECTIONS.SWAP_REQUESTS).doc(requestId).get();
@@ -442,7 +454,14 @@ const approveSwapRequest = async (event) => {
         _id: req.sourceScheduleId,
         ...sourceSchedule,
         ...scheduleUpdate,
-      }]).catch((error) => console.error("Hangyi排班同步失败:", error.message || "unknown"));
+      }]).catch((error) => {
+        console.error("Hangyi排班同步失败:", error.message || "unknown");
+        logOperation("HANGYI_SYNC_FAILED", `Hangyi同步审批排班失败: ${req.sourceScheduleId}`, {
+          type: "schedule",
+          scheduleId: req.sourceScheduleId,
+          detail: String(error.message || "unknown").slice(0, 200),
+        }).catch(() => {});
+      });
     }
 
     return ok({
@@ -622,6 +641,10 @@ const withdrawSwapRequest = async (event) => {
   const { openid } = getOpenContext();
   if (req.requesterOpenid !== openid) return fail("只能撤回自己的申请", 403);
   if (!["PENDING", "PENDING_TARGET_CONFIRMATION"].includes(req.status)) return fail(`已审批或已撤回的申请不能再撤回（当前状态：${req.status}）`, 409);
+  // 兼容历史 SWAP 数据：对方已明确同意后不允许单方面撤回（需先沟通）
+  if (req.requestType === "SWAP" && req.targetConsent === "ACCEPTED") {
+    return fail("对方已同意的互换申请需先通知对方再撤回", 409);
+  }
 
   const now = new Date();
   await db.collection(COLLECTIONS.SWAP_REQUESTS).doc(requestId).update({

@@ -94,6 +94,13 @@ function dateOffset(days = 0) {
   return `${year}-${month}-${day}`;
 }
 
+function todayLocal() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 function seedDemoAdmin(openid) {
   const id = seedStaff({
     employeeNo: "DEMOADMIN",
@@ -1181,7 +1188,7 @@ test("e2e/flight: updateFlightOperationalData 校验权限与参数类型", asyn
 
 test("e2e/flight: getRiskCenterDashboard 返回汇总", async () => {
   global.resetMockState({ openid: "x" });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   seedSetting("maxDailyWorkHours", 12);
   seedFlight({
     flightNo: "B1",
@@ -1227,7 +1234,7 @@ test("e2e/flight: getRiskCenterDashboard 返回汇总", async () => {
 
 test("e2e/flight: getWarningAnalytics 可只返回人员工作负荷", async () => {
   global.resetMockState({ openid: "x" });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const staffId = seedStaff({
     employeeNo: "GH401",
     name: "员工B",
@@ -1302,7 +1309,9 @@ test("e2e/flight: getQualificationStatus 计算剩余天数分级", async () => 
   const makeDate = (offset) => {
     const d = new Date(today);
     d.setDate(d.getDate() + offset);
-    return d.toISOString().slice(0, 10);
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${month}-${day}`;
   };
   seedStaff({
     employeeNo: "GH500", name: "资质测试", openid: "x",
@@ -1571,7 +1580,7 @@ test("e2e/realtime: propagateScheduleDelay (P0-4 修复 + P1-10) 调整全部后
   global.resetMockState({ openid: "openid-prop-admin" });
   seedStaff({ employeeNo: "GH830", name: "admin", openid: "openid-prop-admin", isAdmin: true });
   // 用未来日期, 避免和当前日期冲突
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   // 用同一个 staffId 串联所有排班, 这样 propagate 才会"找到受影响人员"
   const sameStaff = "staff-same";
   seedSchedule({ flightNo: "DELAY", scheduleDate: today, staffId: sameStaff, _taskStart: today + "T09:00", _taskEnd: today + "T10:00" });
@@ -1600,7 +1609,7 @@ test("e2e/realtime: propagateScheduleDelay (P0-4 修复 + P1-10) 调整全部后
 test("e2e/realtime: propagateScheduleDelay 拒绝负数与 0 延误 (P1-C2)", async () => {
   global.resetMockState({ openid: "openid-prop-neg" });
   seedStaff({ employeeNo: "GH831", name: "admin", openid: "openid-prop-neg", isAdmin: true });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   seedSchedule({ flightNo: "NEG", scheduleDate: today, staffId: "s1" });
 
   const r = await realtimeRouter.propagateScheduleDelay({
