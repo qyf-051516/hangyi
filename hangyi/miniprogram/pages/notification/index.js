@@ -48,12 +48,14 @@ Page({
   },
 
   async loadNotifications() {
+    if (this._loadingNotifications) return; // 防 onShow/下拉刷新并发重入
+    this._loadingNotifications = true;
     this.setData({ loading: true, errorMessage: "" });
     try {
       const res = await callBackend("listMyNotifications");
       const allNotifications = (res.notifications || []).map((item) => ({
         ...item,
-        notificationKey: `${item.category}_${item._id}`,
+        notificationKey: `${item.category || "MISC"}_${item._id || Math.random()}`,
         updatedAtText: formatTime(item.updatedAt || item.createdAt),
         summaryText: buildSummary(item),
       }));
@@ -75,6 +77,7 @@ Page({
         wx.showToast({ title: errorMessage, icon: "none" });
       }
     } finally {
+      this._loadingNotifications = false;
       this.setData({ loading: false });
     }
   },

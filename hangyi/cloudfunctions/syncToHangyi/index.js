@@ -210,6 +210,8 @@ exports.main = async (event, context) => {
   let totalSynced = 0;
   const syncErrors = [];
   const BATCH_SIZE = 30;
+  // 单集合每次同步的最大记录数保护,避免首次全量同步超时(skip 分页无上限是缺陷)
+  const MAX_RECORDS_PER_COLLECTION = 5000;
 
   for (const collName of Object.keys(COLLECTIONS)) {
     const coll = COLLECTIONS[collName];
@@ -217,6 +219,12 @@ exports.main = async (event, context) => {
     let hasMore = true;
     while (hasMore) {
       try {
+        if (skip >= MAX_RECORDS_PER_COLLECTION) {
+          console.warn(`SyncToHangyi: ${collName} 超过 ${MAX_RECORDS_PER_COLLECTION} 条上限,跳过剩余`);
+          syncErrors.push({ collection: collName, error: `超过单集合同步上限 ${MAX_RECORDS_PER_COLLECTION}` });
+          hasMore = false;
+          break;
+        }
         let query = db.collection(coll);
         if (!initialSync) query = query.where({ updatedAt: db.command.gte(lastSync) });
         const res = await query.orderBy("_id", "asc").skip(skip).limit(BATCH_SIZE).get();

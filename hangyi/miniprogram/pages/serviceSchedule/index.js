@@ -412,7 +412,7 @@ Page({
     const nextValue = Math.max(1, Math.min(999, value));
     this.setData({
       [field]: nextValue,
-      delayMinusValue: Math.max(5, nextValue - 5),
+      delayMinusValue: Math.max(1, nextValue - 5),
       delayPlusValue: Math.min(999, nextValue + 5),
     });
   },

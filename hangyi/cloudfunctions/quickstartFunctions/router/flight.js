@@ -229,6 +229,8 @@ const updateFlightOperationalData = async (event) => {
 // 风险中心仪表盘
 // ──────────────────────────────────────────────
 const getRiskCenterDashboard = async (event) => {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
   const days = Math.min(Math.max(Number((event.data || {}).days || 7), 3), 30);
   const endDateObj = new Date();
   const startDateObj = new Date(endDateObj.getTime() - (days - 1) * 24 * 60 * 60 * 1000);

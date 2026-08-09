@@ -71,4 +71,6 @@
       hover-class="button-hover"
     >退出登录</button>
   </view>
+
+  <view class="version-footer">航翼智能排班 v{{version}}</view>
 </view>

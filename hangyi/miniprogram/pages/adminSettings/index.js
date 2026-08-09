@@ -52,7 +52,8 @@ Page({
       return;
     }
     this.setData({ adminDenied: false });
-    if (!this.data.loaded) this.loadConfig();
+    // 每次展示都刷新配置,避免页面栈内数据过期;已加载过则静默刷新
+    this.loadConfig(this.data.loaded === true);
   },
 
   onPullDownRefresh() {
@@ -64,9 +65,9 @@ Page({
     this.loadConfig().finally(() => wx.stopPullDownRefresh());
   },
 
-  async loadConfig() {
+  async loadConfig(silent = false) {
     const seq = ++this._loadSeq;
-    this.setData({ loading: true, errorMessage: "" });
+    if (!silent) this.setData({ loading: true, errorMessage: "" });
     try {
       const result = await callBackend("getSchedulingConfig");
       if (seq !== this._loadSeq) return;

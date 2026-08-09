@@ -1186,8 +1186,14 @@ test("e2e/flight: updateFlightOperationalData 校验权限与参数类型", asyn
   assert.equal(r.code, 400);
 });
 
-test("e2e/flight: getRiskCenterDashboard 返回汇总", async () => {
-  global.resetMockState({ openid: "x" });
+test("e2e/flight: getRiskCenterDashboard 返回汇总(仅管理员)", async () => {
+  global.resetMockState({ openid: "openid-risk-admin" });
+  seedStaff({
+    employeeNo: "GHRISK0",
+    name: "风险管理员",
+    openid: "openid-risk-admin",
+    isAdmin: true,
+  });
   const today = todayLocal();
   seedSetting("maxDailyWorkHours", 12);
   seedFlight({
@@ -1230,6 +1236,12 @@ test("e2e/flight: getRiskCenterDashboard 返回汇总", async () => {
   assert.equal(r.data.qualificationIssueCount, 1);
   assert.ok(r.data.availableStaffCount >= 1);
   assert.equal(Object.hasOwn(r.data, "longStayCount"), false);
+
+  // 非管理员(含未登录)必须被拒绝
+  global.resetMockState({ openid: "openid-risk-stranger" });
+  seedStaff({ employeeNo: "GHRISK1", name: "普通员工", openid: "openid-risk-stranger" });
+  const denied = await flightRouter.getRiskCenterDashboard({ data: { scheduleDate: today } });
+  assert.equal(denied.code, 403);
 });
 
 test("e2e/flight: getWarningAnalytics 可只返回人员工作负荷", async () => {

@@ -6,7 +6,7 @@ const cache = require("../cache");
 const {
   db, _, COLLECTIONS,
   ok, fail,
-  requireAdmin, getSettingValue, getOpenContext,
+  requireAdmin, requireActiveStaff, getSettingValue, getOpenContext,
   formatDate, logOperation, getApprovedLeaveEmployeeNos,
   normalizeAirlineName, normalizeAircraftType, hasQualification,
 } = require("../utils");
@@ -311,6 +311,8 @@ const migrateStaffRoles = async () => {
 // 任何登录员工都可调用，用来查看"现在能不能自举 admin"
 // ──────────────────────────────────────────────
 const getBootstrapStatus = async () => {
+  const guard = await requireActiveStaff();
+  if (!guard.ok) return guard.response;
   const enabled = String(await getSettingValue("bootstrapTestAdminEnabled", "false")) === "true";
   const tokenConfigured = !!(await getSettingValue("bootstrapTestAdminToken", ""));
   const existingAdmins = await db.collection(COLLECTIONS.STAFF)

@@ -192,7 +192,8 @@ Page({
     const staffId = e.currentTarget.dataset.id;
     const selectedStaff = this.data.list.find((item) => item.staffId === staffId);
     if (!selectedStaff) return;
-    const groupIndex = Math.max(1, GROUP_OPTIONS.findIndex((item) => item.value === selectedStaff.groupId));
+    const groupIndexRaw = GROUP_OPTIONS.findIndex((item) => item.value === selectedStaff.groupId);
+    const groupIndex = groupIndexRaw >= 1 ? groupIndexRaw : 0; // 0=“全部班组”占位,未知班组保存时保留原值
     const roleIndex = Math.max(1, ROLE_OPTIONS.findIndex((item) => item.value === selectedStaff.roleType));
     this.setData({
       showEditor: true,
@@ -200,7 +201,7 @@ Page({
       dirty: false,
       editForm: {
         staffId,
-        groupId: GROUP_OPTIONS[groupIndex].value,
+        groupId: groupIndexRaw >= 1 ? GROUP_OPTIONS[groupIndexRaw].value : selectedStaff.groupId,
         groupIndex,
         roleType: ROLE_OPTIONS[roleIndex].value,
         roleIndex,
@@ -214,11 +215,29 @@ Page({
 
   onCloseEditor() {
     if (this.data.saving) return;
+    if (this.data.dirty) {
+      wx.showModal({
+        title: "放弃修改",
+        content: "当前编辑内容未保存，确定放弃？",
+        confirmText: "放弃",
+        cancelText: "继续编辑",
+        success: (res) => {
+          if (res.confirm) {
+            this.setData({ showEditor: false, selectedStaff: null, dirty: false });
+          }
+        },
+      });
+      return;
+    }
     this.setData({ showEditor: false, selectedStaff: null, dirty: false });
   },
 
   onEditGroup(e) {
-    const groupIndex = Number(e.detail.value || 1);
+    const groupIndex = Number(e.detail.value || 0);
+    if (groupIndex === 0) {
+      // “全部班组”仅用于列表筛选,编辑弹窗忽略该选项,保留原班组
+      return;
+    }
     this.setData({
       "editForm.groupIndex": groupIndex,
       "editForm.groupId": GROUP_OPTIONS[groupIndex].value,
@@ -253,7 +272,7 @@ Page({
     if (this.data.saving || !this.data.selectedStaff) return;
     const form = this.data.editForm;
     const qualifications = String(form.qualificationText || "")
-      .split(/[,，、/\s]+/)
+      .split(/[,，、/]+/) // 分隔符不含空白,保留 B737 MAX 这类含空格的机型名
       .map((item) => item.trim().toUpperCase())
       .filter(Boolean);
     const airlines = String(form.airlineText || "")

@@ -163,7 +163,13 @@ const loadIsAdmin = async (forceRefresh = false) => {
     const isAdmin = !!(profile && profile.isAdmin);
     writeCache("isAdmin", isAdmin);
     return isAdmin;
-  } catch {
+  } catch (error) {
+    // 403 表示身份确认非管理员;网络/服务端异常则回退缓存,避免弱网把管理员踢出
+    if (error && error.code === 403) {
+      writeCache("isAdmin", false);
+      return false;
+    }
+    if (cached !== null) return cached;
     return false;
   }
 };

@@ -102,6 +102,7 @@ Page({
           ...cached,
           pendingSwaps,
           swapNotice,
+          selectedSwapIds: [],
           hasSwapRequests: pendingSwaps.some((item) => (item.requestType || "SWAP") === "SWAP"),
           loading: false,
           loaded: true,
@@ -129,6 +130,8 @@ Page({
       this.setData({
         ...workloadData,
         pendingSwaps,
+        selectedSwapIds: [],
+        swapNotice: "",
         hasSwapRequests: pendingSwaps.some((item) => (item.requestType || "SWAP") === "SWAP"),
         loaded: true,
         errorMessage: "",

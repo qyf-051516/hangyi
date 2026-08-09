@@ -22,6 +22,7 @@ Page({
     themeClass: "theme-light",
     themeOptions: ["浅色", "深色"],
     themeIndex: 1,
+    version: "1.0.0",
     selectedQualifications: [],
     qualificationText: "未登记",
     airlineText: "未登记",
@@ -126,11 +127,24 @@ Page({
   },
 
   onInputMaxHours(e) {
-    this.setData({ maxMonthlyWorkHours: Number(e.detail.value) || 180 });
+    const value = Number(e.detail.value);
+    if (Number.isNaN(value) || value <= 0) {
+      this.setData({ maxMonthlyWorkHours: 180 });
+      return;
+    }
+    this.setData({ maxMonthlyWorkHours: value });
   },
 
   async onSave() {
     if (this.data.saving) return;
+
+    // 保存前校验月工时上限范围
+    const maxHours = Number(this.data.maxMonthlyWorkHours);
+    if (maxHours < 80 || maxHours > 360) {
+      wx.showToast({ title: "月工时上限需在 80-360 小时之间", icon: "none" });
+      this.setData({ maxMonthlyWorkHours: 180 });
+      return;
+    }
 
     const phone = String(this.data.phone || "").trim();
     let loadingShown = false;

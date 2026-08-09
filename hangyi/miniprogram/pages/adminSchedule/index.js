@@ -829,12 +829,12 @@ Page({
     this._tsvFilePath = "";
   },
 
-  // 选择 TSV 文件
+  // 选择 TSV/CSV 文件
   onChooseTSVFile() {
     wx.chooseMessageFile({
       count: 1,
       type: "file",
-      extension: ["tsv", "txt"],
+      extension: ["tsv", "txt", "csv"],
       success: (res) => {
         if (res.tempFiles && res.tempFiles.length > 0) {
           const tempFile = res.tempFiles[0];
@@ -970,6 +970,26 @@ Page({
    * 解析 TSV 内容为航班数组
    * TSV 格式: 日期\t进港航班\t出港航班\t机号\t机型\t计落\t计起
    */
+  // CSV 行解析:感知双引号包裹与 "" 转义(Excel/WPS 导出 CSV 常见)
+  splitCsvLine(line) {
+    const result = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { current += '"'; i++; }
+          else inQuotes = false;
+        } else current += ch;
+      } else if (ch === '"') inQuotes = true;
+      else if (ch === ",") { result.push(current); current = ""; }
+      else current += ch;
+    }
+    result.push(current);
+    return result.map((cell) => cell.trim());
+  },
+
   parseTSVContent(content, defaultScheduleDate) {
     const lines = content
       .split(/\r?\n/)
@@ -1040,7 +1060,7 @@ Page({
       return `${dateStr}T${hh}:${mm}:${ss}`;
     };
 
-    // 解析日期：支持 YYYYMMDD, YYYY-MM-DD 等格式
+    // 解析日期：支持 YYYYMMDD, YYYY-MM-DD, YYYY/M/D, YYYY-M-D 等格式
     const parseDate = (raw) => {
       if (!raw) return "";
       const s = String(raw).trim();
@@ -1048,10 +1068,11 @@ Page({
       if (/^\d{8}$/.test(s)) {
         return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
       }
-      // YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      // YYYY/MM/DD
-      if (/^\d{4}\/\d{2}\/\d{2}$/.test(s)) return s.replace(/\//g, "-");
+      // YYYY-M-D / YYYY/MM/DD(含单数字月日)
+      const m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+      if (m) {
+        return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+      }
       return s;
     };
 
@@ -1059,7 +1080,9 @@ Page({
     const errors = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const row = lines[i].split(delimiter);
+      const row = delimiter === ","
+        ? this.splitCsvLine(lines[i])
+        : lines[i].split(delimiter);
 
       // 跳过空行
       if (row.length === 0 || (row.length === 1 && String(row[0]).trim() === "")) continue;
