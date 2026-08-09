@@ -102,9 +102,9 @@
 ```bash
 # 1. 微信开发者工具导入 ./hangyi/
 # 2. hangyi/miniprogram/app.js 改 env 为你的云环境 ID
-# 3. 上传并部署 4 个云函数:quickstartFunctions / bootstrapAdmin / syncToHangyi / configSettings(云端安装依赖)
-# 4. 首页"初始化演示数据"
-# 5. 工号+姓名登录(测试 admin: 工号=admin 名称=admin 电话=11111111111)
+# 3. 上传并部署 3 个云函数:quickstartFunctions / bootstrapAdmin / syncToHangyi(云端安装依赖;已移除 demo 残留 configSettings,不要部署)
+# 4. 云端控制台执行 bootstrapData(confirmText=INITIALIZE_DEMO_DATA)初始化集合/配置
+# 5. 工号+姓名登录后,由 bootstrapAdmin 云控制台执行 CREATE_FIRST_ADMIN 完成首个管理员自举(不再有测试 admin 账号)
 ```
 
 ### B. 跑 Java 后端
@@ -116,7 +116,7 @@ cd ideaprojects/hangyi
 # 等待约 90s 所有容器 healthcheck 通过:
 # 前端:        http://localhost:8089
 # API 网关:    http://localhost:9000/api
-# 默认账号: admin / 123456
+# 首次管理员:   由 bootstrapAdmin 云函数自举(见 hangyi/AGENTS.md §21),不再有 admin/123456 默认账号
 ```
 
 ---
