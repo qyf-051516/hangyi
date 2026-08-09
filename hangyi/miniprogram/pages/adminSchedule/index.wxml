@@ -214,6 +214,13 @@
           <text class="export-desc">生成 .xlsx 文件，可编辑和分享</text>
         </view>
       </view>
+      <view class="export-option" bindtap="onExportCsv">
+        <text class="export-icon">CSV</text>
+        <view class="export-info">
+          <text class="export-label">导出为 CSV</text>
+          <text class="export-desc">生成 .csv 文件，Excel/WPS 可直接打开，可转发</text>
+        </view>
+      </view>
       <view class="export-option" bindtap="onPrintSchedule">
         <text class="export-icon">印</text>
         <view class="export-info">

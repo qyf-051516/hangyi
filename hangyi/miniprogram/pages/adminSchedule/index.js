@@ -980,8 +980,9 @@ Page({
       return { flights: [], errors: ["文件内容为空或行数不足"] };
     }
 
-    // 第一行是表头
-    const header = lines[0].split("\t").map((h) => h.trim());
+    // 第一行是表头;自动检测分隔符:优先制表符(TSV),否则按逗号(CSV)
+    const delimiter = lines[0].includes("\t") ? "\t" : ",";
+    const header = lines[0].split(delimiter).map((h) => h.trim());
 
     // 列名模糊匹配（支持常见排班表列名）
     const colMap = {};
@@ -1058,7 +1059,7 @@ Page({
     const errors = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const row = lines[i].split("\t");
+      const row = lines[i].split(delimiter);
 
       // 跳过空行
       if (row.length === 0 || (row.length === 1 && String(row[0]).trim() === "")) continue;
@@ -1353,6 +1354,37 @@ Page({
         exportMode: "STANDARD",
       });
       await this.openExportDocument(result);
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({ title: error.message || "导出失败", icon: "none" });
+    }
+  },
+
+  async onExportCsv() {
+    wx.showLoading({ title: "生成 CSV…" });
+    try {
+      const result = await callBackend("exportSchedule", {
+        scheduleDate: this.data.scheduleDate,
+        format: "csv",
+        exportMode: "STANDARD",
+      });
+      if (!result || !result.fileID) throw new Error("未获取到导出文件");
+      wx.hideLoading();
+      wx.showLoading({ title: "下载文件中" });
+      const downloadRes = await wx.cloud.downloadFile({ fileID: result.fileID });
+      wx.hideLoading();
+      if (!downloadRes.tempFilePath) throw new Error("下载文件失败");
+      // 微信不支持直接预览 csv,通过「转发文件」发给文件传输助手/好友,电脑端打开
+      await new Promise((resolve, reject) => {
+        wx.shareFileMessage({
+          filePath: downloadRes.tempFilePath,
+          fileName: result.fileName || `排班表_${this.data.scheduleDate}.csv`,
+          success: resolve,
+          fail: () => reject(new Error("转发文件失败，可改用 Excel 导出")),
+        });
+      });
+      this.setData({ showExportMenu: false });
+      wx.showToast({ title: "CSV 已生成，请选择发送对象", icon: "none" });
     } catch (error) {
       wx.hideLoading();
       wx.showToast({ title: error.message || "导出失败", icon: "none" });

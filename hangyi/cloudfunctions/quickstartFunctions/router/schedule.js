@@ -304,7 +304,7 @@ const exportSchedule = async (event) => {
     typeof scheduleDate !== "string" ||
     !/^\d{4}-\d{2}-\d{2}$/.test(scheduleDate)
   )) return fail("排班日期格式错误", 400);
-  if (format !== "xlsx") return fail("仅支持 xlsx 导出", 400);
+  if (!["xlsx", "csv"].includes(format)) return fail("仅支持 xlsx/csv 导出", 400);
   if (!["STANDARD", "PRINT"].includes(exportMode)) return fail("导出模式无效", 400);
   const targetDate = scheduleDate || formatDate(new Date());
 
@@ -355,6 +355,33 @@ const exportSchedule = async (event) => {
       ...sheetData,
     ]
     : [headers, ...sheetData];
+
+  // ── CSV 导出：纯表格（无合并/过滤），BOM 保证 Excel/WPS 正确识别 UTF-8 ──
+  if (format === "csv") {
+    const escapeCsv = (value) => {
+      const s = value === undefined || value === null ? "" : String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csvRows = [headers, ...sheetData].map((row) =>
+      row.map(escapeCsv).join(",")
+    );
+    const buffer = Buffer.from(`\uFEFF${csvRows.join("\r\n")}`, "utf-8");
+    const cloudPath = `exports/schedule_${targetDate}_${Date.now()}.csv`;
+    const uploadResult = await cloud.uploadFile({ cloudPath, fileContent: buffer });
+    await logOperation(
+      "EXPORT_SCHEDULE",
+      `${guard.staff.name}（${guard.staff.employeeNo}）导出 ${targetDate} 排班表(CSV)`,
+      { type: "scheduleExport", scheduleDate: targetDate, exportMode, rowCount: rows.length, cloudPath }
+    );
+    return ok({
+      fileID: uploadResult.fileID,
+      fileName: `排班表_${targetDate}.csv`,
+      rowCount: rows.length,
+      exportMode,
+      printReady: false,
+    });
+  }
+
   const sheetOptions = {
     "!cols": [
       { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 9 }, { wch: 24 },

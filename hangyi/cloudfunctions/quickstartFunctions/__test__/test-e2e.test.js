@@ -2673,6 +2673,58 @@ test("e2e/schedule: 勤务智能排班只生成预览，确认发布后写入完
   assert.ok(records.every((item) => item._taskStart && item._taskEnd));
 });
 
+test("e2e/schedule: exportSchedule 支持 csv 导出", async () => {
+  global.resetMockState({ openid: "openid-csv-admin" });
+  seedStaff({
+    employeeNo: "GHCSV00",
+    name: "CSV管理员",
+    openid: "openid-csv-admin",
+    isAdmin: true,
+  });
+  const staffId = seedStaff({
+    employeeNo: "GHCSV01",
+    name: "CSV员工",
+    groupId: "A组",
+    roleType: "SERVICE",
+    authorizedAircraftTypes: ["A320"],
+  });
+  const scheduleDate = dateOffset(1);
+  seedSchedule({
+    staffId,
+    staffName: "CSV员工",
+    staffEmployeeNo: "GHCSV01",
+    groupId: "A组",
+    scheduleDate,
+    flightNo: "CZ8801",
+    airline: "中国南方航空",
+    aircraftType: "A320",
+    departureTime: `${scheduleDate}T10:00`,
+    shiftCode: "MORNING",
+    status: "ASSIGNED",
+    recordStatus: "active",
+  });
+
+  const r = await scheduleRouter.exportSchedule({
+    data: { scheduleDate, format: "csv" },
+  });
+  assert.equal(r.code, 0);
+  assert.match(r.data.fileName, /\.csv$/);
+  assert.match(r.data.fileID, /\.csv$/);
+  assert.equal(r.data.printReady, false);
+  assert.ok(r.data.rowCount >= 1);
+  assert.ok(
+    state.collections.operation_logs.some(
+      (item) => item.action === "EXPORT_SCHEDULE"
+    )
+  );
+
+  // 非法格式仍拒绝
+  const bad = await scheduleRouter.exportSchedule({
+    data: { scheduleDate, format: "txt" },
+  });
+  assert.equal(bad.code, 400);
+});
+
 test("e2e/schedule: 单天智能排班拒绝空航班号(防假航班)", async () => {
   global.resetMockState({ openid: "openid-smart-empty-admin" });
   seedStaff({
