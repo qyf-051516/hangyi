@@ -336,9 +336,9 @@ const approveSwapRequest = async (event) => {
   if (!req.sourceScheduleId) {
     return fail("审批失败：申请未关联原排班，请申请人重新提交", 409);
   }
-  if (requestType === "SWAP" && req.targetConsent !== "ACCEPTED") {
-    return fail("审批失败：对方尚未同意该互换申请", 409);
-  }
+  // SWAP 是历史遗留数据（新申请一律 SHIFT_APPLY，全仓库无 handler 写 targetConsent），
+  // 不再以 targetConsent 作为审批闸门，直接进入互换审批逻辑。
+  // 若需审计对方确认状态，可在下方日志中记录 targetConsent 实际值。
 
   const sourceScheduleRes = await db.collection(COLLECTIONS.SCHEDULES).doc(req.sourceScheduleId).get();
   const sourceSchedule = sourceScheduleRes.data;
@@ -615,6 +615,7 @@ const approveSwapRequest = async (event) => {
     requestId,
     sourceStaff: sourceStaff.name,
     targetStaff: targetStaff.name,
+    targetConsent: req.targetConsent || "N/A",
     validationSnapshot: { passed: true, sourceValidation, targetValidation },
     before: { status: "PENDING" },
     after: { status: "APPROVED" },
@@ -641,10 +642,7 @@ const withdrawSwapRequest = async (event) => {
   const { openid } = getOpenContext();
   if (req.requesterOpenid !== openid) return fail("只能撤回自己的申请", 403);
   if (!["PENDING", "PENDING_TARGET_CONFIRMATION"].includes(req.status)) return fail(`已审批或已撤回的申请不能再撤回（当前状态：${req.status}）`, 409);
-  // 兼容历史 SWAP 数据：对方已明确同意后不允许单方面撤回（需先沟通）
-  if (req.requestType === "SWAP" && req.targetConsent === "ACCEPTED") {
-    return fail("对方已同意的互换申请需先通知对方再撤回", 409);
-  }
+  // 历史 SWAP 遗留数据不写 targetConsent，撤回仅由状态约束（与审批侧闸门一并放宽）。
 
   const now = new Date();
   await db.collection(COLLECTIONS.SWAP_REQUESTS).doc(requestId).update({

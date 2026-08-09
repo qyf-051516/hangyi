@@ -178,9 +178,16 @@ Page({
         return;
       }
 
+      // 后端导出 xlsx; 若返回了文件名, 校验其为 .xlsx 再打开
+      const fileName = result.fileName || "";
+      if (fileName && !/\.xlsx$/i.test(fileName)) {
+        wx.showToast({ title: "导出文件格式异常", icon: "none" });
+        return;
+      }
+
       wx.openDocument({
         filePath: downloadRes.tempFilePath,
-        fileType: "csv",
+        fileType: "xlsx",
         showMenu: true,
         success: () => {
           wx.showToast({ title: `已导出 ${result.exported} 条`, icon: "success" });

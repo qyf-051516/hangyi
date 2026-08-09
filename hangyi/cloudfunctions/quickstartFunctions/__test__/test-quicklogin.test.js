@@ -115,6 +115,19 @@ test("loginByPhone: 微信返回的手机号格式异常 → 400", async () => {
   assert.match(res.message, /手机号格式不正确/);
 });
 
+test("loginByPhone: 同一 openid 1 分钟内超 10 次 → 429", async () => {
+  global.resetMockState({ openid: "openid-ratelimit" });
+  state.phoneByCode["code-ratelimit"] = { purePhoneNumber: "13600136000" };
+  seedStaff({ employeeNo: "TEST008", name: "限流员工", phone: "13600136000" });
+  for (let i = 0; i < 10; i++) {
+    const res = await authRouter.loginByPhone({ data: { phoneCode: "code-ratelimit" } });
+    assert.equal(res.code, 0, `第 ${i + 1} 次应成功, got ${res.code}: ${res.message}`);
+  }
+  const res = await authRouter.loginByPhone({ data: { phoneCode: "code-ratelimit" } });
+  assert.equal(res.code, 429);
+  assert.match(res.message, /过于频繁/);
+});
+
 // ──────────────────────────────────────────────
 // loginByWechatProfile
 // ──────────────────────────────────────────────

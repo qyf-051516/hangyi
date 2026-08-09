@@ -18,6 +18,8 @@ Page({
     fatigueResults: [],
     isAdmin: false,
     accessDenied: false,
+    // 是否存在可批量处理的排班互换(SWAP)申请
+    hasSwapRequests: false,
     // 批量审批
     selectedSwapIds: [],
     // 驳回 modal
@@ -100,6 +102,7 @@ Page({
           ...cached,
           pendingSwaps,
           swapNotice,
+          hasSwapRequests: pendingSwaps.some((item) => (item.requestType || "SWAP") === "SWAP"),
           loading: false,
           loaded: true,
         });
@@ -122,9 +125,11 @@ Page({
       const workloadData = { rankingRows };
 
       writeCache(CACHE_KEY, workloadData);
+      const pendingSwaps = this.decorateSwaps(swapRes.requests || []);
       this.setData({
         ...workloadData,
-        pendingSwaps: this.decorateSwaps(swapRes.requests || []),
+        pendingSwaps,
+        hasSwapRequests: pendingSwaps.some((item) => (item.requestType || "SWAP") === "SWAP"),
         loaded: true,
         errorMessage: "",
       });
@@ -166,7 +171,11 @@ Page({
   onToggleSwapSelect(e) {
     const id = e.currentTarget.dataset.id;
     const request = this.data.pendingSwaps.find((item) => item._id === id);
-    if (!request || (request.requestType || "SWAP") !== "SWAP") return;
+    if (!request) return;
+    if ((request.requestType || "SWAP") !== "SWAP") {
+      wx.showToast({ title: "单人调班需逐条选择替班人员审批", icon: "none" });
+      return;
+    }
     const selected = this.data.selectedSwapIds.slice();
     const idx = selected.indexOf(id);
     if (idx >= 0) selected.splice(idx, 1);
@@ -184,9 +193,25 @@ Page({
     });
   },
 
+  onGoQualificationWarnings() {
+    wx.navigateTo({ url: "/pages/qualificationWarnings/index" });
+  },
+
+  // 所选申请中是否混入单人调班(SHIFT_APPLY), 批量审批仅支持排班互换(SWAP)
+  hasNonSwapSelected(ids) {
+    return (ids || []).some((id) => {
+      const request = this.data.pendingSwaps.find((item) => item._id === id);
+      return !request || (request.requestType || "SWAP") !== "SWAP";
+    });
+  },
+
   async onBatchApproveSwap() {
     const ids = this.data.selectedSwapIds;
     if (!ids.length) return;
+    if (this.hasNonSwapSelected(ids)) {
+      wx.showToast({ title: "单人调班需逐条选择替班人员审批", icon: "none" });
+      return;
+    }
     const confirmed = await new Promise((resolve) => {
       wx.showModal({
         title: "确认批量通过",
@@ -224,6 +249,10 @@ Page({
   onShowBatchReject() {
     const ids = this.data.selectedSwapIds;
     if (!ids.length) return;
+    if (this.hasNonSwapSelected(ids)) {
+      wx.showToast({ title: "单人调班需逐条选择替班人员审批", icon: "none" });
+      return;
+    }
     this.setData({
       showRejectModal: true,
       rejectTargetIds: ids,

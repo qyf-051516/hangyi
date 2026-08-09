@@ -16,6 +16,39 @@ const EMPLOYEE_NO_RE = /^[A-Z0-9_-]{1,30}$/;
 const PHONE_RE = /^1\d{10}$/;
 const LOGIN_VERIFICATION_FAILED = "员工验证失败，请使用手机号一键登录或联系管理员协助绑定";
 
+// 登录限流：按 openid 记录时间戳，1 分钟窗口最多 10 次。
+// 云函数实例间不共享内存，该 Map 只负责在靠近登录入口处快速熔断突发尝试，
+// 与 assistant.js 的 consumeRateLimit 语义一致。
+const LOGIN_RATE_WINDOW_MS = 60 * 1000;
+const LOGIN_RATE_WINDOW_LIMIT = 10;
+const loginRateBuckets = new Map();
+
+const consumeLoginRateLimit = (openid) => {
+  const now = Date.now();
+  if (loginRateBuckets.size >= 500) {
+    for (const [key, item] of loginRateBuckets.entries()) {
+      if (now - item.lastSeenAt > 2 * 24 * 60 * 60 * 1000) loginRateBuckets.delete(key);
+    }
+  }
+  const current = loginRateBuckets.get(openid) || {
+    windowStartedAt: now,
+    count: 0,
+    lastSeenAt: now,
+  };
+  if (now - current.windowStartedAt >= LOGIN_RATE_WINDOW_MS) {
+    current.windowStartedAt = now;
+    current.count = 0;
+  }
+  current.lastSeenAt = now;
+  if (current.count >= LOGIN_RATE_WINDOW_LIMIT) {
+    loginRateBuckets.set(openid, current);
+    return false;
+  }
+  current.count += 1;
+  loginRateBuckets.set(openid, current);
+  return true;
+};
+
 /**
  * 清除当前微信在其他员工记录上的绑定，保证一个 openid 只对应一个员工。
  * exceptStaffId 用于登录时保留即将绑定的目标员工；退出时不传即可全部解绑。
@@ -422,6 +455,9 @@ const loginByPhone = async (event) => {
 
   const { openid } = getOpenContext();
   if (!openid) return fail("无法获取微信身份，请重新进入小程序", 401);
+  if (!consumeLoginRateLimit(openid)) {
+    return fail("登录尝试过于频繁，请稍后再试", 429);
+  }
 
   const res = await db
     .collection(COLLECTIONS.STAFF)

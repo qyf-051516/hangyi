@@ -3,6 +3,7 @@
  * 涵盖：queryOperationLogs、exportOperationLogs
  */
 const cloud = require("wx-server-sdk");
+const xlsx = require("node-xlsx");
 const {
   db, _, COLLECTIONS,
   ok, fail,
@@ -89,7 +90,7 @@ const queryOperationLogs = async (event) => {
 };
 
 // ──────────────────────────────────────────────
-// 导出操作日志为 CSV 上传至云存储
+// 导出操作日志为 xlsx 上传至云存储
 // ──────────────────────────────────────────────
 const exportOperationLogs = async (event) => {
   const guard = await requireBossOrAdmin();
@@ -148,15 +149,14 @@ const exportOperationLogs = async (event) => {
     logs = [];
   }
 
-  // 生成 CSV 内容
-  const csvCell = (value) => {
+  // 生成 xlsx 内容 (node-xlsx 输出 Buffer, 前端 wx.openDocument 可直接打开)
+  const sanitizeCell = (value) => {
     let text = String(value === undefined || value === null ? "" : value);
+    // 阻断公式注入: 与 CSV 时代同等的防护, 防止以 = + - @ 开头的文本被当作公式
     if (/^[=+\-@]/.test(text)) text = `'${text}`;
-    return `"${text.replace(/"/g, "\"\"")}"`;
+    return text;
   };
-  const header = ["操作时间", "操作人", "操作类型", "详情", "目标"]
-    .map(csvCell)
-    .join(",");
+  const header = ["操作时间", "操作人", "操作类型", "详情", "目标"];
   const rows = logs.map(l => {
     const time = l.createdAt ? new Date(l.createdAt).toLocaleString("zh-CN", { hour12: false }) : "";
     const actionLabel = ({
@@ -185,19 +185,15 @@ const exportOperationLogs = async (event) => {
     })[l.action] || l.action;
     const detail = l.detail || "";
     const target = JSON.stringify(l.target || "");
-    return [time, l.operator || "", actionLabel, detail, target]
-      .map(csvCell)
-      .join(",");
+    return [time, l.operator || "", actionLabel, detail, target].map(sanitizeCell);
   });
-
-  // P3 修复: 加 UTF-8 BOM 让 Excel 正确识别中文编码
-  const csvContent = "\uFEFF" + [header, ...rows].join("\n");
+  const buffer = xlsx.build([{ name: "操作日志", data: [header, ...rows] }]);
 
   // 上传到云存储
-  const cloudPath = `exports/audit_logs_${formatDate(new Date())}_${Date.now()}.csv`;
+  const cloudPath = `exports/audit_logs_${formatDate(new Date())}_${Date.now()}.xlsx`;
   const uploadRes = await cloud.uploadFile({
     cloudPath,
-    fileContent: Buffer.from(csvContent, "utf-8"),
+    fileContent: buffer,
   });
 
   return ok({

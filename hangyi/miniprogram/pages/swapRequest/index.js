@@ -24,6 +24,12 @@ const formatScheduleClock = (value) => {
   return matched ? `${matched[1].padStart(2, "0")}:${matched[2]}` : "";
 };
 
+// 当天日期字符串 YYYY-MM-DD, 可直接与排班日期字符串比较
+const todayStr = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
+
 const decorateSchedule = (item) => {
   const startTime = formatScheduleClock(item._taskStart || item.arrivalTime);
   const endTime = formatScheduleClock(item._taskEnd || item.departureTime);
@@ -126,11 +132,12 @@ Page({
     this.setData({ scheduleLoading: true, scheduleError: "" });
     try {
       const [profile, scheduleResult] = await Promise.all([
-        callBackend("getMyProfile", { forceRefresh: true }),
+        callBackend("getMyProfile"),
         callBackend("getMySchedules"),
       ]);
+      // 仅展示未来排班: 后端已拒绝历史排班申请, 前端提前过滤, 避免可选到已过去的班次
       const mySchedules = (scheduleResult.schedules || [])
-        .filter((item) => item && item.status !== "COMPLETED" && item.recordStatus !== "archived")
+        .filter((item) => item && item.status !== "COMPLETED" && item.recordStatus !== "archived" && item.scheduleDate > todayStr())
         .map(decorateSchedule);
       const selectedIndex = Math.min(this.data.scheduleIndex, Math.max(mySchedules.length - 1, 0));
       const selectedSchedule = mySchedules[selectedIndex] || null;

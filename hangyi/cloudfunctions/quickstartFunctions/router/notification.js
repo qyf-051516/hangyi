@@ -117,36 +117,14 @@ const listMyNotifications = async () => {
 // 标记通知为已读
 // ──────────────────────────────────────────────
 const markCollectionRead = async (collectionName, condition, now) => {
-  const PAGE_SIZE = 100;
-  let updatedCount = 0;
-  let skip = 0;
-  let hasMore = true;
-
-  while (hasMore) {
-    const result = await db
-      .collection(collectionName)
-      .where(condition)
-      .skip(skip)
-      .limit(PAGE_SIZE)
-      .get();
-    const items = result.data || [];
-    if (items.length === 0) {
-      hasMore = false;
-      break;
-    }
-    await Promise.all(
-      items.map((item) =>
-        db.collection(collectionName).doc(item._id).update({
-          data: { requesterReadAt: now },
-        })
-      )
-    );
-    updatedCount += items.length;
-    skip += items.length;
-    if (items.length < PAGE_SIZE) hasMore = false;
-  }
-
-  return updatedCount;
+  await ensureCollection(collectionName);
+  // 单次条件更新：wx-server-sdk 支持 where(...).update(...)，返回 stats.updated，
+  // 不再需要分页 + 逐条 doc().update。
+  const result = await db
+    .collection(collectionName)
+    .where(condition)
+    .update({ data: { requesterReadAt: now } });
+  return (result && result.stats && result.stats.updated) || 0;
 };
 
 const markMyNotificationsRead = async () => {

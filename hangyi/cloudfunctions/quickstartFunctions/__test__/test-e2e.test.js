@@ -2045,6 +2045,69 @@ test("e2e/swap: SWAP 审批会互换双方真实排班", async () => {
   );
 });
 
+test("e2e/swap: 遗留 SWAP 数据 (无 targetConsent) 也可审批互换", async () => {
+  global.resetMockState({ openid: "openid-swap-legacy-admin" });
+  seedStaff({
+    employeeNo: "ADMIN-LEGACY",
+    name: "管理员",
+    openid: "openid-swap-legacy-admin",
+    isAdmin: true,
+  });
+  const sourceStaffId = seedStaff({
+    employeeNo: "GH939",
+    name: "丙",
+    authorizedAirlines: ["中国南方航空"],
+    authorizedAircraftTypes: ["A320"],
+  });
+  const targetStaffId = seedStaff({
+    employeeNo: "GH940",
+    name: "丁",
+    authorizedAirlines: ["中国南方航空"],
+    authorizedAircraftTypes: ["A320"],
+  });
+  const scheduleDate = dateOffset(1);
+  const sourceScheduleId = seedSchedule({
+    staffId: sourceStaffId,
+    staffName: "丙",
+    staffEmployeeNo: "GH939",
+    scheduleDate,
+    status: "ASSIGNED",
+    airline: "中国南方航空",
+    aircraftType: "A320",
+  });
+  const targetScheduleId = seedSchedule({
+    staffId: targetStaffId,
+    staffName: "丁",
+    staffEmployeeNo: "GH940",
+    scheduleDate,
+    status: "ASSIGNED",
+    airline: "中国南方航空",
+    aircraftType: "A320",
+  });
+  // 历史 SWAP 遗留数据：不写 targetConsent 字段，审批不应被闸门拦截。
+  const requestId = seedSwap({
+    requestType: "SWAP",
+    sourceStaffId,
+    targetStaffId,
+    sourceScheduleId,
+    targetScheduleId,
+    status: "PENDING",
+  });
+
+  const r = await swapRouter.approveSwapRequest({
+    data: { requestId, decision: "APPROVE" },
+  });
+  assert.equal(r.code, 0, `expected 0, got ${r.code}: ${r.message}`);
+  assert.equal(
+    state.collections.schedules.find((item) => item._id === sourceScheduleId).staffId,
+    targetStaffId
+  );
+  assert.equal(
+    state.collections.schedules.find((item) => item._id === targetScheduleId).staffId,
+    sourceStaffId
+  );
+});
+
 test("e2e/swap: approveSwapRequest 重复审批 → 409", async () => {
   global.resetMockState({ openid: "openid-asr3" });
   seedStaff({ employeeNo: "GH932", name: "admin", openid: "openid-asr3", isAdmin: true });
@@ -2077,7 +2140,8 @@ test("e2e/log: exportOperationLogs 正常返回 fileID", async () => {
   assert.equal(r.code, 0);
   assert.ok(r.data.fileID, "应返回 fileID");
   assert.ok(r.data.cloudPath, "应返回 cloudPath");
-  // CSV BOM 的存在已在 e2e/source 测试中验证
+  assert.match(r.data.cloudPath, /\.xlsx$/, "导出文件名应为 .xlsx 后缀 (wx.openDocument 可打开)");
+  // xlsx 的可用性已在 e2e/source 测试中验证
 });
 
 test("e2e/log: 日志查询拒绝非管理员并校验日期范围", async () => {
@@ -2493,6 +2557,51 @@ test("e2e/schedule: 打印排班总表导出包含打印标记", async () => {
   );
 });
 
+test("e2e/schedule: getStaffScheduleTable 每行返回 _taskType", async () => {
+  global.resetMockState({ openid: "openid-tasktype-admin" });
+  seedStaff({
+    employeeNo: "GH-TT-ADMIN",
+    name: "排班管理员",
+    openid: "openid-tasktype-admin",
+    isAdmin: true,
+  });
+  const releaseStaffId = seedStaff({
+    employeeNo: "GH-TT-1",
+    name: "放行员工",
+    groupId: "A组",
+    roleType: "RELEASE",
+  });
+  const unassignedStaffId = seedStaff({
+    employeeNo: "GH-TT-2",
+    name: "未排班员工",
+    groupId: "B组",
+  });
+  const scheduleDate = dateOffset(1);
+  seedSchedule({
+    staffId: releaseStaffId,
+    staffName: "放行员工",
+    staffEmployeeNo: "GH-TT-1",
+    groupId: "A组",
+    scheduleDate,
+    flightNo: "MU6001",
+    airline: "中国东方航空",
+    aircraftType: "A320",
+    shiftCode: "MORNING",
+    status: "ASSIGNED",
+    recordStatus: "active",
+    _taskType: "RELEASE",
+  });
+
+  const r = await scheduleRouter.getStaffScheduleTable({ data: { scheduleDate } });
+  assert.equal(r.code, 0);
+  const releaseRow = r.data.rows.find((item) => item.employeeNo === "GH-TT-1");
+  assert.ok(releaseRow, "应包含放行员工行");
+  assert.equal(releaseRow._taskType, "RELEASE", "应从排班记录读取 _taskType");
+  const unassignedRow = r.data.rows.find((item) => item.employeeNo === "GH-TT-2");
+  assert.ok(unassignedRow, "应包含未排班员工行");
+  assert.equal(unassignedRow._taskType, "SERVICE", "无排班记录时缺省 SERVICE");
+});
+
 test("e2e/schedule: 勤务智能排班只生成预览，确认发布后写入完整人员与时间", async () => {
   global.resetMockState({ openid: "openid-service-schedule-admin" });
   cacheRouter.clear();
@@ -2786,18 +2895,20 @@ test("e2e/source: 不再导出可猜工号的扫码绑定端点", () => {
   assert.equal(authSrc.includes("bindStaffByScanCode"), false);
 });
 
-test("e2e/source: notification markMyNotificationsRead 分页 (P2-14)", () => {
-  const helper = notificationSrc.match(/const markCollectionRead[\s\S]+?return updatedCount/);
+test("e2e/source: notification markMyNotificationsRead 单次条件更新 (P2-14 修复)", () => {
+  assert.ok(notificationSrc.includes("stats.updated"), "通知已读 helper 应返回 stats.updated");
+  assert.ok(
+    notificationSrc.includes("update({ data: { requesterReadAt: now } })"),
+    "通知已读 helper 应使用单次 where 条件更新"
+  );
   const entry = notificationSrc.match(/const markMyNotificationsRead[\s\S]+?return ok/);
-  assert.ok(helper && helper[0].includes("while (hasMore)"), "通知已读 helper 应用 while(hasMore) 分页");
-  assert.ok(helper[0].includes("PAGE_SIZE"), "通知已读 helper 应有 PAGE_SIZE 常量");
-  assert.ok(entry && entry[0].includes("markCollectionRead"), "markMyNotificationsRead 应复用分页 helper");
+  assert.ok(entry && entry[0].includes("markCollectionRead"), "markMyNotificationsRead 应复用批量 helper");
 });
 
-test("e2e/source: log exportOperationLogs 加 UTF-8 BOM (P3-22)", () => {
+test("e2e/source: log exportOperationLogs 改用 node-xlsx 生成 xlsx (P3-22 修复)", () => {
   const fn = logSrc.match(/const exportOperationLogs[\s\S]+?return ok/);
-  assert.ok(fn && fn[0].includes("uFEFF"), "exportOperationLogs 应加 UTF-8 BOM");
-  assert.ok(fn && fn[0].includes("csvCell"), "exportOperationLogs 应统一转义 CSV 单元格");
+  assert.ok(fn && fn[0].includes("xlsx.build"), "exportOperationLogs 应使用 node-xlsx 生成 xlsx");
+  assert.ok(fn && fn[0].includes(".xlsx"), "导出文件名应使用 .xlsx 后缀");
   assert.ok(fn && fn[0].includes("/^[=+\\-@]/"), "exportOperationLogs 应阻断公式注入");
 });
 

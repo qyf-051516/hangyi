@@ -219,6 +219,9 @@ const getStaffScheduleTable = async (event) => {
       name: staff.name,
       groupId: staff.groupId,
       roleType: staff.roleType || hashToRole(staff.employeeNo || staff._id),
+      _taskType: schedule
+        ? schedule._taskType || schedule.taskType || schedule.roleType || "SERVICE"
+        : "SERVICE",
       scheduleDate: targetDate,
       aircraftQualifications: (staff.authorizedAircraftTypes || []).join("/") || "-",
       workedHours,

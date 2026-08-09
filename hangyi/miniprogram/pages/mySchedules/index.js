@@ -22,7 +22,7 @@ Page({
     try {
       const data = await callBackend("getMySchedules");
       const shiftMap = { MORNING: "早班", AFTERNOON: "午班", NIGHT: "晚班" };
-      const statusTextMap = { ASSIGNED: "已排班", SWAPPED: "已互换", COMPLETED: "已完成" };
+      const statusTextMap = { ASSIGNED: "已排班", SWAPPED: "已互换", IN_PROGRESS: "进行中", COMPLETED: "已完成" };
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const completableStatuses = ["ASSIGNED", "SWAPPED", "IN_PROGRESS"];

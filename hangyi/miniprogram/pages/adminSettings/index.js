@@ -68,10 +68,7 @@ Page({
     const seq = ++this._loadSeq;
     this.setData({ loading: true, errorMessage: "" });
     try {
-      const [result] = await Promise.all([
-        callBackend("getSchedulingConfig"),
-        callBackend("getAdminDashboard"),
-      ]);
+      const result = await callBackend("getSchedulingConfig");
       if (seq !== this._loadSeq) return;
       const form = defaultForm();
       Object.keys(NUMERIC_SPECS).forEach((field) => {

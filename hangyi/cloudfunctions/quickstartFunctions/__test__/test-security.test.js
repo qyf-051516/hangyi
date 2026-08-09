@@ -230,9 +230,9 @@ test("security: requireAdmin isAdmin=true → ok + 返回 staff", async () => {
 //   - preflightComplianceCheck 工时估算用 8h
 //   - smartScheduleWithRoles 硬编码 30min 改用 minRestInterval
 //   - callHangyiService 返回 {ok, statusCode, body}
-//   - exportOperationLogs 加 UTF-8 BOM
+//   - exportOperationLogs 改用 node-xlsx 导出 .xlsx
 //   - bindStaffByScanCode 返回 reboundFromOtherDevice
-//   - markMyNotificationsRead 分页处理
+//   - markMyNotificationsRead 单次条件更新批量已读
 //   - login 返回管理员维护的 groupId
 // ════════════════════════════════════════════════════════════════════
 
@@ -497,14 +497,14 @@ test("regress: markMyNotificationsRead 跨页 (150 条) 不会死循环, updated
   assert.equal(mine.every(c => c.requesterReadAt), true, "150 条全部标记成功");
 });
 
-test("regress: markMyNotificationsRead 源码使用 .skip(skip)", () => {
+test("regress: markMyNotificationsRead 源码使用单次条件更新", () => {
   const src = require("fs").readFileSync(
     require("path").resolve(__dirname, "../router/notification.js"),
     "utf8"
   );
-  // 全文检查 (函数体可能跨多行, 难用单 regex 框定)
-  assert.ok(/\.skip\(skip\)/.test(src), "应使用 .skip(skip) 避免重复返回第一页 (死循环)");
-  assert.ok(/skip \+= items\.length/.test(src), "应有 skip += items.length 累加");
+  // 单次 where(...).update(...) 批量更新, 不再需要 skip/limit 分页
+  assert.ok(/\.where\(condition\)[\s\S]*?\.update\(\{/.test(src), "应使用单次 where 条件更新 (批量已读)");
+  assert.ok(/stats\.updated/.test(src), "应返回 stats.updated 作为更新条数");
 });
 
 // ──────────────────────────────────────────────
@@ -610,14 +610,16 @@ test("security: callHangyiService 拒绝 HTTP 和私网地址且不发送内部�
 });
 
 // ──────────────────────────────────────────────
-// P3-22: exportOperationLogs 加 UTF-8 BOM (源码检查)
+// P3-22 修复: exportOperationLogs 改用 node-xlsx 导出 .xlsx (源码检查)
 // ──────────────────────────────────────────────
-test("regress: exportOperationLogs CSV 加了 UTF-8 BOM (源码检查)", () => {
+test("regress: exportOperationLogs 用 node-xlsx 导出 .xlsx (源码检查)", () => {
   const src = require("fs").readFileSync(
     require("path").resolve(__dirname, "../router/log.js"),
     "utf8"
   );
-  assert.ok(src.includes("\\uFEFF"), "应包含 UTF-8 BOM (\\uFEFF)");
+  assert.ok(src.includes("xlsx.build"), "应使用 node-xlsx 生成 xlsx Buffer");
+  assert.ok(src.includes(".xlsx"), "导出文件名应为 .xlsx 后缀");
+  assert.ok(src.includes("/^[=+\\-@]/"), "应阻断公式注入");
 });
 
 // ──────────────────────────────────────────────

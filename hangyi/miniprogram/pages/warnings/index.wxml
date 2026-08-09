@@ -6,8 +6,9 @@
   </view>
 
   <view class="card state-card" wx:elif="{{accessDenied}}">
-    <view class="state-title">仅管理员可查看全员预警</view>
-    <view class="state-copy">请使用管理员账号查看全员预警与审批队列</view>
+    <view class="state-title">我的资质预警</view>
+    <view class="state-copy">员工视角：查看我的资质预警与合规状态</view>
+    <button class="btn state-action" bindtap="onGoQualificationWarnings" hover-class="button-hover">查看我的资质预警</button>
   </view>
 
   <view class="card state-card" wx:elif="{{errorMessage && !loaded}}">
@@ -34,7 +35,7 @@
         <text class="section-count">{{pendingSwaps.length}} 条待审</text>
       </view>
 
-      <view class="batch-bar" wx:if="{{selectedSwapIds.length > 0}}">
+      <view class="batch-bar" wx:if="{{hasSwapRequests && selectedSwapIds.length > 0}}">
         <text class="batch-info">已选 {{selectedSwapIds.length}} 条</text>
         <view class="batch-actions">
           <button class="batch-btn batch-agree" bindtap="onBatchApproveSwap" hover-class="button-hover">批量通过</button>

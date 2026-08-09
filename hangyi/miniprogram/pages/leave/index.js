@@ -146,7 +146,7 @@ Page({
 
   async loadProfile() {
     try {
-      const profile = await callBackend("getMyProfile", { forceRefresh: true });
+      const profile = await callBackend("getMyProfile");
       this.setData({
         "form.employeeNo": profile.employeeNo || "",
         "form.name": profile.name || "",

@@ -58,12 +58,12 @@
             </view>
             <view
               class="qual-train-btn"
-              wx:if="{{item.daysLeft >= 0 && item.daysLeft <= 30}}"
+              wx:if="{{item.daysLeft <= 30}}"
               data-aircraft="{{item.aircraftType}}"
               data-expire-date="{{item.validUntil}}"
               catchtap="onApplyTrainingLeave"
               hover-class="tap-active"
-            >申请培训假</view>
+            >{{item.daysLeft < 0 ? '已过期需培训' : '申请培训假'}}</view>
           </view>
         </view>
       </view>

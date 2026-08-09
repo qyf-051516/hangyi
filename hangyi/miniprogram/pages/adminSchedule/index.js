@@ -386,6 +386,7 @@ Page({
       return {
         staffId,
         employeeNo: row.employeeNo || "",
+        flightNo: row.flightNo || "",
         shiftCode: this.data.editedMap[staffId],
       };
     });
@@ -471,7 +472,7 @@ Page({
     if (!confirmed) return;
     const edits = Object.keys(this.data.editedMap).map((staffId) => {
       const row = this.data.rows.find(r => r.staffId === staffId) || {};
-      return { staffId, employeeNo: row.employeeNo || "", shiftCode: this.data.editedMap[staffId] };
+      return { staffId, employeeNo: row.employeeNo || "", flightNo: row.flightNo || "", shiftCode: this.data.editedMap[staffId] };
     });
     this.setData({ showComplianceModal: false });
     this.doPublish(edits);
@@ -1625,7 +1626,7 @@ Page({
     try {
       await callBackend("reassignStaffTask", {
         flightNo: target.row.flightNo || "",
-        taskType: target.row.roleType === "RELEASE" ? "RELEASE" : "SERVICE",
+        taskType: target.row._taskType || (target.row.roleType === "RELEASE" ? "RELEASE" : "SERVICE"),
         scheduleDate: this.data.scheduleDate,
         newStaffId,
         oldStaffId: target.row.staffId,

@@ -83,6 +83,7 @@
     <view class="state-title">概览暂时无法加载</view>
     <view class="state-copy">{{errorMessage}}</view>
     <button class="btn state-action" bindtap="onRetryOverview" hover-class="button-hover">重新加载</button>
+    <button class="btn btn-ghost state-action" bindtap="onGoLogin" hover-class="button-hover">立即登录</button>
   </view>
 
   <block wx:if="{{loaded}}">

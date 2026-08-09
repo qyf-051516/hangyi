@@ -289,6 +289,10 @@ Page({
     this.loadOverview(true);
   },
 
+  onGoLogin() {
+    wx.reLaunch({ url: "/pages/quickLogin/index" });
+  },
+
   onGoSchedule() {
     wx.switchTab({ url: "/pages/staffSchedule/index" });
   },

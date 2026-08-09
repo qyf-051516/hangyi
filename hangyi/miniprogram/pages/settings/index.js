@@ -151,7 +151,7 @@ Page({
         preferredRestDays: this.data.preferredRestDays,
         maxMonthlyWorkHours: this.data.maxMonthlyWorkHours,
       });
-      wx.setStorageSync("ui_theme", theme);
+      setUiTheme(theme, this);
       wx.showToast({ title: "保存成功", icon: "success" });
     } catch (error) {
       wx.showToast({ title: error.message || "保存失败", icon: "none" });
