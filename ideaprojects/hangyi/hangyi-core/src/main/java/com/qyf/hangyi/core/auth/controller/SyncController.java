@@ -31,7 +31,11 @@ public class SyncController {
 
     private boolean checkApiKey(HttpServletRequest request) {
         String apiKey = request.getHeader("X-Internal-API-Key");
-        return internalApiKey != null && !internalApiKey.isBlank() && internalApiKey.equals(apiKey);
+        if (internalApiKey == null || internalApiKey.isBlank() || apiKey == null) return false;
+        // 恒定时间比较,防时序侧信道(security_review low)
+        return java.security.MessageDigest.isEqual(
+                internalApiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                apiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private void requireApiKey(HttpServletRequest request) {
