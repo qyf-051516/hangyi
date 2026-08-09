@@ -44,7 +44,7 @@ public class ProblemFactory {
 
         List<Map<String, Object>> rows;
         String employeeSql = "SELECT id, name, emp_no, group_id, license_type FROM employee " +
-                "WHERE status = 1 AND license_type IS NOT NULL";
+                "WHERE status = 1";
         if (groupId == null) {
             rows = jdbc.queryForList(employeeSql);
         } else {

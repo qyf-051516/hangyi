@@ -262,15 +262,17 @@ const getAssistantStatus = async () => {
   if (identity.response) return identity.response;
   const config = await getAssistantConfig();
   if (!config.enabled) {
+    // enabled 反映真实配置开关;本地知识可用性单独用 localKnowledgeAvailable 表达(审查 M6)
     return ok({
-      enabled: true,
+      enabled: false,
       configured: false,
-      reachable: true,
-      ready: true,
-      engineEnabled: true,
+      reachable: false,
+      ready: false,
+      engineEnabled: false,
       mode: "LOCAL_KNOWLEDGE",
       degraded: true,
-      message: "内置业务知识可用",
+      localKnowledgeAvailable: true,
+      message: "内置业务知识可用（未启用在线引擎）",
     });
   }
   if (!config.baseUrl || !config.apiKey) {
@@ -338,6 +340,7 @@ const askAssistant = async (event) => {
     return fail("问题包含不支持的指令性内容，请改用具体业务问题", 400);
   }
 
+  let ragFallbackReason = ""; // RAG 降级原因,随审计记录便于运维(审查 M5)
   const mode = payload.mode == null ? "KNOWLEDGE_ONLY" : payload.mode;
   if (typeof mode !== "string" || !VALID_MODES.includes(mode)) {
     return fail("问答模式无效", 400);
@@ -405,7 +408,9 @@ const askAssistant = async (event) => {
         retryAfterSeconds: quota.retryAfterSeconds,
       });
     } catch (error) {
-      // 公网 RAG 不可用时继续使用内置知识，不让整个入口失效。
+      // 公网 RAG 不可用时继续使用内置知识，不让整个入口失效；但必须留痕便于运维定位(审查 M5)
+      console.error("RAG fallback to local, reason:", error && error.message ? error.message : String(error));
+      ragFallbackReason = String((error && error.statusCode) || (error && error.message) || error || "unknown");
     }
   }
   const localAnswer = buildLocalAnswer({
@@ -420,6 +425,7 @@ const askAssistant = async (event) => {
     mode,
     questionLength: question.length,
     answerMode: "LOCAL_KNOWLEDGE",
+    fallbackReason: ragFallbackReason || undefined,
   });
   return ok({
     ...localAnswer,

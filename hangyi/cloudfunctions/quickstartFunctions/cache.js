@@ -24,7 +24,7 @@ const DEFAULT_TTL = {
 const buildKey = (category, params = {}) => {
   const suffix = Object.keys(params)
     .sort()
-    .map((k) => `${k}=${params[k]}`)
+    .map((k) => `${k}=${encodeURIComponent(String(params[k] ?? ""))}`)
     .join("&");
   return suffix ? `${category}:${suffix}` : category;
 };
@@ -41,7 +41,16 @@ const get = (category, params = {}) => {
     store.delete(key);
     return null;
   }
-  return entry.data;
+  // 返回拷贝,避免调用方就地修改污染缓存(审查 M7)
+  const data = entry.data;
+  if (data && typeof data === "object") {
+    try {
+      return JSON.parse(JSON.stringify(data));
+    } catch (error) {
+      return data;
+    }
+  }
+  return data;
 };
 
 /**

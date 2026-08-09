@@ -392,7 +392,7 @@ public class SmartScheduleService {
                         " WHERE history.employee_id = e.id " +
                         " AND history.work_date >= ? AND history.work_date < ? " +
                         " AND (history.record_status IS NULL OR history.record_status = 'active')) AS workload " +
-                        "FROM employee e WHERE e.status = 1 AND e.license_type IS NOT NULL " +
+                        "FROM employee e WHERE e.status = 1 " +
                         "AND NOT EXISTS (SELECT 1 FROM leave_request lr WHERE lr.employee_id = e.id " +
                         " AND lr.status = 1 AND lr.start_date <= ? AND lr.end_date >= ?) " +
                         "AND NOT EXISTS (SELECT 1 FROM schedule_detail occupied " +

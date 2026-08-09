@@ -60,7 +60,10 @@ const releaseOpenidBindings = async (openid, exceptStaffId = "") => {
   }
 
   const released = [];
-  while (true) {
+  // 批次数上限,防 update 持续失败时 while(true) 死循环直至云函数超时(审查 L6)
+  let batches = 0;
+  while (batches < 20) {
+    batches++;
     const result = await db
       .collection(COLLECTIONS.STAFF)
       .where({ openid })
@@ -136,6 +139,10 @@ const loginOrRegisterStaff = async (event) => {
 
   const { openid } = getOpenContext();
   if (!openid) return fail("无法获取微信身份，请重新进入小程序", 401);
+  // 与 loginByPhone 一致的登录限流,防工号枚举(审查 M1)
+  if (!consumeLoginRateLimit(openid)) {
+    return fail("登录尝试过于频繁，请稍后再试", 429);
+  }
   const result = await db
     .collection(COLLECTIONS.STAFF)
     .where({ employeeNo })
@@ -152,7 +159,8 @@ const loginOrRegisterStaff = async (event) => {
     //   BINDING_CONFLICT      档案已被其他微信绑定
     //   STAFF_NOT_FOUND       档案未绑定微信且当前模式不允许静态资料首次绑定
     const codeFailure = (code) => fail(LOGIN_VERIFICATION_FAILED, 401, { code });
-    if (!PHONE_RE.test(String(staff.phone || "").trim()) || staff.phone !== phone) {
+    const staffPhone = String(staff.phone || "").trim();
+    if (!PHONE_RE.test(staffPhone) || staffPhone !== phone) {
       return codeFailure("PHONE_MISMATCH");
     }
     if (staff.name !== name) {
@@ -304,9 +312,10 @@ const updateMyAvatar = async (event) => {
   if (
     avatarFileID.length > 1024 ||
     !/^cloud:\/\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+$/.test(avatarFileID) ||
-    !avatarFileID.includes("/avatars/")
+    !avatarFileID.includes("/avatars/") ||
+    !/\.(png|jpe?g|webp|gif)$/i.test(avatarFileID)
   ) {
-    return fail("头像必须来自头像云存储目录", 400);
+    return fail("头像必须来自头像云存储目录且为图片格式", 400);
   }
 
   const { openid } = getOpenContext();

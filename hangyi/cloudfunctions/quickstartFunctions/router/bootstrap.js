@@ -290,6 +290,9 @@ const resetDemoData = async (event) => {
   await purgeCollection(COLLECTIONS.SCHEDULES);
   await purgeCollection(COLLECTIONS.FLIGHTS);
   await purgeCollection(COLLECTIONS.STAFF);
+  // 版本元数据一并清空,避免重建后展示与旧发布版本矛盾的排班历史(审查发现)
+  await purgeCollection(COLLECTIONS.SCHEDULE_VERSIONS);
+  // 审计日志保留(重置动作本身已写入审计),设置由 seedSettingsIfNeeded 合并重建
 
   await seedStaffIfNeeded();
   await seedSettingsIfNeeded();

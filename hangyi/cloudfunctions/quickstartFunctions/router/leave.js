@@ -259,13 +259,19 @@ const withdrawLeaveRequest = async (event) => {
   const requestId = typeof (event.data || {}).requestId === "string"
     ? event.data.requestId.trim() : "";
   if (!requestId) return fail("缺少 requestId", 400);
+  if (requestId.length > 64) return fail("requestId 长度不合法", 400);
 
   const res = await db.collection(COLLECTIONS.LEAVE_REQUESTS).doc(requestId).get();
   const req = res.data;
   if (!req) return fail("请假申请不存在", 404);
 
   const { openid } = getOpenContext();
-  if (req.openid !== openid) return fail("只能撤回自己的请假申请", 403);
+  // 归属校验:openid 优先,历史数据(openid 为空/重绑)用 employeeNo 兜底(审查 L2)
+  const guardStaff = await db.collection(COLLECTIONS.STAFF).where({ openid }).limit(1).get();
+  const myEmployeeNo = (guardStaff.data && guardStaff.data[0] && guardStaff.data[0].employeeNo) || "";
+  if (req.openid !== openid && (!req.employeeNo || req.employeeNo !== myEmployeeNo)) {
+    return fail("只能撤回自己的请假申请", 403);
+  }
   if (req.status !== "PENDING") return fail(`已审批或已撤回的申请不能再撤回（当前状态：${req.status}）`, 409);
 
   const now = new Date();
@@ -383,6 +389,7 @@ const approveLeaveRequest = async (event) => {
   const comment = typeof payload.comment === "string" ? payload.comment.trim().slice(0, 200) : "";
 
   if (!requestId) return fail("缺少 requestId", 400);
+  if (requestId.length > 64) return fail("requestId 长度不合法", 400);
   if (!["APPROVED", "REJECTED"].includes(decision)) {
     return fail("decision 必须是 APPROVED 或 REJECTED", 400);
   }

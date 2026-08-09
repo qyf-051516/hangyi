@@ -194,6 +194,12 @@ test("e2e/bootstrap: resetDemoData 清空 + 重建", async () => {
   // 已下线的维修流量模拟数据不应再被生成
   const flightCount = (state.collections.flights || []).length;
   assert.equal(flightCount, 0);
+  // 版本元数据与业务申请数据也应被清空(审查修复: schedule_versions 未清理)
+  const versionCount = (state.collections.schedule_versions || []).length;
+  assert.equal(versionCount, 0, "resetDemoData 应清空 schedule_versions");
+  const swapCount = (state.collections.swap_requests || []).length;
+  const leaveCount = (state.collections.leave_requests || []).length;
+  assert.equal(swapCount + leaveCount, 0, "resetDemoData 应清空调班/请假申请");
 });
 
 test("e2e/bootstrap: resetDemoData 必须是管理员且显式开启演示工具", async () => {
@@ -235,6 +241,27 @@ test("e2e/bootstrap: resetDemoData 缺 confirmText 二次确认被拒绝 (P1-F1)
 // ══════════════════════════════════════════════════════════════
 // 模块 2: auth (9 端点)
 // ══════════════════════════════════════════════════════════════
+
+test("e2e/auth: loginOrRegisterStaff 频繁失败触发限流(审查 M1)", async () => {
+  global.resetMockState({ openid: "openid-login-ratelimit" });
+  // 员工档案存在但未绑定该 openid,手机号不匹配 → 401(不消耗绑定)
+  seedStaff({
+    employeeNo: "GHRL00",
+    name: "员工",
+    openid: "",
+    phone: "13800000000",
+  });
+  const attempt = () => authRouter.loginOrRegisterStaff({
+    data: { employeeNo: "GHRL00", name: "员工", phone: "13800000001" },
+  });
+  for (let i = 0; i < 10; i++) {
+    const r = await attempt();
+    assert.equal(r.code, 401, `第 ${i + 1} 次应为 401`);
+  }
+  // 第 11 次应触发限流 429
+  const r11 = await attempt();
+  assert.equal(r11.code, 429, "超过限流阈值应返回 429");
+});
 
 test("e2e/auth: 手机号一键登录 完整流程 (预登记→登录→退出→换微信登录)", async () => {
   global.resetMockState({ openid: "openid-1" });
@@ -3609,10 +3636,13 @@ test("e2e/assistant: 未配置公网 RAG 时自动启用内置业务知识", asy
   delete global.__HANGYI_ASSISTANT_HTTP_REQUEST__;
 
   assert.equal(r.code, 0);
-  assert.equal(r.data.enabled, true);
-  assert.equal(r.data.ready, true);
+  // 未配置公网 RAG:enabled 反映真实开关(false),本地知识能力单独暴露(审查 M6 语义修正)
+  assert.equal(r.data.enabled, false);
+  assert.equal(r.data.localKnowledgeAvailable, true);
   assert.equal(r.data.mode, "LOCAL_KNOWLEDGE");
-  assert.equal(r.data.engineEnabled, true);
+  assert.equal(called, false);
+  assert.equal(r.data.ready, false);
+  assert.equal(r.data.engineEnabled, false);
   assert.equal(called, false);
 });
 

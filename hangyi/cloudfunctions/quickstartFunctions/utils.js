@@ -324,13 +324,19 @@ const getApprovedLeaveEmployeeNos = async (targetDate) => {
   }
 
   const employeeNos = new Set();
+  // 区间直查:状态 APPROVED 且 开始<=目标日期<=结束,替代全表 skip 分页(审查 M3)
   const pageSize = 100;
-  for (let offset = 0; offset < 1000; offset += pageSize) {
+  let offset = 0;
+  while (offset < 1000) {
     let result;
     try {
       result = await db
         .collection(COLLECTIONS.LEAVE_REQUESTS)
-        .where({ status: "APPROVED" })
+        .where({
+          status: "APPROVED",
+          startDate: _.lte(targetDate),
+          endDate: _.gte(targetDate),
+        })
         .skip(offset)
         .limit(pageSize)
         .get();
@@ -341,15 +347,12 @@ const getApprovedLeaveEmployeeNos = async (targetDate) => {
     }
     const rows = result.data || [];
     rows.forEach((item) => {
-      if (
-        typeof item.employeeNo === "string" &&
-        item.startDate <= targetDate &&
-        targetDate <= item.endDate
-      ) {
+      if (typeof item.employeeNo === "string") {
         employeeNos.add(item.employeeNo);
       }
     });
     if (rows.length < pageSize) break;
+    offset += pageSize;
   }
   return employeeNos;
 };

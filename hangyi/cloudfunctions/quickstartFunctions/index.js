@@ -21,23 +21,22 @@ const leaveRouter        = require("./router/leave");
 const assistantRouter    = require("./router/assistant");
 
 // 合并路由表：action_type -> handler
-// 同名 action 由后 require 的覆盖（router 内部已确保 action 名无重复）
-const allRouters = Object.assign(
-  {},
-  bootstrapRouter,
-  authRouter,
-  scheduleRouter,
-  flightRouter,
-  swapRouter,
-  notificationRouter,
-  adminRouter,
-  settingsRouter,
-  logRouter,
-  realtimeRouter,
-  hangyiSyncRouter,
-  leaveRouter,
-  assistantRouter
-);
+// 检测同名 action 冲突,避免静默覆盖导致某入口失效(审查 M4)
+const routerSources = [
+  bootstrapRouter, authRouter, scheduleRouter, flightRouter, swapRouter,
+  notificationRouter, adminRouter, settingsRouter, logRouter,
+  realtimeRouter, hangyiSyncRouter, leaveRouter, assistantRouter,
+];
+const allRouters = {};
+for (const source of routerSources) {
+  for (const actionName of Object.keys(source)) {
+    if (Object.prototype.hasOwnProperty.call(allRouters, actionName)) {
+      console.error(`[ROUTE CONFLICT] action "${actionName}" 被多个 router 导出,已忽略后加载的 ${source.name || "router"}`);
+      continue;
+    }
+    allRouters[actionName] = source[actionName];
+  }
+}
 
 exports.main = async (event, context) => {
   return withInvocationContext(context, async () => {
