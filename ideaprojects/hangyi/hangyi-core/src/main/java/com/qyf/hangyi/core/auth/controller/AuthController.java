@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @RestController
@@ -67,7 +69,10 @@ public class AuthController {
     @GetMapping("/verify")
     public R<Map<String, Object>> verify(HttpServletRequest request) {
         String apiKey = request.getHeader("X-Internal-API-Key");
-        if (internalApiKey == null || internalApiKey.isBlank() || !internalApiKey.equals(apiKey)) {
+        if (internalApiKey == null || internalApiKey.isBlank() || apiKey == null
+                || !MessageDigest.isEqual(
+                    internalApiKey.getBytes(StandardCharsets.UTF_8),
+                    apiKey.getBytes(StandardCharsets.UTF_8))) {
             throw new BusinessException(403, "无权访问");
         }
 
