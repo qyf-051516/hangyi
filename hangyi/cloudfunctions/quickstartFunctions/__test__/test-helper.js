@@ -289,5 +289,7 @@ global.resetMockState = (opts = {}) => {
   } else {
     global.__HANGYI_MOCK_STATE__ = fresh;
   }
+  // 清理 assistant HTTP mock,防断言失败后泄漏污染后续用例(审查 F1,比逐处 try/finally 更可靠)
+  delete global.__HANGYI_ASSISTANT_HTTP_REQUEST__;
   return global.__HANGYI_MOCK_STATE__;
 };
