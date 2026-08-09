@@ -245,8 +245,8 @@ cp .env.example .env
 | `SCHEDULE_HOST` | Schedule 主机名 | `localhost` |
 | `ASSISTANT_HOST` | Assistant 主机名 | `localhost` |
 | `VITE_API_TARGET` | 可选的前端代理完整地址覆盖 | 根据 Gateway 主机和端口生成 |
-| `DB_PASSWORD` | MySQL 密码 | `123456` |
-| `REDIS_PASSWORD` | Redis 密码 | `123456` |
+| `DB_PASSWORD` | MySQL 密码(必填,无默认) | 由 .env 注入 |
+| `REDIS_PASSWORD` | Redis 密码(必填,无默认) | 由 .env 注入 |
 | `REDIS_HOST` | Redis 地址 | `localhost` |
 | `NACOS_ADDR` | Nacos 地址 | `localhost:8848` |
 | `GUOCHUANG_SYNC_ENABLED` | 启用国创赛同步 | `false` |

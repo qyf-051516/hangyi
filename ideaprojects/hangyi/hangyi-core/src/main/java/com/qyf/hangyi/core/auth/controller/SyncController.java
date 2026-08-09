@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,9 +35,9 @@ public class SyncController {
         String apiKey = request.getHeader("X-Internal-API-Key");
         if (internalApiKey == null || internalApiKey.isBlank() || apiKey == null) return false;
         // 恒定时间比较,防时序侧信道(security_review low)
-        return java.security.MessageDigest.isEqual(
-                internalApiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                apiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return MessageDigest.isEqual(
+                internalApiKey.getBytes(StandardCharsets.UTF_8),
+                apiKey.getBytes(StandardCharsets.UTF_8));
     }
 
     private void requireApiKey(HttpServletRequest request) {
