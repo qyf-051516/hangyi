@@ -182,8 +182,9 @@ public class SyncService {
         int count = 0;
         for (Map<String, Object> rec : records) {
             String sourceId = requiredText(rec, "_id", "操作日志唯一标识");
-            OperationLog existing = operationLogMapper.selectOne(
-                new LambdaQueryWrapper<OperationLog>().eq(OperationLog::getSourceId, sourceId));
+            OperationLog existing = selectOneSafe(operationLogMapper,
+                new LambdaQueryWrapper<OperationLog>().eq(OperationLog::getSourceId, sourceId),
+                "operation_log.source_id");
             OperationLog operationLog = existing != null ? existing : new OperationLog();
             operationLog.setSourceId(sourceId);
             operationLog.setAction(requiredText(rec, "action", "操作类型"));
@@ -212,8 +213,9 @@ public class SyncService {
     // ═══════════════════════════════════════════════════════════
 
     private void upsertEmployee(Map<String, Object> rec, String empNo, Map<String, Long> groupMap) {
-        Employee exist = employeeMapper.selectOne(
-            new LambdaQueryWrapper<Employee>().eq(Employee::getEmpNo, empNo));
+        Employee exist = selectOneSafe(employeeMapper,
+            new LambdaQueryWrapper<Employee>().eq(Employee::getEmpNo, empNo),
+            "employee.emp_no");
         boolean active = toBool(rec.get("active"), true);
         String groupId = String.valueOf(rec.getOrDefault("groupId", ""));
 
@@ -264,8 +266,9 @@ public class SyncService {
 
         for (Map<String, Object> q : qualList) {
             String typeCode = requiredText(q, "aircraftType", "机型编码");
-            AircraftType at = aircraftTypeMapper.selectOne(
-                new LambdaQueryWrapper<AircraftType>().eq(AircraftType::getTypeCode, typeCode));
+            AircraftType at = selectOneSafe(aircraftTypeMapper,
+                new LambdaQueryWrapper<AircraftType>().eq(AircraftType::getTypeCode, typeCode),
+                "aircraft_type.type_code");
             if (at == null) {
                 at = new AircraftType();
                 at.setTypeCode(typeCode);
@@ -314,14 +317,16 @@ public class SyncService {
         }
 
         String sourceId = optionalText(rec.get("_id"));
-        FlightPlan exist = sourceId.isBlank() ? null : flightPlanMapper.selectOne(
-            new LambdaQueryWrapper<FlightPlan>().eq(FlightPlan::getSourceId, sourceId));
+        FlightPlan exist = sourceId.isBlank() ? null : selectOneSafe(flightPlanMapper,
+            new LambdaQueryWrapper<FlightPlan>().eq(FlightPlan::getSourceId, sourceId),
+            "flight_plan.source_id");
         if (exist == null) {
-            exist = flightPlanMapper.selectOne(
+            exist = selectOneSafe(flightPlanMapper,
                 new LambdaQueryWrapper<FlightPlan>()
                     .eq(FlightPlan::getFlightNo, flightNo)
                     .eq(FlightPlan::getPlanDate, date)
-                    .eq(FlightPlan::getPlanTime, planTime));
+                    .eq(FlightPlan::getPlanTime, planTime),
+                "flight_plan(flightNo+date+time)");
         }
 
         FlightPlan fp = exist != null ? exist : new FlightPlan();
@@ -334,12 +339,13 @@ public class SyncService {
         String aircraftType = String.valueOf(rec.getOrDefault("aircraftType", "")).trim();
         fp.setAircraftTypeName(aircraftType);
         if (!aircraftType.isEmpty()) {
-            AircraftType type = aircraftTypeMapper.selectOne(
+            AircraftType type = selectOneSafe(aircraftTypeMapper,
                     new LambdaQueryWrapper<AircraftType>()
                             .eq(AircraftType::getTypeCode, aircraftType)
                             .or()
                             .eq(AircraftType::getTypeName, aircraftType)
-                            .last("LIMIT 1"));
+                            .last("LIMIT 1"),
+                    "aircraft_type(typeCode|typeName)");
             if (type != null) {
                 fp.setAircraftTypeId(type.getId());
                 fp.setAircraftTypeName(type.getTypeName());
@@ -370,12 +376,13 @@ public class SyncService {
         }
 
         // Ensure schedule master exists for this date range
-        Schedule master = scheduleMapper.selectOne(
+        Schedule master = selectOneSafe(scheduleMapper,
             new LambdaQueryWrapper<Schedule>()
                 .eq(Schedule::getStatus, 1)
                 .le(Schedule::getStartDate, workDate)
                 .ge(Schedule::getEndDate, workDate)
-                .last("LIMIT 1"));
+                .last("LIMIT 1"),
+            "schedule.date_range");
         if (master == null) {
             master = new Schedule();
             master.setScheduleName("同步排班 " + schedName);
@@ -387,12 +394,14 @@ public class SyncService {
             scheduleMapper.insert(master);
         }
 
-        ScheduleDetail exist = scheduleDetailMapper.selectOne(
+        ScheduleDetail exist = selectOneSafe(scheduleDetailMapper,
             new LambdaQueryWrapper<ScheduleDetail>()
-                .eq(ScheduleDetail::getSourceKey, sourceKey));
+                .eq(ScheduleDetail::getSourceKey, sourceKey),
+            "schedule_detail.source_key");
         if (exist == null && !sourceKey.equals(legacyKey)) {
-            exist = scheduleDetailMapper.selectOne(
-                new LambdaQueryWrapper<ScheduleDetail>().eq(ScheduleDetail::getSourceKey, legacyKey));
+            exist = selectOneSafe(scheduleDetailMapper,
+                new LambdaQueryWrapper<ScheduleDetail>().eq(ScheduleDetail::getSourceKey, legacyKey),
+                "schedule_detail.source_key(legacy)");
         }
 
         String sCode = String.valueOf(rec.getOrDefault("shiftCode", ""));
@@ -1000,5 +1009,24 @@ public class SyncService {
         if (val instanceof Boolean) return (Boolean) val;
         String s = String.valueOf(val);
         return "true".equalsIgnoreCase(s) || "1".equals(s);
+    }
+
+    /**
+     * 安全 selectOne:sourceKey 等非唯一键命中多行时取首条并告警,
+     * 避免 TooManyResultsException 抛 RuntimeException 导致整批 500 回滚(审查 H3)。
+     * 根治仍需为 employee.emp_no / aircraft_type.type_code 建唯一索引(见 db 迁移)。
+     */
+    private <T> T selectOneSafe(com.baomidou.mybatisplus.core.mapper.BaseMapper<T> mapper,
+                                com.baomidou.mybatisplus.core.conditions.Wrapper<T> wrapper,
+                                String what) {
+        try {
+            return mapper.selectOne(wrapper);
+        } catch (org.apache.ibatis.exceptions.TooManyResultsException ex) {
+            java.util.List<T> rows = mapper.selectList(wrapper);
+            log.warn("SyncService: {} 命中 {} 条重复记录,取首条(建议为 {} 建唯一索引)",
+                    what, rows == null ? 0 : rows.size(), what);
+            if (rows == null || rows.isEmpty()) return null;
+            return rows.get(0);
+        }
     }
 }

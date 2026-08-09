@@ -142,10 +142,11 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                 .filter(a -> a.getAssignedEmployee() != null)
                 .groupBy(ShiftAssignment::getAssignedEmployee,
                          ConstraintCollectors.sumLong(ShiftAssignment::getHours))
-                .filter((emp, totalHours) -> totalHours > MONTHLY_HOUR_CAP)
+                // 计入 ProblemFactory 已加载的本月历史工时(审查 H2: 原约束只统计 plan 内,月累计失效)
+                .filter((emp, totalHours) -> totalHours + emp.getMonthlyHours() > MONTHLY_HOUR_CAP)
                 .penalizeLong(HardSoftLongScore.ONE_HARD,
-                              (emp, totalHours) -> totalHours - MONTHLY_HOUR_CAP)
-                .asConstraint("R4: monthlyHourCap(sumLong hours <= 176h, M2)");
+                              (emp, totalHours) -> totalHours + emp.getMonthlyHours() - MONTHLY_HOUR_CAP)
+                .asConstraint("R4: monthlyHourCap(sumLong hours + monthlyHours <= 176h, M2)");
     }
 
     /**
