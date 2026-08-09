@@ -388,6 +388,7 @@ Page({
         employeeNo: row.employeeNo || "",
         flightNo: row.flightNo || "",
         shiftCode: this.data.editedMap[staffId],
+        _taskType: row._taskType || "SERVICE",
       };
     });
 

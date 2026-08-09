@@ -39,7 +39,7 @@ Page({
     candidateError: "",
   },
 
-  decorateSwaps(requests, selectedIds = this.data.selectedSwapIds) {
+  decorateSwaps(requests, selectedIds = []) {
     const selectedSet = new Set(selectedIds || []);
     return (requests || []).map((request) => ({
       ...request,
@@ -243,6 +243,7 @@ Page({
       showRejectModal: true,
       rejectTargetIds: [id],
       rejectComment: "",
+      selectedSwapIds: [],
     });
   },
 
@@ -300,6 +301,7 @@ Page({
     if (!request) return;
 
     if ((request.requestType || "SWAP") === "SHIFT_APPLY") {
+      this.setData({ selectedSwapIds: [] });
       await this.openCandidatePicker(request);
       return;
     }

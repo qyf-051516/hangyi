@@ -2215,11 +2215,11 @@ test("e2e/integration: 完整流程 - 登录→发布排班→审批调班→查
 
   // 2) admin 发布排班
   const staffId = seedStaff({
-    employeeNo: "GH951", name: "员工A", groupId: "A组",
+    employeeNo: "GH951", name: "员工A", groupId: "A组", roleType: "SERVICE",
     openid: "openid-staff-a", authorizedAircraftTypes: ["A320"],
   });
   const replacementStaffId = seedStaff({
-    employeeNo: "GH952", name: "员工B", groupId: "B组",
+    employeeNo: "GH952", name: "员工B", groupId: "B组", roleType: "SERVICE",
     openid: "openid-staff-b", authorizedAircraftTypes: ["A320"],
   });
   const futureDate = dateOffset(1);
@@ -2235,6 +2235,8 @@ test("e2e/integration: 完整流程 - 登录→发布排班→审批调班→查
   assert.ok(schedule);
   assert.equal(schedule.shiftCode, "MORNING");
   assert.equal(schedule.recordStatus, "active");
+  // 验证: 写入 _taskType(默认 SERVICE,RELEASE 编辑保留 RELEASE)
+  assert.equal(schedule._taskType, "SERVICE", "publishScheduleEdits 应写入默认 _taskType=SERVICE");
 
   // 3) 员工提交调班申请 (仅切换 openid, 保留状态)
   setOpenid("openid-staff-a");

@@ -220,7 +220,7 @@ const getStaffScheduleTable = async (event) => {
       groupId: staff.groupId,
       roleType: staff.roleType || hashToRole(staff.employeeNo || staff._id),
       _taskType: schedule
-        ? schedule._taskType || schedule.taskType || schedule.roleType || "SERVICE"
+        ? schedule._taskType || schedule.taskType || "SERVICE"
         : "SERVICE",
       scheduleDate: targetDate,
       aircraftQualifications: (staff.authorizedAircraftTypes || []).join("/") || "-",
@@ -470,6 +470,7 @@ const validateAdminPublishEdits = async (targetDate, edits) => {
   const normalized = edits.map((item) => ({
     staffId: item.staffId.trim(),
     shiftCode: item.shiftCode.trim().toUpperCase(),
+    _taskType: typeof item._taskType === "string" ? item._taskType : "",
   }));
   if (normalized.some((item) => !validShiftCodes.has(item.shiftCode))) {
     return { response: fail("班次编码无效", 400) };
@@ -594,6 +595,7 @@ const publishScheduleEdits = async (event) => {
       scheduleDate: targetDate,
       shiftCode: item.shiftCode,
       staffId: item.staffId,
+      _taskType: item._taskType === "RELEASE" ? "RELEASE" : "SERVICE",
       staffName: staff.name,
       staffEmployeeNo: staff.employeeNo,
       groupId: staff.groupId,
@@ -693,6 +695,7 @@ const preflightComplianceCheck = async (event) => {
       employeeNo: edit.employeeNo,
       flightNo: edit.flightNo || "",
       shiftCode: edit.shiftCode,
+      _taskType: edit._taskType === "RELEASE" ? "RELEASE" : "SERVICE",
     });
   }
   for (const s of existingSchedules) {

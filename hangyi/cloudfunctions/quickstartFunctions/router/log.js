@@ -201,6 +201,7 @@ const exportOperationLogs = async (event) => {
     exported: rows.length,
     fileID: uploadRes.fileID,
     cloudPath,
+    fileName: cloudPath,
   });
 };
 
