@@ -440,7 +440,7 @@ public class SyncService {
                             FlightPlan::getFlightType, flightType)
                     .orderByAsc(FlightPlan::getPlanTime)
                     .last("LIMIT 1");
-            FlightPlan flight = flightPlanMapper.selectOne(flightQuery);
+            FlightPlan flight = selectOneSafe(flightPlanMapper, flightQuery, "flight_plan(byQuery)");
             if (flight == null) {
                 throw new BusinessException(422, "同步排班引用了不存在的航班");
             }
@@ -485,9 +485,10 @@ public class SyncService {
         String status = String.valueOf(rec.getOrDefault("status", "PENDING")).toUpperCase(Locale.ROOT);
         int st = mapRequestStatus(status);
 
-        ScheduleChange exist = scheduleChangeMapper.selectOne(
+        ScheduleChange exist = selectOneSafe(scheduleChangeMapper,
             new LambdaQueryWrapper<ScheduleChange>()
-                .eq(ScheduleChange::getSourceRequestId, reqId));
+                .eq(ScheduleChange::getSourceRequestId, reqId),
+            "schedule_change.source_request_id");
 
         ScheduleChange sc = exist != null ? exist : new ScheduleChange();
         sc.setSourceRequestId(reqId);
@@ -524,8 +525,9 @@ public class SyncService {
         if (endDate == null) endDate = startDate;
         if (endDate.isBefore(startDate)) throw new BusinessException(422, "同步请假申请结束日期早于开始日期");
 
-        LeaveRequest existing = leaveRequestMapper.selectOne(
-            new LambdaQueryWrapper<LeaveRequest>().eq(LeaveRequest::getSourceRequestId, requestId));
+        LeaveRequest existing = selectOneSafe(leaveRequestMapper,
+            new LambdaQueryWrapper<LeaveRequest>().eq(LeaveRequest::getSourceRequestId, requestId),
+            "leave_request.source_request_id");
         LeaveRequest leave = existing != null ? existing : new LeaveRequest();
         leave.setSourceRequestId(requestId);
         leave.setEmployeeId(employeeId);
@@ -576,8 +578,9 @@ public class SyncService {
     // ═══════════════════════════════════════════════════════════
 
     private void upsertRptStaff(Map<String, Object> rec, String empNo) {
-        RptStaff exist = rptStaffMapper.selectOne(
-            new LambdaQueryWrapper<RptStaff>().eq(RptStaff::getEmployeeNo, empNo));
+        RptStaff exist = selectOneSafe(rptStaffMapper,
+            new LambdaQueryWrapper<RptStaff>().eq(RptStaff::getEmployeeNo, empNo),
+            "rpt_staff.employee_no");
         RptStaff entity = mapRptStaff(rec);
         entity.setSourceSyncAt(LocalDateTime.now());
         if (exist != null) { entity.setId(exist.getId()); rptStaffMapper.updateById(entity); }
@@ -586,13 +589,15 @@ public class SyncService {
 
     private void upsertRptFlight(Map<String, Object> rec, String flightNo, String schedDate) {
         String sourceId = optionalText(rec.get("_id"));
-        RptFlight exist = sourceId.isBlank() ? null : rptFlightMapper.selectOne(
-            new LambdaQueryWrapper<RptFlight>().eq(RptFlight::getSourceId, sourceId));
+        RptFlight exist = sourceId.isBlank() ? null : selectOneSafe(rptFlightMapper,
+            new LambdaQueryWrapper<RptFlight>().eq(RptFlight::getSourceId, sourceId),
+            "rpt_flight.source_id");
         if (exist == null) {
-            exist = rptFlightMapper.selectOne(
+            exist = selectOneSafe(rptFlightMapper,
                 new LambdaQueryWrapper<RptFlight>()
                     .eq(RptFlight::getFlightNo, flightNo)
-                    .eq(RptFlight::getScheduleDate, LocalDate.parse(schedDate)));
+                    .eq(RptFlight::getScheduleDate, LocalDate.parse(schedDate)),
+                "rpt_flight(flightNo+date)");
         }
         RptFlight entity = mapRptFlight(rec);
         entity.setSourceSyncAt(LocalDateTime.now());
@@ -601,11 +606,13 @@ public class SyncService {
     }
 
     private void upsertRptSchedule(Map<String, Object> rec, String sourceKey, String legacyKey) {
-        RptSchedule exist = rptScheduleMapper.selectOne(
-            new LambdaQueryWrapper<RptSchedule>().eq(RptSchedule::getScheduleKey, sourceKey));
+        RptSchedule exist = selectOneSafe(rptScheduleMapper,
+            new LambdaQueryWrapper<RptSchedule>().eq(RptSchedule::getScheduleKey, sourceKey),
+            "rpt_schedule.schedule_key");
         if (exist == null && !sourceKey.equals(legacyKey)) {
-            exist = rptScheduleMapper.selectOne(
-                new LambdaQueryWrapper<RptSchedule>().eq(RptSchedule::getScheduleKey, legacyKey));
+            exist = selectOneSafe(rptScheduleMapper,
+                new LambdaQueryWrapper<RptSchedule>().eq(RptSchedule::getScheduleKey, legacyKey),
+                "rpt_schedule.schedule_key(legacy)");
         }
         RptSchedule entity = mapRptSchedule(rec, sourceKey);
         entity.setSourceSyncAt(LocalDateTime.now());
@@ -614,8 +621,9 @@ public class SyncService {
     }
 
     private void upsertRptSwapRequest(Map<String, Object> rec, String reqId) {
-        RptSwapRequest exist = rptSwapRequestMapper.selectOne(
-            new LambdaQueryWrapper<RptSwapRequest>().eq(RptSwapRequest::getRequestId, reqId));
+        RptSwapRequest exist = selectOneSafe(rptSwapRequestMapper,
+            new LambdaQueryWrapper<RptSwapRequest>().eq(RptSwapRequest::getRequestId, reqId),
+            "rpt_swap_request.request_id");
         RptSwapRequest entity = mapRptSwapRequest(rec);
         entity.setSourceSyncAt(LocalDateTime.now());
         if (exist != null) { entity.setId(exist.getId()); rptSwapRequestMapper.updateById(entity); }
@@ -668,11 +676,13 @@ public class SyncService {
 
     private ScheduleDetail resolveScheduleDetail(String externalId) {
         if (externalId == null || externalId.isBlank()) return null;
-        ScheduleDetail detail = scheduleDetailMapper.selectOne(
-            new LambdaQueryWrapper<ScheduleDetail>().eq(ScheduleDetail::getSourceKey, "WX:" + externalId));
+        ScheduleDetail detail = selectOneSafe(scheduleDetailMapper,
+            new LambdaQueryWrapper<ScheduleDetail>().eq(ScheduleDetail::getSourceKey, "WX:" + externalId),
+            "schedule_detail.source_key(WX)");
         if (detail == null) {
-            detail = scheduleDetailMapper.selectOne(
-                new LambdaQueryWrapper<ScheduleDetail>().eq(ScheduleDetail::getSourceKey, externalId));
+            detail = selectOneSafe(scheduleDetailMapper,
+                new LambdaQueryWrapper<ScheduleDetail>().eq(ScheduleDetail::getSourceKey, externalId),
+                "schedule_detail.source_key(raw)");
         }
         if (detail == null && externalId.matches("\\d+")) {
             detail = scheduleDetailMapper.selectById(Long.valueOf(externalId));
@@ -682,8 +692,9 @@ public class SyncService {
 
     private Long resolveLeaveRequestId(String externalId) {
         if (externalId == null || externalId.isBlank()) return null;
-        LeaveRequest leave = leaveRequestMapper.selectOne(
-            new LambdaQueryWrapper<LeaveRequest>().eq(LeaveRequest::getSourceRequestId, externalId));
+        LeaveRequest leave = selectOneSafe(leaveRequestMapper,
+            new LambdaQueryWrapper<LeaveRequest>().eq(LeaveRequest::getSourceRequestId, externalId),
+            "leave_request.source_request_id(external)");
         if (leave != null) return leave.getId();
         return externalId.matches("\\d+") ? Long.valueOf(externalId) : null;
     }
@@ -717,8 +728,9 @@ public class SyncService {
 
     private Long findEmployeeByOpenid(String openid) {
         if (openid == null || openid.isEmpty()) return null;
-        Employee e = employeeMapper.selectOne(
-            new LambdaQueryWrapper<Employee>().eq(Employee::getOpenid, openid));
+        Employee e = selectOneSafe(employeeMapper,
+            new LambdaQueryWrapper<Employee>().eq(Employee::getOpenid, openid),
+            "employee.openid");
         return e != null ? e.getId() : null;
     }
 
@@ -778,11 +790,13 @@ public class SyncService {
     }
 
     public Map<String, Object> findEmployeeByEmpNo(String empNo) {
-        Employee e = employeeMapper.selectOne(
-            new LambdaQueryWrapper<Employee>().eq(Employee::getEmpNo, empNo));
+        Employee e = selectOneSafe(employeeMapper,
+            new LambdaQueryWrapper<Employee>().eq(Employee::getEmpNo, empNo),
+            "employee.emp_no");
         if (e == null) return null;
-        RptStaff rpt = rptStaffMapper.selectOne(
-            new LambdaQueryWrapper<RptStaff>().eq(RptStaff::getEmployeeNo, empNo));
+        RptStaff rpt = selectOneSafe(rptStaffMapper,
+            new LambdaQueryWrapper<RptStaff>().eq(RptStaff::getEmployeeNo, empNo),
+            "rpt_staff.employee_no");
         TeamGroup group = e.getGroupId() == null ? null : teamGroupMapper.selectById(e.getGroupId());
         List<EmployeeQualification> qualificationRows = qualificationMapper.selectList(
             new LambdaQueryWrapper<EmployeeQualification>()
@@ -1014,19 +1028,19 @@ public class SyncService {
     /**
      * 安全 selectOne:sourceKey 等非唯一键命中多行时取首条并告警,
      * 避免 TooManyResultsException 抛 RuntimeException 导致整批 500 回滚(审查 H3)。
+     * 注意:MyBatis-Plus 3.5.x 会把 TooManyResultsException 翻译成 MyBatisSystemException,
+     * 因此直接 selectList + size 判断(而非 catch 翻译后的异常,review 修正)。
      * 根治仍需为 employee.emp_no / aircraft_type.type_code 建唯一索引(见 db 迁移)。
      */
     private <T> T selectOneSafe(com.baomidou.mybatisplus.core.mapper.BaseMapper<T> mapper,
                                 com.baomidou.mybatisplus.core.conditions.Wrapper<T> wrapper,
                                 String what) {
-        try {
-            return mapper.selectOne(wrapper);
-        } catch (org.apache.ibatis.exceptions.TooManyResultsException ex) {
-            java.util.List<T> rows = mapper.selectList(wrapper);
+        java.util.List<T> rows = mapper.selectList(wrapper);
+        if (rows == null || rows.isEmpty()) return null;
+        if (rows.size() > 1) {
             log.warn("SyncService: {} 命中 {} 条重复记录,取首条(建议为 {} 建唯一索引)",
-                    what, rows == null ? 0 : rows.size(), what);
-            if (rows == null || rows.isEmpty()) return null;
-            return rows.get(0);
+                    what, rows.size(), what);
         }
+        return rows.get(0);
     }
 }

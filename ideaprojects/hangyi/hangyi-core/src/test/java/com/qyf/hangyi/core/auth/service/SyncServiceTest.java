@@ -97,8 +97,8 @@ class SyncServiceTest {
         aircraftType.setId(21L);
         aircraftType.setTypeCode("A320");
 
-        when(employeeMapper.selectOne(any())).thenReturn(employee);
-        when(rptStaffMapper.selectOne(any())).thenReturn(rpt);
+        when(employeeMapper.selectList(any())).thenReturn(List.of(employee));
+        when(rptStaffMapper.selectList(any())).thenReturn(List.of(rpt));
         when(teamGroupMapper.selectById(7L)).thenReturn(group);
         when(qualificationMapper.selectList(any())).thenReturn(List.of(qualification));
         when(aircraftTypeMapper.selectBatchIds(any())).thenReturn(List.of(aircraftType));
@@ -119,7 +119,7 @@ class SyncServiceTest {
 
     @Test
     void employeeLookupReturnsNullWhenEmployeeDoesNotExist() {
-        when(employeeMapper.selectOne(any())).thenReturn(null);
+        when(employeeMapper.selectList(any())).thenReturn(List.of());
 
         assertThat(service.findEmployeeByEmpNo("UNKNOWN")).isNull();
     }
@@ -150,7 +150,7 @@ class SyncServiceTest {
         Employee employee = new Employee();
         employee.setId(11L);
         employee.setEmpNo("GH001");
-        when(employeeMapper.selectOne(any())).thenReturn(employee);
+        when(employeeMapper.selectList(any())).thenReturn(List.of(employee));
         var method = SyncService.class.getDeclaredMethod(
             "upsertEmployee", Map.class, String.class, Map.class);
         method.setAccessible(true);
@@ -183,14 +183,14 @@ class SyncServiceTest {
         Employee employee = new Employee();
         employee.setId(11L);
         employee.setEmpNo("GH001");
-        when(employeeMapper.selectList(null)).thenReturn(List.of(employee));
+        when(employeeMapper.selectList(any())).thenReturn(List.of(employee));
 
         Schedule master = new Schedule();
         master.setId(21L);
-        when(scheduleMapper.selectOne(any())).thenReturn(master);
+        when(scheduleMapper.selectList(any())).thenReturn(List.of(master));
         ScheduleDetail existing = new ScheduleDetail();
         existing.setId(31L);
-        when(scheduleDetailMapper.selectOne(any())).thenReturn(existing);
+        when(scheduleDetailMapper.selectList(any())).thenReturn(List.of(existing));
 
         int count = service.syncSchedules(List.of(Map.of(
             "_id", "cloud-schedule-id",
@@ -219,14 +219,14 @@ class SyncServiceTest {
         Employee employee = new Employee();
         employee.setId(11L);
         employee.setEmpNo("GH001");
-        when(employeeMapper.selectList(null)).thenReturn(List.of(employee));
+        when(employeeMapper.selectList(any())).thenReturn(List.of(employee));
 
         ScheduleDetail source = new ScheduleDetail();
         source.setId(41L);
         source.setEmployeeId(11L);
         source.setWorkDate(LocalDate.of(2026, 8, 3));
         source.setShiftId(2L);
-        when(scheduleDetailMapper.selectOne(any())).thenReturn(source);
+        when(scheduleDetailMapper.selectList(any())).thenReturn(List.of(source));
 
         int count = service.syncSwapRequests(List.of(Map.of(
             "_id", "cloud-swap-id",
@@ -251,10 +251,10 @@ class SyncServiceTest {
         Employee employee = new Employee();
         employee.setId(11L);
         employee.setEmpNo("GH001");
-        when(employeeMapper.selectList(null)).thenReturn(List.of(employee));
+        when(employeeMapper.selectList(any())).thenReturn(List.of(employee));
         LeaveRequest existing = new LeaveRequest();
         existing.setId(51L);
-        when(leaveRequestMapper.selectOne(any())).thenReturn(existing);
+        when(leaveRequestMapper.selectList(any())).thenReturn(List.of(existing));
 
         int count = service.syncLeaveRequests(List.of(Map.ofEntries(
             Map.entry("_id", "cloud-leave-id"),
@@ -284,7 +284,7 @@ class SyncServiceTest {
     void operationLogSyncUpdatesBySourceIdAndStoresStructuredTargetAsJson() {
         OperationLog existing = new OperationLog();
         existing.setId(61L);
-        when(operationLogMapper.selectOne(any())).thenReturn(existing);
+        when(operationLogMapper.selectList(any())).thenReturn(List.of(existing));
 
         int count = service.syncOperationLogs(List.of(Map.of(
             "_id", "cloud-log-id",
@@ -309,7 +309,7 @@ class SyncServiceTest {
             group.setId("A组".equals(group.getGroupName()) ? 71L : 72L);
             return 1;
         }).when(teamGroupMapper).insert(any(TeamGroup.class));
-        when(employeeMapper.selectOne(any())).thenReturn(null);
+        when(employeeMapper.selectList(any())).thenReturn(List.of());
         doAnswer(invocation -> {
             Employee employee = invocation.getArgument(0);
             employee.setId(81L);

@@ -124,7 +124,6 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
     }
 
     /** R4: 单班工时上限（小时）。 */
-    private static final int MAX_MONTHLY_SHIFT_COUNT = 22;  // 22 * 8 = 176h
 
     /**
      * R4: 员工月工时上限（硬约束）。
