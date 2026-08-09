@@ -86,9 +86,7 @@
 │       ├── index.js                        # 增量查询 + 批量推送 + 游标推进
 │       ├── config.json                     # 60s 超时 + timer 触发器
 │       └── package.json                    # 依赖：wx-server-sdk
-└── configSettings/                        # 一次性配置/诊断脚本云函数（demo 联调写 settings 同步配置）
-    ├── index.js                            # 支持 apply / read / count 等 action
-    └── package.json                        # 依赖：wx-server-sdk
+└── quickstartFunctions 同步配置以云控制台 settings 集合为准（无独立配置函数）
 ├── miniprogram/
 │   ├── app.js                              # 入口 / 云开发初始化 / 网络监听 / 全局异常
 │   ├── app.json                            # 23 个页面路由 + 4 个 TabBar
@@ -152,7 +150,8 @@
 5. 在微信开发者工具里右键 `cloudfunctions/quickstartFunctions` → **上传并部署：云端安装依赖**
 6. 同样右键 `cloudfunctions/bootstrapAdmin` → **上传并部署：云端安装依赖**
 7. 同样右键 `cloudfunctions/syncToHangyi` → **上传并部署：云端安装依赖**
-8. 同样右键 `cloudfunctions/configSettings` → **上传并部署：云端安装依赖**(demo 联调写入 `settings` 同步配置用)
+
+> 已删除 demo 残留的 `cloudfunctions/configSettings`（无鉴权且写死假配置，**不要部署**；同步配置统一在云控制台 `settings` 集合维护）
 
 > 若页面提示“未知操作类型”，说明小程序源码已更新但 `quickstartFunctions`
 > 仍是旧的云端版本，需要重新执行第 5 步。
@@ -237,7 +236,7 @@ npm test
 
 ### 已有云环境升级注意
 
-- 重新上传 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi` 和 `configSettings`；前者再用带 `INITIALIZE_DEMO_DATA` 确认文本的参数执行一次 `bootstrapData`，只补缺失集合和配置，不会覆盖现有业务数据。
+- 重新上传 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi`；前者再用带 `INITIALIZE_DEMO_DATA` 确认文本的参数执行一次 `bootstrapData`，只补缺失集合和配置，不会覆盖现有业务数据。
 - Java 既有数据库先备份，并依次执行 `db/02-fix-audit-findings.sql`、`db/03-assistant-rag.sql`、`db/04-miniapp-sync-contract.sql`，再部署最新 Core/Schedule/Assistant。
 - 检查并补齐 `settings.demoToolsEnabled="false"`；生产环境保持关闭。
 - 代码已删除旧的同步地址和密钥默认值，但 `bootstrapData` 不会覆盖数据库中的旧值。若旧环境仍保存旧密钥，需在 Java 端轮换后更新云 DB。
@@ -246,7 +245,7 @@ npm test
 ### 客户演示前检查单
 
 1. 微信开发者工具右上角保持已登录，点击“编译”，确认调试器没有编译错误或 `access_token expired`。
-2. 用“云端安装依赖”方式重新部署 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi`、`configSettings`，避免源码与云端端点版本不一致。
+2. 用“云端安装依赖”方式重新部署 `quickstartFunctions`、`bootstrapAdmin`、`syncToHangyi`，避免源码与云端端点版本不一致。
 3. 新环境先在云端控制台执行带 `INITIALIZE_DEMO_DATA` 确认文本的 `bootstrapData`，再用 `GH001 / 张伟 / 13800000001` 完成首次绑定和管理员自举。
 4. 先验证普通员工“登录 -> 我的排班 -> 调班/请假 -> 图片预览 -> 撤回 -> 通知”，再验证管理员“管理中心 -> 人员 -> 排班预览/发布 -> 审批 -> 统计/历史/审计”。
 5. 专门验证“普通账号退出 -> GH001 管理员登录”，确认管理中心仍可进入且管理端点不返回 403。
