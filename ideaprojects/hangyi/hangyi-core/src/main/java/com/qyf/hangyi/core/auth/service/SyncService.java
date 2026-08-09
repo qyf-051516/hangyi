@@ -344,7 +344,7 @@ public class SyncService {
                             .eq(AircraftType::getTypeCode, aircraftType)
                             .or()
                             .eq(AircraftType::getTypeName, aircraftType)
-                            .last("LIMIT 1"),
+                            .orderByAsc(AircraftType::getId),
                     "aircraft_type(typeCode|typeName)");
             if (type != null) {
                 fp.setAircraftTypeId(type.getId());

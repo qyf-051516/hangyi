@@ -183,7 +183,7 @@ class SolverEndToEndTest {
 
     /**
      * R4 月工时超 176h 触发：1 员工被排 23 个 MORNING 班（23*8=184h > 176h）→ 硬约束违例。
-     * R4 实现：count > 22 (MAX_MONTHLY_SHIFT_COUNT) 触发。
+     * R4 实现：sumLong(hours) + monthlyHours > 176h 触发(计入历史月工时,审查 H2 修正)。
      */
     @Test
     void r4_monthlyHourCap_over176h_triggersHardPenalty() {

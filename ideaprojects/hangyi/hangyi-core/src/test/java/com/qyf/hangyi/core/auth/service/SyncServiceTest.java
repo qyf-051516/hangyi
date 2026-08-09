@@ -211,7 +211,7 @@ class SyncServiceTest {
         assertThat(captor.getValue().getShiftId()).isEqualTo(2L);
         assertThat(captor.getValue().getRecordStatus()).isEqualTo("archived");
         assertThat(captor.getValue().getFlightId()).isNull();
-        verify(flightPlanMapper, never()).selectOne(any());
+        verify(flightPlanMapper, never()).selectList(any());
     }
 
     @Test
