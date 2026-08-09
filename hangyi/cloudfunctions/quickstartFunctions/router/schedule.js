@@ -1439,6 +1439,9 @@ const smartScheduleSingle = async (event) => {
     requiredCount = 1, stayHours = 0, commit = false,
   } = event.data || {};
 
+  if (!flightNo || !String(flightNo).trim()) {
+    return fail("请填写真实航班号", 400);
+  }
   if (!airline || !aircraftType || !departureTime) {
     return fail("请提供航司、机型和起飞时间", 400);
   }

@@ -494,7 +494,7 @@ Page({
     this.setData({
       showSmartForm: true,
       smartForm: {
-        flightNo: `MU${String(now.getTime()).slice(-4)}`,
+        flightNo: "",
         airline: "中国东方航空",
         aircraftType: "A320",
         engineModel: "CFM56-5B",
@@ -595,6 +595,10 @@ Page({
   async onAnalyzeSchedule() {
     const { smartForm } = this.data;
 
+    if (!smartForm.flightNo || !smartForm.flightNo.trim()) {
+      wx.showToast({ title: "请填写真实航班号", icon: "none" });
+      return;
+    }
     if (!smartForm.airline || !smartForm.aircraftType || !smartForm.departureTime) {
       wx.showToast({ title: "请填写航司、机型、起飞时间", icon: "none" });
       return;

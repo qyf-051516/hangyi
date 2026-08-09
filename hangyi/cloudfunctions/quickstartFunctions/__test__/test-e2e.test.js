@@ -2673,6 +2673,29 @@ test("e2e/schedule: 勤务智能排班只生成预览，确认发布后写入完
   assert.ok(records.every((item) => item._taskStart && item._taskEnd));
 });
 
+test("e2e/schedule: 单天智能排班拒绝空航班号(防假航班)", async () => {
+  global.resetMockState({ openid: "openid-smart-empty-admin" });
+  seedStaff({
+    employeeNo: "GHEMP00",
+    name: "管理员",
+    openid: "openid-smart-empty-admin",
+    isAdmin: true,
+  });
+  const r = await scheduleRouter.smartScheduleSingle({
+    data: {
+      flightNo: "", // 前端不再预填 MUxxxx,空航班号必须被拒绝
+      airline: "中国东方航空",
+      aircraftType: "A320",
+      departureTime: `${dateOffset(1)}T14:00`,
+    },
+  });
+  assert.equal(r.code, 400);
+  assert.match(r.message, /航班号/);
+  // 不得生成假排班/假航班
+  assert.equal((state.collections.schedules || []).length, 0);
+  assert.equal((state.collections.flights || []).length, 0);
+});
+
 test("e2e/schedule: 勤务发布拒绝人员不足的预览", async () => {
   global.resetMockState({ openid: "openid-service-shortage-admin" });
   seedStaff({
