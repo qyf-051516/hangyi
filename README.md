@@ -145,15 +145,3 @@ JUnit 分布在 `ideaprojects/hangyi/hangyi-*/src/test/java/` 下,覆盖 control
 
 ---
 
-## 七、待办
-
-- Git 仓拆分独立远端(小程序/后端各自独立仓库),消除 Gitee 共用一仓的分叉风险
-- 升级 MyBatis-Plus 3.5.5+ 带 `PaginationInnerInterceptor`,去掉 `.last()` long 拼接豁免
-- `ScheduleService.getGanttData*` N+1 性能优化(多次全量 Feign 调用无缓存)
-
----
-
-## 八、维护者
-
-- **项目**:航翼排班系统 · 大创项目
-- **远端账号**:Gitee `qyf0905`(主用)/ GitHub `qyf-051516` / 微信代码托管 `wx_wxa2187338fc140cac`
